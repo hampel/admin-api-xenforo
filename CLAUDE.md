@@ -7,7 +7,8 @@ the surfaces and fragile points; this file does not repeat them.
 ## The add-on is a read-only window onto operational state, and nothing else
 
 It adds REST endpoints for what the core API leaves out — the server error log and the add-on
-inventory so far. It has no writes, no options, no schema and no `Setup.php`.
+inventory so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
+under *Mechanics*.
 
 **It does not speak any agent protocol and must not grow one.** A consumer — a monitoring script,
 or a separate tool that presents these endpoints to an agent — sits outside the forum. If a
@@ -50,6 +51,10 @@ is whether it can carry member data.
   and export the entity with `DevelopmentOutput::export()`. `xf-dev:import` reads metadata and
   never creates it.
 - **Scope ids are lower case.** Core lowercases them on save.
+- **A release carries a scope's id and nothing else.** `usable_with_oauth_clients` is not exported,
+  so an installed scope takes the column default of usable. `Setup.php` sets it back after an
+  install, an upgrade and a rebuild. The development install never shows this, because there the
+  value comes from `_output/`.
 - **`preDispatchController($action, ParameterBag $params)` is untyped**, as it is in core. A
   `string` on `$action` is a fatal at class load.
 - **The PHP floor is 7.4 and the dev dependencies need far newer**, so the suite cannot tell you

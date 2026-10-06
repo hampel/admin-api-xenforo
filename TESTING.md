@@ -15,7 +15,9 @@ checked. For whoever changes it next.
 | phrases | 4 — the scope description, the two permission titles, one error |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
-cron entries, JS or LESS. No `Setup.php`: the add-on creates no schema and reads only core tables.
+cron entries, JS or LESS. The add-on creates no schema and reads only core tables; `Setup.php` has
+no install, upgrade or uninstall steps, and its post-install, post-upgrade and post-rebuild hooks
+withhold the scope from OAuth clients.
 
 ## Fragile points
 
@@ -45,6 +47,11 @@ it for values planted in the columns that must not appear.
 segments first and then one, so an add-on without a vendor is still found. A file under
 `src/addons/` belonging to no installed add-on gives `null`, not a guess.
 
+**A release does not carry the scope's `usable_with_oauth_clients` flag.** XenForo exports the
+scope id alone, so a forum installing from a zip gets the column default, which is usable. The
+gates refuse an access token regardless; `Setup.php` puts the flag back so the scope is not
+offered to an OAuth client at all. Only an install from a zip can show whether that worked.
+
 ## Automated
 
 ```bash
@@ -58,6 +65,8 @@ vendor/bin/phpunit
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
   personal and request column.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`.
+- `tests/Feature/SetupTest.php` sets the scope's OAuth flag as a release import leaves it and
+  checks that the post-install hook clears it.
 - `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling.
 
 To confirm the gate tests are real, remove one of the three calls in
@@ -73,7 +82,8 @@ tests fail without the first, one without the second, four without the third.
   allows all scopes. The second and third must be refused.
 - **The admin control panel.** The two permissions appear on the administrator edit page and the
   scope appears on the API key page, each with its description rather than a raw phrase key.
-- **Install on a forum that has never had it**, from a release zip, and uninstall again. There is
-  no upgrade path to test until a version has been released.
+- **Install on a forum that has never had it**, from a release zip, and uninstall again. After the
+  install, the scope must not be offered when editing an OAuth client. There is no upgrade path
+  to test until a version has been released.
 - **The declared floors.** The suite runs on one XenForo and one PHP version. XenForo 2.3.0 and
   PHP 7.4 are what the code is written to, not what it has been run on.
