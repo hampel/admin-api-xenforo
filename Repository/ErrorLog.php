@@ -231,7 +231,7 @@ class ErrorLog extends Repository
 				strpos($trace, 'XF/Job/Manager.php(') !== false
 			),
 			'origin_add_on_id' => $this->getOriginAddOnId($inInstall ? $filename : '', $trace, $addOnIds),
-			'trace' => str_replace($this->getRootPrefix(), '', $entry->trace_string),
+			'trace' => $this->getRelativeTrace($entry->trace_string),
 		];
 
 		if ($withRequest)
@@ -244,6 +244,22 @@ class ErrorLog extends Repository
 		}
 
 		return $described;
+	}
+
+	/**
+	 * Gives each frame's own file the same treatment as a filename: relative under the install,
+	 * the bare name outside it. What a frame was called with is left as logged.
+	 *
+	 * @param string $trace
+	 *
+	 * @return string
+	 */
+	public function getRelativeTrace($trace)
+	{
+		return preg_replace_callback('~^(#\d+ )(.+?)(\(\d+\): )~m', function (array $match)
+		{
+			return $match[1] . $this->getRelativeFilename($match[2]) . $match[3];
+		}, $trace);
 	}
 
 	/**

@@ -94,6 +94,12 @@ its own scope, its own permission plus `viewLogs`, entry by `error_id` only, and
 has a test. The cap had a bug on the day it was written — a finder asked to fetch none returns
 them all, so `limit=1` returned every entry at that place — and only the test for it showed that.
 
+**A trace has to be reduced the same way a filename is.** Stripping the install root from a trace
+is not enough: a frame in a file outside the install was returned in full while the summary
+returned the same file by name only. Each frame's own path now goes through
+`getRelativeFilename()`. Arguments are not touched, and PHP truncates them, so a fragment of a
+path can still appear in one.
+
 **A class constant in a test is evaluated while the suite is being built**, before XenForo and the
 add-on's classes can load. Naming an add-on class in one stops the whole run.
 

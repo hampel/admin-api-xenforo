@@ -163,4 +163,28 @@ class ErrorLogRepositoryTest extends TestCase
 
 		$this->assertNull($this->repo()->getOriginAddOnId('src/XF/Mvc/Dispatcher.php', $trace, self::ADD_ONS));
 	}
+
+	/**
+	 * The summary reduces a file outside the install to its name. A trace that returned the same
+	 * file in full would hand back what the summary held on to.
+	 */
+	public function test_a_trace_gives_each_frames_file_the_same_treatment_as_a_filename()
+	{
+		$root = realpath(\XF::getRootDirectory());
+		$trace = "#0 [internal function]: handle(512, '/home/someone/x...')\n"
+			. '#1 ' . \XF::getRootDirectory() . "/src/XF/Mvc/Dispatcher.php(20): go('a')\n"
+			. "#2 src/addons/Vendor/First/Thing.php(4): x()\n"
+			. "#3 /tmp/session-1000/scratch/render.php(6): run()\n"
+			. "#4 {main}";
+
+		$this->assertSame(
+			"#0 [internal function]: handle(512, '/home/someone/x...')\n"
+			. "#1 src/XF/Mvc/Dispatcher.php(20): go('a')\n"
+			. "#2 src/addons/Vendor/First/Thing.php(4): x()\n"
+			. "#3 render.php(6): run()\n"
+			. "#4 {main}",
+			$this->repo()->getRelativeTrace($trace)
+		);
+		$this->assertNotSame('', $root);
+	}
 }

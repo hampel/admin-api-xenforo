@@ -131,7 +131,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "count": 4,
             "first_date": 1790340412,
             "last_date": 1790771401,
-            "last_error_id": 418,
+            "last_error_id": 1001,
             "severity": "E_USER_WARNING",
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
             "origin_add_ons": [
@@ -152,8 +152,11 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - `filename` is relative to the forum's root directory. For a file outside it only the file's own
   name is returned, with `in_install: false` — its directories are the server's layout and can
   hold an account name. `Command line code` is PHP's name for code run with `php -r`.
-- **An `ErrorException` is any PHP warning, notice or deprecation**, so the type alone says little;
-  the file and line are what identify it.
+- **An `ErrorException` says little by itself.** XenForo uses it for a PHP warning, notice or
+  deprecation, for a fatal error, and for a message an add-on chose to log — read `severity` to
+  tell the first two apart. A logged message has no level and is recorded at the line of
+  XenForo's own logging function, so every add-on's logged messages share one signature; the
+  originating add-on is what separates them.
 - `first_date` equal to `last_date` with a `count` above one is a burst within one second —
   usually one request failing several times, not several requests.
 - `add_on_id` is the add-on whose directory the error was raised in, `XF` for the core, or `null`.
@@ -161,7 +164,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   raised inside the core's templater.
 - **The originating add-on is the better answer to "whose error is this".** It is the add-on the
   error was raised in or, for an error raised in the core, the first add-on in the calls that led
-  there. `null` means no installed add-on's code was involved. It is the *nearest* add-on, which
+  there. `null` means no installed add-on's PHP file is in that path — which is not the same as no
+  add-on being involved: an error raised while rendering an add-on's *template* has only core
+  files in its path. It is the *nearest* add-on, which
   is usually the cause and occasionally one that only wraps a core class every request passes
   through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
   `origin_add_ons` the same for one signature, since one line of core is reached from many places.
@@ -169,7 +174,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   or a `job` — which includes every cron entry, however the job was triggered. Errors that are all
   `cli` are someone at a terminal, not members.
 - `severity` is the PHP error level of a warning, notice or deprecation, `fatal` for a fatal
-  error, and `null` for an exception that was thrown, which has no level. `mixed` means one
+  error, and `null` for anything else — an exception that was thrown, or a message that was
+  logged — which has no level. `mixed` means one
   signature was seen at more than one.
 - `by_day` has one entry per UTC day, quiet days included, from the start of the window or of the
   log, whichever is later. A day before the log begins is left out, not shown as zero. At most 366
@@ -208,7 +214,7 @@ It takes three things to reach it:
 | `request` | `1` to add the recorded request, the user id and the IP address to each entry |
 
 ```bash
-curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entries/?error_id=418&limit=1"
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entries/?error_id=1001&limit=1"
 ```
 
 ```json
@@ -216,7 +222,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
     "signature_total": 4,
     "entries": [
         {
-            "error_id": 418,
+            "error_id": 1001,
             "exception_date": 1790771401,
             "exception_type": "ErrorException",
             "message": "Template error: [E_USER_WARNING] Cannot call method canView on a non-object (NULL)",
@@ -240,8 +246,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   the most sensitive part. With `request=1` each entry gains `user_id`, `ip_address` and
   `request` — the URL, referrer and submitted data of a web request, or the command line.
   XenForo removes passwords from the submitted data before logging it, and nothing else.
-- Paths in `filename` and at the start of each trace line are relative to the forum's root. The
-  arguments inside a trace are returned as logged.
+- Paths in `filename` and at the start of each trace line are relative to the forum's root, and a
+  file outside it is given by name only, as in the summary. **The message, and the arguments
+  inside a trace, are returned as logged** — a database error's message carries the SQL and the
+  database name, which the configuration endpoint withholds.
 
 ## Add-on inventory
 
