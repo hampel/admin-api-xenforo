@@ -135,6 +135,7 @@ class ErrorLogSummaryTest extends TestCase
 			'filename' => 'src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php',
 			'line' => 10,
 			'in_install' => true,
+			'location' => 'add_on',
 			'add_on_id' => 'Hampel/AdminApi',
 			'count' => 3,
 			'first_date' => 1100,
@@ -215,6 +216,34 @@ class ErrorLogSummaryTest extends TestCase
 	}
 
 	/**
+	 * A bundled library and a test run are raised in an add-on's directory and are not its code.
+	 */
+	public function test_it_says_what_kind_of_code_an_error_was_raised_in()
+	{
+		$base = 'src/addons/Hampel/AdminApi/';
+		$this->insertError(1810, 'Error', $base . 'vendor/phpunit/phpunit/src/Thing.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI);
+		$this->insertError(1820, 'Error', $base . 'tests/Unit/ThingTest.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI);
+		$this->insertError(1830, 'Error', 'src/vendor/symfony/console/Application.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI);
+		$this->insertError(1840, 'Error', 'internal_data/code_cache/templates/l1/s0/public/thing.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI);
+
+		$summary = $this->summary();
+
+		$this->assertSame([
+			'core' => 2,
+			'add_on' => 3,
+			'add_on_vendor' => 1,
+			'add_on_tests' => 1,
+			'vendor' => 1,
+			'other' => 1,
+			'outside' => 2,
+		], $summary['by_location']);
+
+		$this->assertSame('add_on_vendor', $this->signature($summary, $base . 'vendor/phpunit/phpunit/src/Thing.php')['location']);
+		$this->assertSame('Hampel/AdminApi', $this->signature($summary, $base . 'vendor/phpunit/phpunit/src/Thing.php')['add_on_id']);
+		$this->assertSame('outside', $this->signature($summary, 'script.php')['location']);
+	}
+
+	/**
 	 * A directory outside the install is the server's layout and can name an account. Two such
 	 * files that differ only by directory become one signature once it is dropped.
 	 */
@@ -287,6 +316,8 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame([], $summary['signatures']);
 		$this->assertSame([], $summary['by_severity']);
 		$this->assertSame(['web' => 0, 'cli' => 0, 'job' => 0, 'unknown' => 0], $summary['by_origin']);
+		$this->assertSame(0, array_sum($summary['by_location']));
+		$this->assertSame(ErrorLog::LOCATIONS, array_keys($summary['by_location']));
 		$this->assertSame(['rows' => 0, 'complete' => true], $summary['examined']);
 		$this->assertGreaterThanOrEqual(9, $summary['log']['total']);
 	}
@@ -342,6 +373,7 @@ class ErrorLogSummaryTest extends TestCase
 		{
 			$this->assertContains($signature['severity'], $severities);
 			$this->assertSame(['web', 'cli', 'job', 'unknown'], array_keys($signature['origins']));
+			$this->assertContains($signature['location'], ErrorLog::LOCATIONS);
 
 			foreach ($signature['origin_add_ons'] AS $group)
 			{

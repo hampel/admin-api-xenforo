@@ -80,6 +80,7 @@ class ErrorEntriesTest extends TestCase
 			'filename' => self::FILE,
 			'line' => self::LINE,
 			'in_install' => true,
+			'location' => 'add_on_tests',
 			'severity' => null,
 			'origin' => 'web',
 			'origin_add_on_id' => 'Hampel/AdminApi',

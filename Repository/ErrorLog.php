@@ -18,6 +18,8 @@ class ErrorLog extends Repository
 
 	const ORIGINS = ['web', 'cli', 'job', 'unknown'];
 
+	const LOCATIONS = ['core', 'add_on', 'add_on_vendor', 'add_on_tests', 'vendor', 'other', 'outside'];
+
 	/**
 	 * Every name XenForo can put in brackets at the start of a PHP error's message.
 	 */
@@ -63,6 +65,7 @@ class ErrorLog extends Repository
 		$newest = null;
 		$byType = [];
 		$byAddOn = [];
+		$byLocation = array_fill_keys(self::LOCATIONS, 0);
 		$signatures = [];
 
 		foreach ($rows AS $row)
@@ -73,8 +76,10 @@ class ErrorLog extends Repository
 			$inInstall = $this->isInInstall($row['filename']);
 			$filename = $this->getRelativeFilename($row['filename']);
 			$addOnId = $inInstall ? $this->getAddOnIdFromFilename($filename, $addOnIds) : null;
+			$location = $this->getLocation($filename, $inInstall, $addOnId);
 
 			$total += $count;
+			$byLocation[$location] += $count;
 			$oldest = $oldest === null ? $first : min($oldest, $first);
 			$newest = $newest === null ? $last : max($newest, $last);
 
@@ -98,6 +103,7 @@ class ErrorLog extends Repository
 				'filename' => $filename,
 				'line' => (int) $row['line'],
 				'in_install' => $inInstall,
+				'location' => $location,
 				'add_on_id' => $addOnId,
 				'count' => $count,
 				'first_date' => $first,
@@ -135,6 +141,7 @@ class ErrorLog extends Repository
 			'by_type' => $this->sortGroup($byType),
 			'by_severity' => $this->sortGroup($examined['by_severity']),
 			'by_origin' => $examined['by_origin'],
+			'by_location' => $byLocation,
 			'by_add_on' => $this->sortGroup($byAddOn),
 			'by_origin_add_on' => $this->sortGroup($examined['by_origin_add_on']),
 			'examined' => [
@@ -225,6 +232,11 @@ class ErrorLog extends Repository
 			'filename' => $filename,
 			'line' => $entry->line,
 			'in_install' => $inInstall,
+			'location' => $this->getLocation(
+				$filename,
+				$inInstall,
+				$inInstall ? $this->getAddOnIdFromFilename($filename, $addOnIds) : null
+			),
 			'severity' => $this->getSeverityFromMessage(substr($entry->message, 0, self::MESSAGE_START)),
 			'origin' => $this->getOrigin(
 				isset($request['url']) ? '{"url":' : (isset($request['cli']) ? '{"cli":' : ''),
@@ -571,6 +583,49 @@ class ErrorLog extends Repository
 		}
 
 		return in_array($match[1], $addOnIds, true) ? $match[1] : null;
+	}
+
+	/**
+	 * What kind of code a file is, from its path alone. An error under an add-on's vendor or tests
+	 * directory is raised in that add-on's directory without being that add-on's own code - a
+	 * bundled library, or a test run.
+	 *
+	 * @param string $filename Relative to the install root, or a bare name when outside it
+	 * @param bool $inInstall
+	 * @param string|null $addOnId
+	 *
+	 * @return string One of LOCATIONS
+	 */
+	public function getLocation($filename, $inInstall, $addOnId)
+	{
+		if (!$inInstall)
+		{
+			return 'outside';
+		}
+
+		if ($addOnId === 'XF')
+		{
+			return 'core';
+		}
+
+		if ($addOnId !== null)
+		{
+			$inside = substr($filename, strlen('src/addons/' . $addOnId . '/'));
+
+			if (strpos($inside, 'vendor/') === 0)
+			{
+				return 'add_on_vendor';
+			}
+
+			if (preg_match('#^(tests|Tests|Test)/#', $inside))
+			{
+				return 'add_on_tests';
+			}
+
+			return 'add_on';
+		}
+
+		return strpos($filename, 'src/vendor/') === 0 ? 'vendor' : 'other';
 	}
 
 	/**

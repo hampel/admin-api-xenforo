@@ -18,8 +18,10 @@ class AddOns extends AbstractController
 	 *
 	 * @api-out array $xf XenForo's own version_id and version_string
 	 * @api-out str $php_version
-	 * @api-out array $add_ons One entry per add-on, ordered by title
+	 * @api-out array $add_ons One entry per add-on, ordered by title, with its versions and whether an install, upgrade or uninstall is under way or was left unfinished
 	 */
+	const PENDING_ACTIONS = ['install', 'upgrade', 'uninstall'];
+
 	public function actionGet()
 	{
 		$addOns = [];
@@ -42,6 +44,8 @@ class AddOns extends AbstractController
 				'files_version_string' => $available ? $addOn->json_version_string : null,
 				'can_upgrade' => $addOn->canUpgrade(),
 				'has_pending_changes' => $addOn->hasPendingChanges(),
+				'is_processing' => $installed ? (bool) $installed->is_processing : false,
+				'pending_action' => $this->getPendingAction($installed),
 			];
 		}
 
@@ -53,5 +57,25 @@ class AddOns extends AbstractController
 			'php_version' => PHP_VERSION,
 			'add_ons' => $addOns,
 		]);
+	}
+
+	/**
+	 * XenForo records the action it is part-way through as "action:step", and clears it when the
+	 * action finishes. One still there with nothing running is an action that stopped.
+	 *
+	 * @param \XF\Entity\AddOn|null $installed
+	 *
+	 * @return string|null One of PENDING_ACTIONS, 'unknown', or null when there is none
+	 */
+	protected function getPendingAction($installed)
+	{
+		if (!$installed || !$installed->last_pending_action)
+		{
+			return null;
+		}
+
+		$action = explode(':', $installed->last_pending_action)[0];
+
+		return in_array($action, self::PENDING_ACTIONS, true) ? $action : 'unknown';
 	}
 }

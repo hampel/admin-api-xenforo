@@ -187,4 +187,31 @@ class ErrorLogRepositoryTest extends TestCase
 		);
 		$this->assertNotSame('', $root);
 	}
+
+	public function test_a_file_is_placed_by_its_path()
+	{
+		$repo = $this->repo();
+
+		$this->assertSame('core', $repo->getLocation('src/XF/Mvc/Dispatcher.php', true, 'XF'));
+		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/Listener.php', true, 'Vendor/First'));
+		$this->assertSame('add_on_vendor', $repo->getLocation('src/addons/Vendor/First/vendor/lib/src/A.php', true, 'Vendor/First'));
+		$this->assertSame('add_on_tests', $repo->getLocation('src/addons/Vendor/First/tests/Unit/ATest.php', true, 'Vendor/First'));
+		$this->assertSame('add_on_tests', $repo->getLocation('src/addons/Single/Test/ATest.php', true, 'Single'));
+		$this->assertSame('vendor', $repo->getLocation('src/vendor/symfony/console/Application.php', true, null));
+		$this->assertSame('other', $repo->getLocation('cmd.php', true, null));
+		$this->assertSame('other', $repo->getLocation('src/addons/Vendor/Unknown/vendor/x.php', true, null));
+		$this->assertSame('outside', $repo->getLocation('script.php', false, null));
+	}
+
+	/**
+	 * A directory merely named like one, deeper in an add-on, is that add-on's own code.
+	 */
+	public function test_only_the_add_ons_top_level_vendor_and_tests_directories_count()
+	{
+		$repo = $this->repo();
+
+		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/Service/vendor/Import.php', true, 'Vendor/First'));
+		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/Testing/Helper.php', true, 'Vendor/First'));
+		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/vendorList.php', true, 'Vendor/First'));
+	}
 }

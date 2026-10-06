@@ -114,6 +114,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
         {"severity": "E_USER_WARNING", "count": 5, "newest_date": 1790771401}
     ],
     "by_origin": {"web": 19, "cli": 4, "job": 1, "unknown": 0},
+    "by_location": {
+        "core": 12, "add_on": 2, "add_on_vendor": 5, "add_on_tests": 0,
+        "vendor": 0, "other": 0, "outside": 5
+    },
     "by_add_on": [
         {"add_on_id": "XF", "count": 12, "newest_date": 1790771401}
     ],
@@ -127,6 +131,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "filename": "src/XF/Template/Templater.php",
             "line": 1285,
             "in_install": true,
+            "location": "core",
             "add_on_id": "XF",
             "count": 4,
             "first_date": 1790340412,
@@ -162,6 +167,12 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - `add_on_id` is the add-on whose directory the error was raised in, `XF` for the core, or `null`.
   **It says where an error surfaced, not what caused it** — a fault in an add-on's template is
   raised inside the core's templater.
+- `location` says what kind of code the file is, from its path: `core`, an `add_on`'s own code,
+  `add_on_vendor` or `add_on_tests` for a library bundled with an add-on or its test suite,
+  XenForo's own `vendor` libraries, `other` for anything else under the forum's root, or
+  `outside`. **An error in `add_on_vendor` or `add_on_tests` carries that add-on's id without
+  being that add-on's code** — typically someone running a test suite — so check `location`
+  before holding an add-on responsible for the errors counted against it.
 - **The originating add-on is the better answer to "whose error is this".** It is the add-on the
   error was raised in or, for an error raised in the core, the first add-on in the calls that led
   there. `null` means no installed add-on's PHP file is in that path — which is not the same as no
@@ -229,6 +240,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
             "filename": "src/XF/Template/Templater.php",
             "line": 1285,
             "in_install": true,
+            "location": "core",
             "severity": "E_USER_WARNING",
             "origin": "web",
             "origin_add_on_id": "Vendor/AddOn",
@@ -275,7 +287,9 @@ XenForo's own version and the PHP version.
             "files_version_id": 1000011,
             "files_version_string": "1.0.0a1",
             "can_upgrade": false,
-            "has_pending_changes": false
+            "has_pending_changes": false,
+            "is_processing": false,
+            "pending_action": null
         }
     ]
 }
@@ -290,6 +304,12 @@ installed, by version or by content. With `can_upgrade` false it usually means t
 without a version change, which is routine on a development forum and worth a look on a live one.
 
 An add-on with `is_installed: false` is on disk only, and its `active` is always false.
+
+**`is_processing` and `pending_action` are how a half-finished install or upgrade shows.**
+`pending_action` is `install`, `upgrade` or `uninstall` while XenForo is part-way through one,
+and null otherwise. With `is_processing` true it is under way now; with `is_processing` false it
+started and never finished, which is the state to worry about. Matching versions do not rule
+that out — `can_upgrade` only compares what is installed with what is on disk.
 
 ## Cron entries
 

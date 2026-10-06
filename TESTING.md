@@ -105,10 +105,14 @@ add-on's classes can load. Naming an add-on class in one stops the whole run.
 
 **Three fields are worked out from columns that are never returned, and each is checked against a
 fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, and the add-on ids in
-`xf_addon`. The message, trace and request state are read only in part — 40 characters, 8000 and
+`xf_addon`. `pending_action` in the add-on inventory is closed the same way, against
+`AddOns::PENDING_ACTIONS`. The message, trace and request state are read only in part — 40 characters, 8000 and
 7. Returning a matched group without the `in_array()` beside it would let whatever sits in
 brackets at the start of a message through. A test walks the forum's real log and fails if any
 derived value is outside its list.
+
+**`location` only recognises `vendor/`, `tests/` and `Test/` at the top of an add-on.** A directory
+of the same name further in is that add-on's own code, and is reported as such.
 
 **The originating add-on is the nearest one, not necessarily the guilty one.** An add-on that
 extends a core class every request passes through is on the way to errors it did not cause.
@@ -139,7 +143,8 @@ vendor/bin/phpunit
   personal and request column, of the install's own path, and of any directory outside it. Its
   rows differ in level, origin and call path, so each derived field is asserted in both its
   per-forum and per-signature form.
-- `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`.
+- `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`, and plants an
+  add-on record in each unfinished state to check what is reported for it.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the
@@ -171,6 +176,8 @@ tests fail without the first, one without the second, four without the third.
   allows all scopes. The second and third must be refused.
 - **An error from a real web request.** Every row in a development log tends to come from the
   command line. `origin: web` is tested with planted rows only.
+- **An install or upgrade that has really stopped part-way.** `pending_action` is tested with
+  planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
 - **The admin control panel.** The six permissions appear on the administrator edit page and the
