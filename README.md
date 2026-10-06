@@ -2,8 +2,9 @@
 
 A XenForo 2.3 add-on that adds read-only REST API endpoints for a forum's operational state — the
 things the core API does not cover, because it is a content API. For an administrator who wants a
-monitoring script, a dashboard or an agent to be able to ask "is anything in the error log?" and
-"what is installed, at which version?" without being handed the admin control panel.
+monitoring script, a dashboard or an agent to be able to ask "is anything in the error log?",
+"what is installed, at which version?" and "is cron running?" without being handed the admin
+control panel.
 
 By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
@@ -52,6 +53,8 @@ To set it up:
 |---|---|
 | `GET /api/admin-api/error-log/` | Read the server error log summary through the API |
 | `GET /api/admin-api/add-ons/` | Read the add-on inventory through the API |
+| `GET /api/admin-api/cron/` | Read cron and job queue state through the API |
+| `GET /api/admin-api/jobs/` | Read cron and job queue state through the API |
 
 ## Error log summary
 
@@ -142,6 +145,98 @@ XenForo's own version and the PHP version.
 
 `version_*` is what is installed and `files_version_*` is what is on disk. They differ when new
 files have been uploaded and the upgrade has not been run, which is what `can_upgrade` reports.
+
+## Cron entries
+
+`GET /api/admin-api/cron/`
+
+**XenForo records when a cron entry is next due, and never when it last ran.** So this endpoint
+cannot say "the daily clean-up ran at 03:00". What it can say is whether cron is running at all,
+from two things: whether any entry is still due in the past, and when the job that drives every
+entry last ran.
+
+```json
+{
+    "now": 1791292600,
+    "total": 47,
+    "active": 47,
+    "overdue": 0,
+    "oldest_overdue_date": null,
+    "runner": {"queued": true, "next_run": 1791292621, "last_run_date": 1791292562},
+    "entries": [
+        {
+            "entry_id": "xfrmViews",
+            "add_on_id": "XFRM",
+            "cron_class": "XFRM\\Cron\\Views",
+            "cron_method": "runViewUpdate",
+            "run_rules": {"day_type": "dom", "dom": [-1], "hours": [-1], "minutes": [2, 17, 32, 47]},
+            "active": true,
+            "add_on_active": true,
+            "next_run": 1791292621,
+            "overdue": false
+        }
+    ]
+}
+```
+
+- An entry is **overdue** when it is enabled, its add-on is active, and its `next_run` is more
+  than an hour in the past. A disabled entry, or one whose add-on is disabled, is never overdue —
+  it will not run, so a stale `next_run` is expected.
+- `runner` is XenForo's own job that runs whichever entries are due. A `last_run_date` that is
+  recent means cron is being triggered; `queued: false` means nothing will run any entry.
+- `entries` is ordered by `next_run`, so anything overdue is first.
+
+## Job queue
+
+`GET /api/admin-api/jobs/`
+
+**Counts by job class, never a job's contents.** A queued job carries whatever it was queued
+with — user ids, email addresses, message text — and its unique key often embeds a user or
+content id. Neither is read, and nor is the data or exception text of a failed job.
+
+```json
+{
+    "now": 1791292600,
+    "total": 2,
+    "manual": 0,
+    "due": 0,
+    "stalled": 0,
+    "retrying": 0,
+    "oldest_due_date": null,
+    "by_class": [
+        {
+            "execute_class": "XF\\Job\\Cron",
+            "total": 1,
+            "manual": 0,
+            "due": 0,
+            "stalled": 0,
+            "retrying": 0,
+            "max_attempts": 0,
+            "oldest_trigger_date": 1791292621
+        }
+    ],
+    "failed": {
+        "recorded": true,
+        "total": 1,
+        "newest_date": 1790151723,
+        "by_class": [
+            {"execute_class": "XF\\Job\\IconUsage", "count": 1, "newest_date": 1790151723}
+        ]
+    }
+}
+```
+
+| field | meaning |
+|---|---|
+| `manual` | jobs that run only when triggered from the admin control panel |
+| `due` | automatic jobs whose trigger date has passed. A few is normal; they run on the next request |
+| `stalled` | automatic jobs more than an hour past their trigger date — the queue is not being run |
+| `retrying` | jobs that have been attempted at least once |
+
+**`failed.recorded` says whether an empty `failed` means anything.** XenForo writes a failed job
+to its table only when debug mode is on, so on a production forum `total: 0` with
+`recorded: false` means nothing was recorded, not that nothing failed. The server error log is
+where a production job failure shows up.
 
 ## Errors
 

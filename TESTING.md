@@ -9,10 +9,13 @@ checked. For whoever changes it next.
 |---|---|
 | API route | `admin-api/error-log/` → `Api\Controller\ErrorLog` |
 | API route | `admin-api/add-ons/` → `Api\Controller\AddOns` |
+| API route | `admin-api/cron/` → `Api\Controller\Cron` |
+| API route | `admin-api/jobs/` → `Api\Controller\Jobs` |
 | API scope | `hampel_admin_api:read`, not usable with OAuth clients |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
-| phrases | 4 — the scope description, the two permission titles, one error |
+| admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
+| phrases | 5 — the scope description, the three permission titles, one error |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
 cron entries, JS or LESS. The add-on creates no schema and reads only core tables; `Setup.php` has
@@ -38,6 +41,24 @@ first gate having run.
 
 **Core lowercases an API scope id.** The scope is spelled in lower case everywhere for that
 reason; a mixed-case id imports as a different string from the one the code asks for.
+
+**A test must only ever add rows, and never empty a table to get a known state.** The suite runs
+against the forum's real tables inside a transaction. `emptyTable()` is a `TRUNCATE`, which is DDL:
+it commits the transaction on the spot, so the table stays empty and everything the test wrote
+before it becomes permanent. On 2026-10-07 a job queue test did exactly that and removed a
+development forum's two queued jobs, cron's own among them, which then had to be put back by
+hand. Queue rows under a class or id no real row uses and assert on those; where a value has to
+beat every real row, date it at the start of 1970.
+
+**XenForo does not record when a cron entry last ran.** `xf_cron_entry` holds `next_run` only. The
+cron endpoint therefore reports overdue entries and the last run of the `cron` job, and cannot
+answer "did this entry run last night" directly.
+
+**`xf_failed_job` is written only in debug mode.** An empty table on a production forum is not
+evidence that no job failed, which is why the response carries `failed.recorded`.
+
+**The job queries name their columns too.** `execute_data`, `unique_key` and a failed job's
+`exception` are where member data sits.
 
 **The summary query names its columns.** `SELECT *`, or one more column added for convenience, is
 how a message or a request reaches the response. One test encodes the whole response and searches
@@ -65,6 +86,10 @@ vendor/bin/phpunit
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
   personal and request column.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`.
+- `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
+  owned by an add-on that is not installed, and checks which are called overdue.
+- `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the
+  per-class counts, the failed-job counts and the absence of job data, keys and exception text.
 - `tests/Feature/SetupTest.php` sets the scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears it.
 - `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling.
@@ -77,10 +102,12 @@ tests fail without the first, one without the second, four without the third.
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
   real request has XenForo derive the visitor from the key. Create a *User* key for an
-  administrator with only this add-on's scope and request both endpoints, then repeat with a
+  administrator with only this add-on's scope and request each endpoint, then repeat with a
   super user key adding `api_bypass_permissions=1`, and with a key for an ordinary member that
   allows all scopes. The second and third must be refused.
-- **The admin control panel.** The two permissions appear on the administrator edit page and the
+- **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
+  correctly on a forum whose cron trigger has really stopped has not been seen.
+- **The admin control panel.** The three permissions appear on the administrator edit page and the
   scope appears on the API key page, each with its description rather than a raw phrase key.
 - **Install on a forum that has never had it**, from a release zip, and uninstall again. After the
   install, the scope must not be offered when editing an OAuth client. There is no upgrade path

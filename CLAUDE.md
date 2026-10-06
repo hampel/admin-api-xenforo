@@ -6,8 +6,8 @@ the surfaces and fragile points; this file does not repeat them.
 
 ## The add-on is a read-only window onto operational state, and nothing else
 
-It adds REST endpoints for what the core API leaves out — the server error log and the add-on
-inventory so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
+It adds REST endpoints for what the core API leaves out — the server error log, the add-on
+inventory, cron entries and the job queue so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
 under *Mechanics*.
 
 **It does not speak any agent protocol and must not grow one.** A consumer — a monitoring script,
@@ -28,8 +28,9 @@ extends it:
 handed such a key. The admin permission is the boundary, and the first gate is what makes it
 hold, because a super user key can turn core's permission checks off from the request.
 
-**A new endpoint gets its own controller and its own admin permission.** Reading one thing must
-not imply reading another.
+**A new capability gets its own admin permission, and every endpoint its own controller.** Reading
+one thing must not imply reading another. Cron and the job queue share `hampelAdminApiJobs`
+because they are one capability — cron entries are run by a job.
 
 ## An endpoint returns aggregates, and personal data never
 
@@ -38,7 +39,7 @@ returns ends up in a log, a transcript or a third party's system, so the questio
 is whether it can carry member data.
 
 - **Name the columns a query reads.** The error log summary reads four of ten, and the other six
-  are the reason it exists.
+  are the reason it exists. A job's `execute_data` and `unique_key` are the same hazard.
 - **A field that can carry personal or request data does not join an existing endpoint.** If it
   is needed, it goes behind a separate endpoint with its own admin permission, used deliberately.
 - **Configuration is reported as shape, never as values.** `src/config.php` holds the database
@@ -59,6 +60,8 @@ is whether it can carry member data.
   `string` on `$action` is a fatal at class load.
 - **The PHP floor is 7.4 and the dev dependencies need far newer**, so the suite cannot tell you
   that a newer syntax has crept in. Keep to 7.4 by hand.
+- **A test only adds rows.** The suite runs on the forum's real tables inside a transaction, and
+  `emptyTable()` is a `TRUNCATE` that commits it. `TESTING.md` has the incident.
 - **`composer.json` holds dev dependencies only.** `addon.json` has no `composer_autoload`, and
   `build.json` strips `vendor/` from a release.
 

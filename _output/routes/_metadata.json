@@ -2,7 +2,13 @@
     "api_admin-api_add-ons.json": {
         "hash": "7799e44600ce31b3badd3a6f30469814"
     },
+    "api_admin-api_cron.json": {
+        "hash": "847990e33f6d366a9859cc6bd01e4980"
+    },
     "api_admin-api_error-log.json": {
         "hash": "471d0e25d936312780a3a287f4cc1a26"
+    },
+    "api_admin-api_jobs.json": {
+        "hash": "78054038ce0dd67607a34a80feeb6796"
     }
 }
