@@ -51,12 +51,12 @@ class JobStateTest extends TestCase
 		]);
 	}
 
-	private function insertFailed($class, $failDate)
+	private function insertFailed($class, $failDate, $exception = self::SECRET_EXCEPTION)
 	{
 		$this->app()->db()->insert('xf_failed_job', [
 			'execute_class' => $class,
 			'execute_data' => self::SECRET_DATA,
-			'exception' => self::SECRET_EXCEPTION,
+			'exception' => $exception,
 			'fail_date' => $failDate,
 		]);
 	}
@@ -124,6 +124,117 @@ class JobStateTest extends TestCase
 		$this->assertSame(array_sum(array_column($failed['by_class'], 'count')), $failed['total']);
 		$this->assertSame($this->now - 100, $failed['newest_date']);
 		$this->assertLessThanOrEqual($this->now - 500, $failed['oldest_date']);
+	}
+
+	private function failedSignatures($class)
+	{
+		return array_values(array_filter($this->state()['failed']['signatures'], function ($signature) use ($class)
+		{
+			return $signature['execute_class'] === $class;
+		}));
+	}
+
+	public function test_failed_jobs_are_grouped_by_where_they_failed()
+	{
+		$exception = "RuntimeException: SECRET could not reach member@example.com in "
+			. \XF::getRootDirectory() . "/src/addons/Hampel/AdminApi/Repository/Job.php:40\n"
+			. "Stack trace:\n#0 src/XF/Job/Manager.php(260): run('SECRET')\n#1 {main}";
+
+		$this->insertFailed('Tests\Fake\Where', $this->now - 300, $exception);
+		$this->insertFailed('Tests\Fake\Where', $this->now - 200, $exception);
+
+		$this->assertSame([[
+			'execute_class' => 'Tests\Fake\Where',
+			'exception_type' => 'RuntimeException',
+			'filename' => 'src/addons/Hampel/AdminApi/Repository/Job.php',
+			'line' => 40,
+			'in_install' => true,
+			'location' => 'add_on',
+			'add_on_id' => 'Hampel/AdminApi',
+			'origin_add_on_id' => 'Hampel/AdminApi',
+			'count' => 2,
+			'oldest_date' => $this->now - 300,
+			'newest_date' => $this->now - 200,
+		]], $this->failedSignatures('Tests\Fake\Where'));
+	}
+
+	/**
+	 * PHP prints the cause first and what it led to after "Next". The cause is the one reported.
+	 */
+	public function test_the_cause_is_read_when_one_exception_led_to_another()
+	{
+		$exception = "Vendor\\Lib\\NetworkException: SECRET timed out in /opt/SECRET-account/lib/Client.php:9\n"
+			. "Stack trace:\n#0 src/addons/Hampel/AdminApi/Repository/Cron.php(5): send()\n#1 {main}\n\n"
+			. "Next LogicException: SECRET wrapped in " . \XF::getRootDirectory() . "/src/XF.php:1\n"
+			. "Stack trace:\n#0 {main}";
+
+		$this->insertFailed('Tests\Fake\Chain', $this->now - 300, $exception);
+
+		$signature = $this->failedSignatures('Tests\Fake\Chain')[0];
+
+		$this->assertSame('Vendor\Lib\NetworkException', $signature['exception_type']);
+		$this->assertSame('Client.php', $signature['filename']);
+		$this->assertSame(9, $signature['line']);
+		$this->assertFalse($signature['in_install']);
+		$this->assertSame('outside', $signature['location']);
+		$this->assertSame('Hampel/AdminApi', $signature['origin_add_on_id']);
+	}
+
+	/**
+	 * The message sits between the class and the file, and whoever caused the failure may have
+	 * written it. Nothing shaped like a location inside a message is taken for one.
+	 */
+	public function test_a_location_written_into_the_message_is_not_believed()
+	{
+		$forged = [
+			"RuntimeException: bad in src/addons/SECRET-member@example.com/x.php:5\nStack trace:\n#0 {main}",
+			"RuntimeException: bad in SECRET text that is not a file:5\nStack trace:\n#0 {main}",
+			"RuntimeException: bad in ../../SECRET/etc/passwd.php:5\nStack trace:\n#0 {main}",
+			"RuntimeException: SECRET with no location at all",
+			"SECRET member@example.com wrote this: and more in /a/b.php:1\nStack trace:\n#0 {main}",
+		];
+
+		foreach ($forged AS $i => $exception)
+		{
+			$this->insertFailed('Tests\Fake\Forged' . $i, $this->now - 300, $exception);
+		}
+
+		foreach ([0, 1, 2, 3] AS $i)
+		{
+			$signature = $this->failedSignatures('Tests\Fake\Forged' . $i)[0];
+
+			$this->assertSame('RuntimeException', $signature['exception_type']);
+			$this->assertNull($signature['filename'], "forged $i");
+			$this->assertNull($signature['line'], "forged $i");
+			$this->assertNull($signature['location'], "forged $i");
+		}
+
+		// no class at the start, but a real-looking file outside the install: its name survives
+		$signature = $this->failedSignatures('Tests\Fake\Forged4')[0];
+		$this->assertNull($signature['exception_type']);
+		$this->assertSame('b.php', $signature['filename']);
+	}
+
+	public function test_a_message_containing_the_word_in_does_not_hide_the_real_location()
+	{
+		$exception = "RuntimeException: SECRET failed in step two of three in "
+			. \XF::getRootDirectory() . "/src/XF/Job/Manager.php:260\nStack trace:\n#0 {main}";
+
+		$this->insertFailed('Tests\Fake\In', $this->now - 300, $exception);
+
+		$signature = $this->failedSignatures('Tests\Fake\In')[0];
+
+		$this->assertSame('src/XF/Job/Manager.php', $signature['filename']);
+		$this->assertSame('core', $signature['location']);
+		$this->assertNull($signature['origin_add_on_id']);
+	}
+
+	public function test_every_failed_job_is_examined_and_says_so()
+	{
+		$failed = $this->state()['failed'];
+
+		$this->assertSame(['rows' => $failed['total'], 'complete' => true], $failed['examined']);
+		$this->assertSame($failed['total'], array_sum(array_column($failed['signatures'], 'count')));
 	}
 
 	/**

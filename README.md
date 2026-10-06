@@ -360,7 +360,8 @@ entry last ran.
 
 **Counts by job class, never a job's contents.** A queued job carries whatever it was queued
 with — user ids, email addresses, message text — and its unique key often embeds a user or
-content id. Neither is read, and nor is the data or exception text of a failed job.
+content id. Neither is read, and nor is a failed job's data. A failed job's exception is read
+only for *where* it was raised; its message is never returned.
 
 ```json
 {
@@ -390,7 +391,23 @@ content id. Neither is read, and nor is the data or exception text of a failed j
         "newest_date": 1790151723,
         "by_class": [
             {"execute_class": "XF\\Job\\IconUsage", "count": 1, "oldest_date": 1790151723, "newest_date": 1790151723}
-        ]
+        ],
+        "signatures": [
+            {
+                "execute_class": "XF\\Job\\IconUsage",
+                "exception_type": "InvalidArgumentException",
+                "filename": "src/XF/Service/Icon/UsageAnalyzerService.php",
+                "line": 98,
+                "in_install": true,
+                "location": "core",
+                "add_on_id": "XF",
+                "origin_add_on_id": null,
+                "count": 1,
+                "oldest_date": 1790151723,
+                "newest_date": 1790151723
+            }
+        ],
+        "examined": {"rows": 1, "complete": true}
     }
 }
 ```
@@ -401,6 +418,18 @@ content id. Neither is read, and nor is the data or exception text of a failed j
 | `due` | automatic jobs whose trigger date has passed. A few is normal; they run on the next request |
 | `stalled` | automatic jobs more than an hour past their trigger date — the queue is not being run |
 | `retrying` | jobs that have been attempted at least once |
+
+**`failed.signatures` says where each failed job failed** — the exception's class, file and line,
+with the same `location`, `add_on_id` and `origin_add_on_id` as an error log signature — which
+is usually enough to say why without reading a message. Where one exception caused another, the
+cause is the one reported.
+
+XenForo stores a failed job's exception as text with its message in the middle, so each part is
+checked before it is returned: the class has to be shaped like a class name, a file under the
+forum's root has to exist there, and a file outside it is given by name only. A part that does
+not pass is `null` — so a `null` filename means "could not be established", which includes a file
+that has since been removed by an upgrade. The signatures rest on the most recent 5000 failed
+jobs; `examined.complete` says when that is not all of them.
 
 **`failed.recorded` says whether an empty `failed` means anything.** XenForo writes a failed job
 to its table only when debug mode is on, so on a production forum `total: 0` with

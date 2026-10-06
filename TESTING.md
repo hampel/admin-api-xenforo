@@ -67,6 +67,12 @@ evidence that no job failed, which is why the response carries `failed.recorded`
 **The job queries name their columns too.** `execute_data`, `unique_key` and a failed job's
 `exception` are where member data sits.
 
+**A failed job's exception is one string with the message in the middle**, between the class and
+the file. So the file cannot be trusted by shape: a message can end in something that looks like
+` in path:line`. A path under the install is believed only if that file exists; one outside it is
+reduced to a name that must look like a PHP file's; and the *last* ` in ` on the line is taken,
+because a message can contain one. The tests plant forged locations of each kind.
+
 **What an option or a setting discloses is decided in one place, `ValueShape::isDisclosable()`,
 by type alone.** Loosening it — showing a string because its name looks harmless, raising the
 number ceiling — is how a credential reaches a response. Each endpoint has a test that walks every
@@ -149,6 +155,8 @@ vendor/bin/phpunit
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the
   per-class counts, the failed-job counts and the absence of job data, keys and exception text.
+  For failed jobs it also checks the signature of a plain failure and of a chained one, and that
+  a location written into a message is not taken for one.
 - `tests/Feature/ErrorEntriesTest.php` covers the detail endpoint: what an entry returns, which
   others come with it, the cap, the request data being absent unless asked for, and each of the
   ways in being refused — the wrong scope in both directions, the summary's permission, a missing

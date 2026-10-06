@@ -14,8 +14,8 @@ class Jobs extends AbstractController
 
 	/**
 	 * @api-desc Summarises the job queue by job class: how many are queued, due, stalled, waiting
-	 *   to be run manually or being retried, and the failed jobs XenForo has recorded. Returns no
-	 *   job data, unique key or exception text. Requires a user API key holding the
+	 *   to be run manually or being retried, and the failed jobs XenForo has recorded. Failed
+	 *   jobs are grouped by where they failed. Returns no job data, unique key or exception text. Requires a user API key holding the
 	 *   hampel_admin_api:read scope, whose user has the hampelAdminApiJobs admin permission.
 	 *
 	 * @api-out int $now The time the state was read
@@ -26,7 +26,7 @@ class Jobs extends AbstractController
 	 * @api-out int $retrying Jobs that have been attempted at least once
 	 * @api-out int $oldest_due_date The earliest trigger date among due jobs, or null
 	 * @api-out array $by_class The same counts for each job class
-	 * @api-out array $failed Failed jobs: whether they are recorded, total, oldest_date, newest_date and by_class
+	 * @api-out array $failed Failed jobs: whether they are recorded, total, oldest_date, newest_date, by_class, and signatures by exception class, file and line
 	 */
 	public function actionGet()
 	{
