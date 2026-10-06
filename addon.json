@@ -1,0 +1,23 @@
+{
+    "legacy_addon_id": "",
+    "title": "Admin API: read-only operational endpoints",
+    "description": "Adds read-only REST API endpoints for a forum's operational state - a summary of the server error log and an inventory of installed add-ons. Each endpoint requires an administrator's own API key and that administrator's admin permission; super user keys are refused.",
+    "version_id": 1000011,
+    "version_string": "1.0.0a1",
+    "dev": "Simon Hampel",
+    "dev_url": "https://xenforo.com/community/members/sim.4264/",
+    "faq_url": "",
+    "support_url": "",
+    "extra_urls": [],
+    "require": {
+        "php": [
+            "7.4",
+            "PHP 7.4+"
+        ],
+        "XF": [
+            2030070,
+            "XenForo 2.3.0+"
+        ]
+    },
+    "icon": "fa-clipboard-list-check"
+}

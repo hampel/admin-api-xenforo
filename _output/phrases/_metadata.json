@@ -1,0 +1,26 @@
+{
+    "admin_permission.hampelAdminApiAddOns.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "39acf4f90b70ff78009ed45b9f468cb1"
+    },
+    "admin_permission.hampelAdminApiErrorLog.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "62f5d4730f3ea3fab0427d42810bedb1"
+    },
+    "api_scope.hampel_admin_api_read.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "bee64f1767df87c0b9eeab955d480892"
+    },
+    "hampel_adminapi_user_api_key_required.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "61f752a2e75f0e78348fa9584e07fc1b"
+    }
+}

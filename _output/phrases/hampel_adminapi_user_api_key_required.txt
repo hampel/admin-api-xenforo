@@ -1,0 +1,1 @@
+This endpoint requires an API key that belongs to a single administrator. Super user keys, guest keys and OAuth access tokens are not accepted.

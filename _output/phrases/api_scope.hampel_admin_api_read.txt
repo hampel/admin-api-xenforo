@@ -1,0 +1,1 @@
+Read the forum's operational state through the Admin API endpoints
