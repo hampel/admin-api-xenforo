@@ -1,0 +1,139 @@
+<?php namespace Hampel\AdminApi;
+
+/**
+ * Describes a configuration value without giving it away.
+ *
+ * A boolean, a null and a small number are returned as they are, because none can hold a secret
+ * and they are most of what "how is this configured" needs. Everything else - every string above
+ * all - is reported only as a type and whether it is set. There is deliberately no rule that
+ * decides a string is harmless enough to show: the bug in that rule is a credential in a response.
+ */
+class ValueShape
+{
+	/**
+	 * A number above this is treated as opaque. A port, a limit or a lifetime fits under it; an
+	 * account number or a numeric token does not.
+	 */
+	const MAX_DISCLOSED_NUMBER = 999999;
+
+	const MAX_DEPTH = 5;
+
+	/**
+	 * @param mixed $value
+	 *
+	 * @return array type, set, disclosed, value, count
+	 */
+	public function describe($value)
+	{
+		$type = $this->getType($value);
+		$disclosed = $this->isDisclosable($value);
+
+		return [
+			'type' => $type,
+			'set' => !($value === null || $value === '' || $value === []),
+			'disclosed' => $disclosed,
+			'value' => $disclosed ? $value : null,
+			'count' => is_array($value) ? count($value) : null,
+		];
+	}
+
+	/**
+	 * Reduces a nested array to its leaves, keyed by dotted path. An array is followed only while
+	 * it has string keys: a list is a leaf, since its members are values rather than settings.
+	 *
+	 * @param array $values
+	 * @param string $prefix
+	 * @param int $depth
+	 *
+	 * @return array dotted key => value
+	 */
+	public function flatten(array $values, $prefix = '', $depth = 0)
+	{
+		$leaves = [];
+
+		foreach ($values AS $key => $value)
+		{
+			$path = $prefix . $key;
+
+			if ($depth < self::MAX_DEPTH && $this->isMap($value))
+			{
+				$leaves += $this->flatten($value, $path . '.', $depth + 1);
+			}
+			else
+			{
+				$leaves[$path] = $value;
+			}
+		}
+
+		return $leaves;
+	}
+
+	/**
+	 * @param mixed $value
+	 * @param mixed $default
+	 *
+	 * @return bool
+	 */
+	public function isSame($value, $default)
+	{
+		if (is_array($value) && is_array($default))
+		{
+			return $value == $default;
+		}
+
+		return $value === $default;
+	}
+
+	protected function isDisclosable($value)
+	{
+		if ($value === null || is_bool($value))
+		{
+			return true;
+		}
+
+		if (is_int($value) || is_float($value))
+		{
+			return abs($value) <= self::MAX_DISCLOSED_NUMBER;
+		}
+
+		return false;
+	}
+
+	protected function isMap($value)
+	{
+		if (!is_array($value) || !$value)
+		{
+			return false;
+		}
+
+		foreach (array_keys($value) AS $key)
+		{
+			if (!is_string($key))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	protected function getType($value)
+	{
+		if ($value instanceof \Closure)
+		{
+			return 'closure';
+		}
+
+		switch (gettype($value))
+		{
+			case 'boolean': return 'boolean';
+			case 'integer': return 'integer';
+			case 'double': return 'float';
+			case 'string': return 'string';
+			case 'array': return 'array';
+			case 'NULL': return 'null';
+			case 'object': return 'object';
+			default: return 'other';
+		}
+	}
+}

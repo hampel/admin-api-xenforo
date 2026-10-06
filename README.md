@@ -3,8 +3,8 @@
 A XenForo 2.3 add-on that adds read-only REST API endpoints for a forum's operational state — the
 things the core API does not cover, because it is a content API. For an administrator who wants a
 monitoring script, a dashboard or an agent to be able to ask "is anything in the error log?",
-"what is installed, at which version?" and "is cron running?" without being handed the admin
-control panel.
+"what is installed, at which version?", "is cron running?" and "how is this forum configured?"
+without being handed the admin control panel — or a single credential.
 
 By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
@@ -55,6 +55,8 @@ To set it up:
 | `GET /api/admin-api/add-ons/` | Read the add-on inventory through the API |
 | `GET /api/admin-api/cron/` | Read cron and job queue state through the API |
 | `GET /api/admin-api/jobs/` | Read cron and job queue state through the API |
+| `GET /api/admin-api/options/` | Read which options are set, without their values, through the API |
+| `GET /api/admin-api/config/` | Read which config.php settings are set, without their values, through the API |
 
 ## Error log summary
 
@@ -237,6 +239,127 @@ content id. Neither is read, and nor is the data or exception text of a failed j
 to its table only when debug mode is on, so on a production forum `total: 0` with
 `recorded: false` means nothing was recorded, not that nothing failed. The server error log is
 where a production job failure shows up.
+
+## Options
+
+`GET /api/admin-api/options/`
+
+**Which options are set and which have been changed — not what they hold.** An option can be an
+API key, an SMTP password or a member's email address, and nothing about its name reliably says
+so. So the rule is by type, with no judgement involved:
+
+| the value is | returned |
+|---|---|
+| a boolean, or null | as it is |
+| a number no larger than 999999 | as it is |
+| a larger number | withheld — it is as likely an account number as a limit |
+| a string, an array, or anything else | withheld, always |
+
+A withheld value still says its `type`, whether it is `set` (not null, not an empty string, not an
+empty array), whether it `is_default`, and for an array how many members it has.
+
+| parameter | meaning |
+|---|---|
+| `add_on_id` | only options belonging to this add-on |
+| `changed` | `1` to list only options that differ from their default |
+
+```json
+{
+    "total": 384,
+    "changed": 45,
+    "by_add_on": [
+        {"add_on_id": "XF", "total": 301, "changed": 31}
+    ],
+    "options": [
+        {
+            "option_id": "boardTitle",
+            "add_on_id": "XF",
+            "data_type": "string",
+            "is_default": false,
+            "type": "string",
+            "set": true,
+            "disclosed": false,
+            "value": null,
+            "count": null
+        },
+        {
+            "option_id": "boardActive",
+            "add_on_id": "XF",
+            "data_type": "boolean",
+            "is_default": true,
+            "type": "boolean",
+            "set": true,
+            "disclosed": true,
+            "value": true,
+            "count": null
+        }
+    ]
+}
+```
+
+- **`value: null` with `disclosed: false` means withheld**, not empty. Read `set` for that.
+- `total`, `changed` and `by_add_on` count every option matching `add_on_id`; `changed=1` shortens
+  the list, not the counts.
+- An option left at its default holds whatever the add-on shipped, which is public. `is_default`
+  therefore tells you the value of an unchanged option without this endpoint returning it.
+
+## Configuration
+
+`GET /api/admin-api/config/`
+
+The settings in force from `src/config.php` merged over XenForo's defaults, one entry per dotted
+key, under the same rule as options: a boolean, a null and a small number are returned, and a
+string never is. `db.password` is reported as a string that is set, and that is all.
+
+| parameter | meaning |
+|---|---|
+| `changed` | `1` to list only settings that differ from XenForo's default, or have none |
+
+```json
+{
+    "total": 87,
+    "changed": 3,
+    "settings": [
+        {
+            "key": "db.password",
+            "has_default": false,
+            "is_default": false,
+            "type": "string",
+            "set": true,
+            "disclosed": false,
+            "value": null,
+            "count": null
+        },
+        {
+            "key": "db.port",
+            "has_default": false,
+            "is_default": false,
+            "type": "integer",
+            "set": true,
+            "disclosed": true,
+            "value": 3306,
+            "count": null
+        },
+        {
+            "key": "enableMail",
+            "has_default": true,
+            "is_default": false,
+            "type": "boolean",
+            "set": true,
+            "disclosed": true,
+            "value": false,
+            "count": null
+        }
+    ]
+}
+```
+
+- A nested setting is followed while its keys are names, to five levels. A list is reported as one
+  array with a `count`, because its members are values.
+- `has_default: false` marks a key XenForo does not define — one your `config.php` or an add-on
+  introduced.
+- **Key names are returned.** If your `config.php` uses a secret as an array *key*, this endpoint
+  will show it; a value never is.
 
 ## Errors
 

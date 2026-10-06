@@ -11,11 +11,15 @@ checked. For whoever changes it next.
 | API route | `admin-api/add-ons/` → `Api\Controller\AddOns` |
 | API route | `admin-api/cron/` → `Api\Controller\Cron` |
 | API route | `admin-api/jobs/` → `Api\Controller\Jobs` |
+| API route | `admin-api/options/` → `Api\Controller\Options` |
+| API route | `admin-api/config/` → `Api\Controller\Config` |
 | API scope | `hampel_admin_api:read`, not usable with OAuth clients |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
 | admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
-| phrases | 5 — the scope description, the three permission titles, one error |
+| admin permission | `hampelAdminApiOptions` |
+| admin permission | `hampelAdminApiConfig` |
+| phrases | 7 — the scope description, the five permission titles, one error |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
 cron entries, JS or LESS. The add-on creates no schema and reads only core tables; `Setup.php` has
@@ -60,6 +64,18 @@ evidence that no job failed, which is why the response carries `failed.recorded`
 **The job queries name their columns too.** `execute_data`, `unique_key` and a failed job's
 `exception` are where member data sits.
 
+**What an option or a setting discloses is decided in one place, `ValueShape::isDisclosable()`,
+by type alone.** Loosening it — showing a string because its name looks harmless, raising the
+number ceiling — is how a credential reaches a response. Each endpoint has a test that walks every
+real option or setting on the forum and fails if any returned value is not a boolean, a null or a
+small number, and the config test searches the response for the forum's own database password.
+
+**`value: null` is ambiguous without `disclosed`.** A withheld string and a real null both carry
+it. A consumer that reads `value` alone will report every string option as empty.
+
+**Config key names are returned.** A map is followed and its keys become part of the dotted key.
+A list is not followed, and that distinction is what stops a list of hostnames becoming keys.
+
 **The summary query names its columns.** `SELECT *`, or one more column added for convenience, is
 how a message or a request reaches the response. One test encodes the whole response and searches
 it for values planted in the columns that must not appear.
@@ -92,6 +108,11 @@ vendor/bin/phpunit
   per-class counts, the failed-job counts and the absence of job data, keys and exception text.
 - `tests/Feature/SetupTest.php` sets the scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears it.
+- `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
+  uses, and checks what is returned, the filters and the counts.
+- `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
+  the forum's real database credentials by key and by absence.
+- `tests/Unit/ValueShapeTest.php` covers the disclosure rule, flattening and comparison.
 - `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling.
 
 To confirm the gate tests are real, remove one of the three calls in
@@ -107,7 +128,7 @@ tests fail without the first, one without the second, four without the third.
   allows all scopes. The second and third must be refused.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
-- **The admin control panel.** The three permissions appear on the administrator edit page and the
+- **The admin control panel.** The five permissions appear on the administrator edit page and the
   scope appears on the API key page, each with its description rather than a raw phrase key.
 - **Install on a forum that has never had it**, from a release zip, and uninstall again. After the
   install, the scope must not be offered when editing an OAuth client. There is no upgrade path

@@ -7,7 +7,7 @@ the surfaces and fragile points; this file does not repeat them.
 ## The add-on is a read-only window onto operational state, and nothing else
 
 It adds REST endpoints for what the core API leaves out — the server error log, the add-on
-inventory, cron entries and the job queue so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
+inventory, cron entries, the job queue, and the shape of options and of `config.php` so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
 under *Mechanics*.
 
 **It does not speak any agent protocol and must not grow one.** A consumer — a monitoring script,
@@ -43,7 +43,10 @@ is whether it can carry member data.
 - **A field that can carry personal or request data does not join an existing endpoint.** If it
   is needed, it goes behind a separate endpoint with its own admin permission, used deliberately.
 - **Configuration is reported as shape, never as values.** `src/config.php` holds the database
-  password; an endpoint returning configuration is a credential leak.
+  password; an endpoint returning configuration is a credential leak. `ValueShape` is the one
+  place that decides what is shown, and it decides by type: a boolean, a null, a number up to
+  999999. **Do not add a rule that shows a string because it looks harmless** — the bug in that
+  rule is a credential in a response.
 
 ## Mechanics
 
