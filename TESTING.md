@@ -86,6 +86,19 @@ root. Treating "does not start with the root" as "outside" reports nearly every 
 outside and loses its add-on — the suite did not catch that until its rows were stored both ways,
 because a test that writes only full paths never meets the common case.
 
+**Three fields are worked out from columns that are never returned, and each is checked against a
+fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, and the add-on ids in
+`xf_addon`. The message, trace and request state are read only in part — 40 characters, 8000 and
+7. Returning a matched group without the `in_array()` beside it would let whatever sits in
+brackets at the start of a message through. A test walks the forum's real log and fails if any
+derived value is outside its list.
+
+**The originating add-on is the nearest one, not necessarily the guilty one.** An add-on that
+extends a core class every request passes through is on the way to errors it did not cause.
+
+**Whether an error happened in a job is decided by the query, not from the trace as read.** The
+job runner sits at the bottom of a trace, past where a truncated read stops.
+
 **`add_on_id` is derived from the path.** It is matched against installed add-on ids, two path
 segments first and then one, so an add-on without a vendor is still found. A file under
 `src/addons/` belonging to no installed add-on gives `null`, not a guess.
@@ -106,7 +119,9 @@ vendor/bin/phpunit
   each gate in both directions, including a super user key with the permission bypass on.
 - `tests/Feature/ErrorLogSummaryTest.php` writes rows inside a transaction, dated in a window no
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
-  personal and request column, of the install's own path, and of any directory outside it.
+  personal and request column, of the install's own path, and of any directory outside it. Its
+  rows differ in level, origin and call path, so each derived field is asserted in both its
+  per-forum and per-signature form.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
@@ -119,7 +134,8 @@ vendor/bin/phpunit
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
   the forum's real database credentials by key and by absence.
 - `tests/Unit/ValueShapeTest.php` covers the disclosure rule, flattening and comparison.
-- `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling.
+- `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling and the three derivations,
+  including what must not be taken for a level and which trace paths must not be followed.
 
 To confirm the gate tests are real, remove one of the three calls in
 `Api\Controller\AbstractController::preDispatchController()` and run `AuthorisationTest`: four
@@ -132,6 +148,8 @@ tests fail without the first, one without the second, four without the third.
   administrator with only this add-on's scope and request each endpoint, then repeat with a
   super user key adding `api_bypass_permissions=1`, and with a key for an ordinary member that
   allows all scopes. The second and third must be refused.
+- **An error from a real web request.** Every row in a development log tends to come from the
+  command line. `origin: web` is tested with planted rows only.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
 - **The admin control panel.** The five permissions appear on the administrator edit page and the

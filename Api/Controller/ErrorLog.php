@@ -18,8 +18,9 @@ class ErrorLog extends AbstractController
 
 	/**
 	 * @api-desc Summarises the server error log over a time window: counts by exception type, by
-	 *   add-on and by signature (type, file and line). Returns no message, stack trace, request
-	 *   data, user or IP address. Requires a user API key holding the hampel_admin_api:read scope,
+	 *   add-on, by day and by signature (type, file and line), with the PHP error level, whether
+	 *   each arose from a web request, the command line or a job, and the add-on it originated in.
+	 *   Returns no message, stack trace, request data, user or IP address. Requires a user API key holding the hampel_admin_api:read scope,
 	 *   whose user has the hampelAdminApiErrorLog admin permission.
 	 *
 	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.
@@ -30,8 +31,13 @@ class ErrorLog extends AbstractController
 	 * @api-out int $total Errors logged in the window
 	 * @api-out int $oldest_date Date of the oldest error in the window, or null
 	 * @api-out int $newest_date Date of the newest error in the window, or null
+	 * @api-out array $by_day Count for each UTC day from the start of the window or of the log
 	 * @api-out array $by_type Count and newest date for each exception type
+	 * @api-out array $by_severity Count and newest date for each PHP error level
+	 * @api-out array $by_origin Counts for web, cli, job and unknown
 	 * @api-out array $by_add_on Count and newest date for each add-on the errors were raised in
+	 * @api-out array $by_origin_add_on Count and newest date for each add-on the errors originated in
+	 * @api-out array $examined How many rows the severity, origin and originating add-on rest on, and whether that is all of them
 	 * @api-out array $signatures Count, first and last date for each type, file and line
 	 * @api-out int $signature_count Distinct signatures in the window, before the limit
 	 * @api-out array $log Total, oldest and newest date for the whole log, whatever the window

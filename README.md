@@ -64,9 +64,20 @@ The JSON under each endpoint shows the shape of a response. The figures in it ar
 
 `GET /api/admin-api/error-log/`
 
-**Counts, never content.** The summary is built from four columns of the server error log — the
-exception type, the file, the line and the date. It never reads the message, the stack trace, the
+**Counts, never content.** The summary returns four columns of the server error log — the
+exception type, the file, the line and the date — and never the message, the stack trace, the
 request, or the user and IP address behind an error, because those are where member data ends up.
+
+Three more things are *worked out* from the message, the trace and the request, and each can only
+ever be a value from a fixed list, so nothing a member wrote or sent can come back through them:
+
+| field | worked out from | can only be |
+|---|---|---|
+| `severity` | the first characters of the message | a PHP error level, `fatal`, `mixed` or null |
+| origin | the first key of the recorded request, and whether the job runner is in the trace | `web`, `cli`, `job` or `unknown` |
+| originating add-on | the file paths in the trace | the id of an installed add-on, or null |
+
+The user and the IP address are not read at all.
 
 | parameter | meaning |
 |---|---|
@@ -84,12 +95,24 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
     "total": 24,
     "oldest_date": 1790305832,
     "newest_date": 1790857181,
+    "by_day": [
+        {"day": "2026-09-25", "count": 12},
+        {"day": "2026-09-26", "count": 0}
+    ],
     "by_type": [
         {"exception_type": "ErrorException", "count": 15, "newest_date": 1790857181}
     ],
+    "by_severity": [
+        {"severity": "E_USER_WARNING", "count": 5, "newest_date": 1790771401}
+    ],
+    "by_origin": {"web": 19, "cli": 4, "job": 1, "unknown": 0},
     "by_add_on": [
         {"add_on_id": "XF", "count": 12, "newest_date": 1790771401}
     ],
+    "by_origin_add_on": [
+        {"add_on_id": "Vendor/AddOn", "count": 6, "newest_date": 1790771401}
+    ],
+    "examined": {"rows": 24, "complete": true},
     "signatures": [
         {
             "exception_type": "ErrorException",
@@ -99,7 +122,12 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "add_on_id": "XF",
             "count": 4,
             "first_date": 1790340412,
-            "last_date": 1790771401
+            "last_date": 1790771401,
+            "severity": "E_USER_WARNING",
+            "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
+            "origin_add_ons": [
+                {"add_on_id": "Vendor/AddOn", "count": 4, "newest_date": 1790771401}
+            ]
         }
     ],
     "signature_count": 15,
@@ -120,6 +148,24 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - `add_on_id` is the add-on whose directory the error was raised in, `XF` for the core, or `null`.
   **It says where an error surfaced, not what caused it** — a fault in an add-on's template is
   raised inside the core's templater.
+- **The originating add-on is the better answer to "whose error is this".** It is the add-on the
+  error was raised in or, for an error raised in the core, the first add-on in the calls that led
+  there. `null` means no installed add-on's code was involved. It is the *nearest* add-on, which
+  is usually the cause and occasionally one that only wraps a core class every request passes
+  through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
+  `origin_add_ons` the same for one signature, since one line of core is reached from many places.
+- `by_origin` and each signature's `origins` say how the errors arose: a `web` request, the `cli`,
+  or a `job` — which includes every cron entry, however the job was triggered. Errors that are all
+  `cli` are someone at a terminal, not members.
+- `severity` is the PHP error level of a warning, notice or deprecation, `fatal` for a fatal
+  error, and `null` for an exception that was thrown, which has no level. `mixed` means one
+  signature was seen at more than one.
+- `by_day` has one entry per UTC day, quiet days included, from the start of the window or of the
+  log, whichever is later. A day before the log begins is left out, not shown as zero. At most 366
+  days are returned, the most recent.
+- **`examined.complete` is false only in an error storm.** Severity, origin and originating add-on
+  are worked out from the most recent 20000 rows of the window. Every other figure is exact
+  whatever the size, so when `complete` is false those three describe the newest part only.
 - `log` describes the whole log whatever the window, so an empty window can be told apart from an
   empty log. XenForo prunes the log itself, so `log.oldest_date` is as far back as any window can
   usefully reach.

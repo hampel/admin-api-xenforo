@@ -1,11 +1,15 @@
 <?php namespace Tests\Feature;
 
+use Hampel\AdminApi\Repository\ErrorLog;
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\TestCase;
 
 /**
  * Rows are written inside a transaction and dated in 1970, a window no real log entry occupies, so
  * the counts are exact whatever the install's own error log holds.
+ *
+ * Every row carries SECRET in each column the summary must never return, including the ones it
+ * reads the start of. One test searches the whole response for it.
  */
 class ErrorLogSummaryTest extends TestCase
 {
@@ -16,45 +20,63 @@ class ErrorLogSummaryTest extends TestCase
 	private const SINCE = 1000;
 	private const UNTIL = 2000;
 
-	/** Values planted in the columns a summary must never return */
-	private const SECRETS = [
-		'message' => 'SECRET-MESSAGE-member@example.com',
-		'trace_string' => 'SECRET-TRACE-#0 login(password)',
-		'request_state' => 'SECRET-REQUEST-/account/?token=abc',
-		'user_id' => 424242,
-	];
+	private const SECRET_USER = 424242;
 	private const SECRET_IP = '203.0.113.77';
+
+	private const WEB = '{"url":"/account/?token=SECRET-REQUEST","referrer":"SECRET","_GET":[],"_POST":{"email":"SECRET-member@example.com"}}';
+	private const CLI = '{"cli":"php cmd.php SECRET-REQUEST"}';
+	private const NO_STATE = 'SECRET-REQUEST';
+
+	private const NO_TRACE = 'SECRET-TRACE #0 {main}';
 
 	protected function setUp() : void
 	{
 		parent::setUp();
 
 		$root = \XF::getRootDirectory();
+		$addOnFile = $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php';
 
-		$this->insertError(1100, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
-		$this->insertError(1200, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
-		$this->insertError(1300, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
-		// stored both ways: XenForo usually strips the root, and a full path means the same file
-		$this->insertError(1400, 'TypeError', $root . '/src/XF/Mvc/Dispatcher.php', 20);
-		$this->insertError(1500, 'TypeError', 'src/XF/Mvc/Dispatcher.php', 20);
-		$this->insertError(1600, 'TypeError', '/home/SECRET-account/work/script.php', 30);
-		$this->insertError(1700, 'TypeError', '/tmp/SECRET-session/script.php', 30);
+		// raised in this add-on, during a web request
+		foreach ([1100, 1200, 1300] AS $date)
+		{
+			$this->insertError($date, 'ErrorException', $addOnFile, 10, '[E_WARNING] SECRET-MESSAGE member@example.com', self::NO_TRACE, self::WEB);
+		}
+
+		// raised in core, reached through this add-on, inside a job. Stored both ways: XenForo
+		// usually strips the root, and a full path means the same file
+		$trace = "#0 src/XF/Mvc/Dispatcher.php(20): SECRET-TRACE('SECRET')\n"
+			. "#1 src/addons/Hampel/AdminApi/Repository/Job.php(5): go('SECRET-password')\n"
+			. "#2 src/XF/Job/Manager.php(260): XF\\Job\\Manager->runJobInternal(Array, 8)\n"
+			. "#3 {main}";
+		$this->insertError(1400, 'TypeError', $root . '/src/XF/Mvc/Dispatcher.php', 20, 'SECRET-MESSAGE', $trace, self::WEB);
+
+		// raised in core with no add-on on the way, from the command line
+		$trace = "#0 src/XF/Mvc/Dispatcher.php(20): SECRET-TRACE()\n#1 cmd.php(15): run()\n#2 {main}";
+		$this->insertError(1500, 'TypeError', 'src/XF/Mvc/Dispatcher.php', 20, 'SECRET-MESSAGE', $trace, self::CLI);
+
+		// outside the install
+		$this->insertError(1600, 'TypeError', '/home/SECRET-account/work/script.php', 30, 'Fatal Error: SECRET-MESSAGE', self::NO_TRACE, self::CLI);
+		$this->insertError(1700, 'TypeError', '/tmp/SECRET-session/script.php', 30, 'Fatal Error: SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
 
 		// outside the window on either side
-		$this->insertError(999, 'LogicException', $root . '/src/XF.php', 1);
-		$this->insertError(2001, 'LogicException', $root . '/src/XF.php', 1);
+		$this->insertError(999, 'LogicException', $root . '/src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
+		$this->insertError(2001, 'LogicException', $root . '/src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
 
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
 	}
 
-	private function insertError($date, $type, $filename, $line)
+	private function insertError($date, $type, $filename, $line, $message, $trace, $state)
 	{
-		$this->app()->db()->insert('xf_error_log', self::SECRETS + [
+		$this->app()->db()->insert('xf_error_log', [
 			'exception_date' => $date,
+			'user_id' => self::SECRET_USER,
 			'ip_address' => inet_pton(self::SECRET_IP),
 			'exception_type' => $type,
+			'message' => $message,
 			'filename' => $filename,
 			'line' => $line,
+			'trace_string' => $trace,
+			'request_state' => $state,
 		]);
 	}
 
@@ -63,6 +85,19 @@ class ErrorLogSummaryTest extends TestCase
 		$reply = $this->dispatch(self::ROUTE, 'api', $input + ['since' => self::SINCE, 'until' => self::UNTIL]);
 
 		return $this->replyApiResult($reply);
+	}
+
+	private function signature(array $summary, $filename)
+	{
+		foreach ($summary['signatures'] AS $signature)
+		{
+			if ($signature['filename'] === $filename)
+			{
+				return $signature;
+			}
+		}
+
+		$this->fail("no signature for $filename");
 	}
 
 	public function test_it_counts_only_the_window()
@@ -74,6 +109,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(7, $summary['total']);
 		$this->assertSame(1100, $summary['oldest_date']);
 		$this->assertSame(1700, $summary['newest_date']);
+		$this->assertSame(['rows' => 7, 'complete' => true], $summary['examined']);
 	}
 
 	public function test_it_groups_by_exception_type()
@@ -98,10 +134,15 @@ class ErrorLogSummaryTest extends TestCase
 			'count' => 3,
 			'first_date' => 1100,
 			'last_date' => 1300,
+			'severity' => 'E_WARNING',
+			'origins' => ['web' => 3, 'cli' => 0, 'job' => 0, 'unknown' => 0],
+			'origin_add_ons' => [
+				['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
+			],
 		], $summary['signatures'][0]);
 	}
 
-	public function test_it_attributes_errors_to_add_ons()
+	public function test_it_attributes_errors_to_where_they_surfaced()
 	{
 		$this->assertSame([
 			['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
@@ -110,14 +151,61 @@ class ErrorLogSummaryTest extends TestCase
 		], $this->summary()['by_add_on']);
 	}
 
-	public function test_the_limit_trims_signatures_but_not_the_counts()
+	/**
+	 * The core error reached through an add-on moves to that add-on. The one with no add-on on
+	 * the way has none, and so do the two outside the install.
+	 */
+	public function test_it_attributes_a_core_error_to_the_add_on_that_led_to_it()
 	{
-		$summary = $this->summary(['limit' => 1]);
+		$summary = $this->summary();
 
-		$this->assertCount(1, $summary['signatures']);
-		$this->assertSame(3, $summary['signature_count']);
-		$this->assertSame(7, $summary['total']);
-		$this->assertCount(2, $summary['by_type']);
+		$this->assertSame([
+			['add_on_id' => 'Hampel/AdminApi', 'count' => 4, 'newest_date' => 1400],
+			['add_on_id' => null, 'count' => 3, 'newest_date' => 1700],
+		], $summary['by_origin_add_on']);
+
+		$this->assertSame([
+			['add_on_id' => null, 'count' => 1, 'newest_date' => 1500],
+			['add_on_id' => 'Hampel/AdminApi', 'count' => 1, 'newest_date' => 1400],
+		], $this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['origin_add_ons']);
+	}
+
+	/**
+	 * The job row was logged during a web request. A job is a job however it was triggered.
+	 */
+	public function test_it_says_where_errors_came_from()
+	{
+		$summary = $this->summary();
+
+		$this->assertSame(['web' => 3, 'cli' => 2, 'job' => 1, 'unknown' => 1], $summary['by_origin']);
+		$this->assertSame(
+			['web' => 0, 'cli' => 1, 'job' => 1, 'unknown' => 0],
+			$this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['origins']
+		);
+	}
+
+	public function test_it_reports_the_level_of_a_php_error()
+	{
+		$summary = $this->summary();
+
+		$this->assertSame([
+			['severity' => 'E_WARNING', 'count' => 3, 'newest_date' => 1300],
+			['severity' => 'fatal', 'count' => 2, 'newest_date' => 1700],
+			['severity' => null, 'count' => 2, 'newest_date' => 1500],
+		], $summary['by_severity']);
+
+		$this->assertSame('fatal', $this->signature($summary, 'script.php')['severity']);
+		$this->assertNull($this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['severity']);
+	}
+
+	public function test_a_signature_seen_at_more_than_one_level_says_so()
+	{
+		$this->insertError(
+			1350, 'ErrorException', \XF::getRootDirectory() . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10,
+			'[E_DEPRECATED] SECRET-MESSAGE', self::NO_TRACE, self::WEB
+		);
+
+		$this->assertSame('mixed', $this->summary()['signatures'][0]['severity']);
 	}
 
 	/**
@@ -131,16 +219,13 @@ class ErrorLogSummaryTest extends TestCase
 			return !$signature['in_install'];
 		}));
 
-		$this->assertSame([[
-			'exception_type' => 'TypeError',
-			'filename' => 'script.php',
-			'line' => 30,
-			'in_install' => false,
-			'add_on_id' => null,
-			'count' => 2,
-			'first_date' => 1600,
-			'last_date' => 1700,
-		]], $outside);
+		$this->assertCount(1, $outside);
+		$this->assertSame('script.php', $outside[0]['filename']);
+		$this->assertNull($outside[0]['add_on_id']);
+		$this->assertSame(2, $outside[0]['count']);
+		$this->assertSame(1600, $outside[0]['first_date']);
+		$this->assertSame(1700, $outside[0]['last_date']);
+		$this->assertSame(['web' => 0, 'cli' => 1, 'job' => 0, 'unknown' => 1], $outside[0]['origins']);
 	}
 
 	/**
@@ -153,6 +238,38 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertFalse($this->summary(['since' => 999, 'until' => 2000])['window']['precedes_log']);
 	}
 
+	/**
+	 * Every row here falls on 1 January 1970. The series runs from there to the end of the window.
+	 */
+	public function test_it_counts_each_day_and_includes_the_quiet_ones()
+	{
+		$this->insertError(86400 * 2 + 5, 'ErrorException', 'src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
+
+		$this->assertSame([
+			['day' => '1970-01-01', 'count' => 9],
+			['day' => '1970-01-02', 'count' => 0],
+			['day' => '1970-01-03', 'count' => 1],
+		], $this->summary(['since' => 999, 'until' => 86400 * 3 - 1])['by_day']);
+	}
+
+	public function test_the_days_start_where_the_log_does_and_not_before()
+	{
+		$days = $this->summary(['since' => 0, 'until' => 86400 * 2 - 1])['by_day'];
+
+		$this->assertSame(['1970-01-01', '1970-01-02'], array_column($days, 'day'));
+	}
+
+	public function test_the_limit_trims_signatures_but_not_the_counts()
+	{
+		$summary = $this->summary(['limit' => 1]);
+
+		$this->assertCount(1, $summary['signatures']);
+		$this->assertSame(3, $summary['signature_count']);
+		$this->assertSame(7, $summary['total']);
+		$this->assertCount(2, $summary['by_type']);
+		$this->assertSame(7, array_sum($summary['by_origin']));
+	}
+
 	public function test_an_empty_window_is_a_result_and_not_an_error()
 	{
 		$summary = $this->summary(['since' => 10, 'until' => 20]);
@@ -161,6 +278,9 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertNull($summary['oldest_date']);
 		$this->assertNull($summary['newest_date']);
 		$this->assertSame([], $summary['signatures']);
+		$this->assertSame([], $summary['by_severity']);
+		$this->assertSame(['web' => 0, 'cli' => 0, 'job' => 0, 'unknown' => 0], $summary['by_origin']);
+		$this->assertSame(['rows' => 0, 'complete' => true], $summary['examined']);
 		$this->assertGreaterThanOrEqual(9, $summary['log']['total']);
 	}
 
@@ -170,21 +290,56 @@ class ErrorLogSummaryTest extends TestCase
 		$window = $this->replyApiResult($reply)['window'];
 
 		$this->assertSame(86400, $window['until'] - $window['since']);
-		$this->assertFalse($window['precedes_log']);
 		$this->assertEqualsWithDelta(time(), $window['until'], 5);
+		$this->assertFalse($window['precedes_log']);
 	}
 
 	/**
 	 * The point of the endpoint. Asserted over the whole encoded response rather than field by
-	 * field, so a column added to the query later is caught wherever it surfaces.
+	 * field, so a column added to the query later is caught wherever it surfaces - and the three
+	 * columns that are read in part are the ones most likely to leak.
 	 */
 	public function test_nothing_from_the_personal_or_request_columns_is_returned()
 	{
-		$json = json_encode($this->summary(['since' => 0, 'limit' => 100]));
+		$json = str_replace('\\/', '/', json_encode($this->summary(['since' => 0, 'limit' => 100])));
 
 		$this->assertStringNotContainsString('SECRET', $json);
-		$this->assertStringNotContainsString((string) self::SECRETS['user_id'], $json);
+		$this->assertStringNotContainsString('example.com', $json);
+		$this->assertStringNotContainsString('password', $json);
+		$this->assertStringNotContainsString((string) self::SECRET_USER, $json);
 		$this->assertStringNotContainsString(self::SECRET_IP, $json);
-		$this->assertStringNotContainsString(\XF::getRootDirectory(), str_replace('\\/', '/', $json));
+		$this->assertStringNotContainsString(\XF::getRootDirectory(), $json);
+	}
+
+	/**
+	 * Whatever the real log holds, each derived field can only be a value from its own fixed list.
+	 */
+	public function test_every_derived_value_comes_from_a_fixed_list()
+	{
+		$summary = $this->summary(['since' => 0, 'limit' => 100]);
+
+		$addOnIds = $this->app()->db()->fetchAllColumn('SELECT addon_id FROM xf_addon');
+		$severities = array_merge(ErrorLog::SEVERITIES, ['fatal', 'mixed', null]);
+
+		foreach ($summary['by_severity'] AS $group)
+		{
+			$this->assertContains($group['severity'], $severities);
+		}
+
+		foreach ($summary['by_origin_add_on'] AS $group)
+		{
+			$this->assertTrue($group['add_on_id'] === null || in_array($group['add_on_id'], $addOnIds, true));
+		}
+
+		foreach ($summary['signatures'] AS $signature)
+		{
+			$this->assertContains($signature['severity'], $severities);
+			$this->assertSame(['web', 'cli', 'job', 'unknown'], array_keys($signature['origins']));
+
+			foreach ($signature['origin_add_ons'] AS $group)
+			{
+				$this->assertTrue($group['add_on_id'] === null || in_array($group['add_on_id'], $addOnIds, true));
+			}
+		}
 	}
 }
