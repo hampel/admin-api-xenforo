@@ -80,6 +80,12 @@ A list is not followed, and that distinction is what stops a list of hostnames b
 how a message or a request reaches the response. One test encodes the whole response and searches
 it for values planted in the columns that must not appear.
 
+**XenForo stores most error-log filenames already relative to the install**, and a few in full.
+A relative path is therefore inside the install, and only an absolute one is tested against the
+root. Treating "does not start with the root" as "outside" reports nearly every core error as
+outside and loses its add-on — the suite did not catch that until its rows were stored both ways,
+because a test that writes only full paths never meets the common case.
+
 **`add_on_id` is derived from the path.** It is matched against installed add-on ids, two path
 segments first and then one, so an add-on without a vendor is still found. A file under
 `src/addons/` belonging to no installed add-on gives `null`, not a guess.
@@ -100,7 +106,7 @@ vendor/bin/phpunit
   each gate in both directions, including a super user key with the permission bypass on.
 - `tests/Feature/ErrorLogSummaryTest.php` writes rows inside a transaction, dated in a window no
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
-  personal and request column.
+  personal and request column, of the install's own path, and of any directory outside it.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.

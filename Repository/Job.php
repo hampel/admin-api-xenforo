@@ -88,6 +88,7 @@ class Job extends Repository
 		$rows = $this->db()->fetchAll('
 			SELECT execute_class,
 				COUNT(*) AS fail_count,
+				MIN(fail_date) AS oldest_date,
 				MAX(fail_date) AS newest_date
 			FROM xf_failed_job
 			GROUP BY execute_class
@@ -95,20 +96,24 @@ class Job extends Repository
 		');
 
 		$total = 0;
+		$oldest = null;
 		$newest = null;
 		$byClass = [];
 
 		foreach ($rows AS $row)
 		{
 			$count = (int) $row['fail_count'];
+			$first = (int) $row['oldest_date'];
 			$date = (int) $row['newest_date'];
 
 			$total += $count;
+			$oldest = $oldest === null ? $first : min($oldest, $first);
 			$newest = $newest === null ? $date : max($newest, $date);
 
 			$byClass[] = [
 				'execute_class' => $row['execute_class'],
 				'count' => $count,
+				'oldest_date' => $first,
 				'newest_date' => $date,
 			];
 		}
@@ -116,6 +121,7 @@ class Job extends Repository
 		return [
 			'recorded' => \XF::$debugMode,
 			'total' => $total,
+			'oldest_date' => $oldest,
 			'newest_date' => $newest,
 			'by_class' => $byClass,
 		];

@@ -26,7 +26,7 @@ class Jobs extends AbstractController
 	 * @api-out int $retrying Jobs that have been attempted at least once
 	 * @api-out int $oldest_due_date The earliest trigger date among due jobs, or null
 	 * @api-out array $by_class The same counts for each job class
-	 * @api-out array $failed Failed jobs: whether they are recorded, total, newest_date and by_class
+	 * @api-out array $failed Failed jobs: whether they are recorded, total, oldest_date, newest_date and by_class
 	 */
 	public function actionGet()
 	{

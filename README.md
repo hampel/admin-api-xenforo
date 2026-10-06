@@ -58,6 +58,8 @@ To set it up:
 | `GET /api/admin-api/options/` | Read which options are set, without their values, through the API |
 | `GET /api/admin-api/config/` | Read which config.php settings are set, without their values, through the API |
 
+The JSON under each endpoint shows the shape of a response. The figures in it are illustrative.
+
 ## Error log summary
 
 `GET /api/admin-api/error-log/`
@@ -78,7 +80,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 
 ```json
 {
-    "window": {"since": 0, "until": 1791288535},
+    "window": {"since": 0, "until": 1791288535, "precedes_log": true},
     "total": 24,
     "oldest_date": 1790305832,
     "newest_date": 1790857181,
@@ -93,6 +95,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "exception_type": "ErrorException",
             "filename": "src/XF/Template/Templater.php",
             "line": 1285,
+            "in_install": true,
             "add_on_id": "XF",
             "count": 4,
             "first_date": 1790340412,
@@ -107,13 +110,22 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - A **signature** is one exception type at one file and line. `signature_count` is how many there
   are in the window before `limit` is applied; the totals and the two `by_` groups always cover
   the whole window.
-- `filename` is relative to the forum's root directory. A file outside it is returned as logged.
+- `filename` is relative to the forum's root directory. For a file outside it only the file's own
+  name is returned, with `in_install: false` — its directories are the server's layout and can
+  hold an account name. `Command line code` is PHP's name for code run with `php -r`.
+- **An `ErrorException` is any PHP warning, notice or deprecation**, so the type alone says little;
+  the file and line are what identify it.
+- `first_date` equal to `last_date` with a `count` above one is a burst within one second —
+  usually one request failing several times, not several requests.
 - `add_on_id` is the add-on whose directory the error was raised in, `XF` for the core, or `null`.
   **It says where an error surfaced, not what caused it** — a fault in an add-on's template is
   raised inside the core's templater.
 - `log` describes the whole log whatever the window, so an empty window can be told apart from an
   empty log. XenForo prunes the log itself, so `log.oldest_date` is as far back as any window can
   usefully reach.
+- **`window.precedes_log` is true when `since` is earlier than the oldest entry the log still
+  holds.** The part of the window before that entry counts as zero whether or not anything
+  happened then, so a quiet day there is not evidence of a quiet day.
 
 ## Add-on inventory
 
@@ -147,6 +159,13 @@ XenForo's own version and the PHP version.
 
 `version_*` is what is installed and `files_version_*` is what is on disk. They differ when new
 files have been uploaded and the upgrade has not been run, which is what `can_upgrade` reports.
+
+`has_pending_changes` is XenForo's own "this add-on's files have changed" flag, the one behind the
+notice in the admin control panel: the add-on's `addon.json` on disk no longer matches what was
+installed, by version or by content. With `can_upgrade` false it usually means the file was edited
+without a version change, which is routine on a development forum and worth a look on a live one.
+
+An add-on with `is_installed: false` is on disk only, and its `active` is always false.
 
 ## Cron entries
 
@@ -187,6 +206,9 @@ entry last ran.
 - `runner` is XenForo's own job that runs whichever entries are due. A `last_run_date` that is
   recent means cron is being triggered; `queued: false` means nothing will run any entry.
 - `entries` is ordered by `next_run`, so anything overdue is first.
+- **`run_rules` is in UTC**, like every timestamp here: `"hours": [3]` is 03:00 UTC, whatever the
+  forum's own time zone. `-1` means every one. `day_type` says whether the day is chosen by `dom`
+  (day of the month) or `dow` (day of the week, 0 for Sunday).
 
 ## Job queue
 
@@ -220,9 +242,10 @@ content id. Neither is read, and nor is the data or exception text of a failed j
     "failed": {
         "recorded": true,
         "total": 1,
+        "oldest_date": 1790151723,
         "newest_date": 1790151723,
         "by_class": [
-            {"execute_class": "XF\\Job\\IconUsage", "count": 1, "newest_date": 1790151723}
+            {"execute_class": "XF\\Job\\IconUsage", "count": 1, "oldest_date": 1790151723, "newest_date": 1790151723}
         ]
     }
 }
@@ -238,7 +261,8 @@ content id. Neither is read, and nor is the data or exception text of a failed j
 **`failed.recorded` says whether an empty `failed` means anything.** XenForo writes a failed job
 to its table only when debug mode is on, so on a production forum `total: 0` with
 `recorded: false` means nothing was recorded, not that nothing failed. The server error log is
-where a production job failure shows up.
+where a production job failure shows up. `recorded` is the setting as it is now: it does not say
+whether failures were being recorded when the ones listed happened, or throughout since.
 
 ## Options
 
@@ -298,6 +322,12 @@ empty array), whether it `is_default`, and for an array how many members it has.
 ```
 
 - **`value: null` with `disclosed: false` means withheld**, not empty. Read `set` for that.
+- **`set` is not "on".** It means the option holds something: a boolean that is `false` is still
+  `set: true`. Read `value` for whether a flag is on.
+- **`changed` counts more than an administrator's decisions.** XenForo keeps a few of its own
+  values as options — `currentVersionId`, `jsLastUpdate` — and they differ from their defaults on
+  every forum.
+- Numbers are decimal. A file mode shows as `436`, which is octal `0664`.
 - `total`, `changed` and `by_add_on` count every option matching `add_on_id`; `changed=1` shortens
   the list, not the counts.
 - An option left at its default holds whatever the add-on shipped, which is public. `is_default`
@@ -341,13 +371,13 @@ string never is. `db.password` is reported as a string that is set, and that is 
             "count": null
         },
         {
-            "key": "enableMail",
+            "key": "debug",
             "has_default": true,
             "is_default": false,
             "type": "boolean",
             "set": true,
             "disclosed": true,
-            "value": false,
+            "value": true,
             "count": null
         }
     ]
@@ -357,7 +387,8 @@ string never is. `db.password` is reported as a string that is set, and that is 
 - A nested setting is followed while its keys are names, to five levels. A list is reported as one
   array with a `count`, because its members are values.
 - `has_default: false` marks a key XenForo does not define — one your `config.php` or an add-on
-  introduced.
+  introduced. Every such key counts as changed, and that includes the `db.*` settings every forum
+  has, so `changed` is never zero.
 - **Key names are returned.** If your `config.php` uses a secret as an array *key*, this endpoint
   will show it; a value never is.
 

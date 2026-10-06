@@ -44,8 +44,9 @@ class ErrorLog extends Repository
 			$count = (int) $row['error_count'];
 			$first = (int) $row['first_date'];
 			$last = (int) $row['last_date'];
+			$inInstall = $this->isInInstall($row['filename']);
 			$filename = $this->getRelativeFilename($row['filename']);
-			$addOnId = $this->getAddOnIdFromFilename($filename, $addOnIds);
+			$addOnId = $inInstall ? $this->getAddOnIdFromFilename($filename, $addOnIds) : null;
 
 			$total += $count;
 			$oldest = $oldest === null ? $first : min($oldest, $first);
@@ -54,16 +55,39 @@ class ErrorLog extends Repository
 			$this->addToGroup($byType, 'exception_type', $row['exception_type'], $count, $last);
 			$this->addToGroup($byAddOn, 'add_on_id', $addOnId, $count, $last);
 
-			$signatures[] = [
+			// two files outside the install can share a name once their directories are dropped
+			$key = $row['exception_type'] . "\0" . $filename . "\0" . $row['line'] . "\0" . (int) $inInstall;
+
+			if (isset($signatures[$key]))
+			{
+				$signatures[$key]['count'] += $count;
+				$signatures[$key]['first_date'] = min($signatures[$key]['first_date'], $first);
+				$signatures[$key]['last_date'] = max($signatures[$key]['last_date'], $last);
+				continue;
+			}
+
+			$signatures[$key] = [
 				'exception_type' => $row['exception_type'],
 				'filename' => $filename,
 				'line' => (int) $row['line'],
+				'in_install' => $inInstall,
 				'add_on_id' => $addOnId,
 				'count' => $count,
 				'first_date' => $first,
 				'last_date' => $last,
 			];
 		}
+
+		$signatures = array_values($signatures);
+		usort($signatures, function ($a, $b)
+		{
+			if ($a['count'] === $b['count'])
+			{
+				return $b['last_date'] <=> $a['last_date'];
+			}
+
+			return $b['count'] <=> $a['count'];
+		});
 
 		$log = $db->fetchRow('
 			SELECT COUNT(*) AS total,
@@ -72,8 +96,14 @@ class ErrorLog extends Repository
 			FROM xf_error_log
 		');
 
+		$logOldest = $log['oldest_date'] === null ? null : (int) $log['oldest_date'];
+
 		return [
-			'window' => ['since' => $since, 'until' => $until],
+			'window' => [
+				'since' => $since,
+				'until' => $until,
+				'precedes_log' => $logOldest !== null && $since < $logOldest,
+			],
 			'total' => $total,
 			'oldest_date' => $oldest,
 			'newest_date' => $newest,
@@ -90,24 +120,61 @@ class ErrorLog extends Repository
 	}
 
 	/**
-	 * A path under the install is returned relative to it, so the response does not carry the
-	 * server's directory layout. A path outside it is returned as logged.
+	 * XenForo usually stores a path under the install already relative to it, and stores anything
+	 * else - or anything logged before it knew its root - in full. So a relative path is under
+	 * the install, an absolute one is only if it starts with the root, and a name that is not a
+	 * path at all ("Command line code") is neither.
 	 *
-	 * @param string $filename
+	 * A path outside the install is cut down to the file's own name: its directories are the
+	 * server's layout, and can hold an account name.
+	 *
+	 * @param string $filename As logged
 	 *
 	 * @return string
 	 */
 	public function getRelativeFilename($filename)
 	{
 		$filename = str_replace('\\', '/', $filename);
-		$root = rtrim(str_replace('\\', '/', \XF::getRootDirectory()), '/') . '/';
+		$root = $this->getRootPrefix();
 
 		if (strpos($filename, $root) === 0)
 		{
 			return substr($filename, strlen($root));
 		}
 
-		return $filename;
+		if (!$this->isAbsolute($filename))
+		{
+			return $filename;
+		}
+
+		return substr($filename, strrpos($filename, '/') + 1);
+	}
+
+	/**
+	 * @param string $filename As logged
+	 *
+	 * @return bool
+	 */
+	public function isInInstall($filename)
+	{
+		$filename = str_replace('\\', '/', $filename);
+
+		if ($this->isAbsolute($filename))
+		{
+			return strpos($filename, $this->getRootPrefix()) === 0;
+		}
+
+		return strpos($filename, '/') !== false;
+	}
+
+	protected function isAbsolute($filename)
+	{
+		return $filename !== '' && ($filename[0] === '/' || preg_match('#^[A-Za-z]:/#', $filename));
+	}
+
+	protected function getRootPrefix()
+	{
+		return rtrim(str_replace('\\', '/', \XF::getRootDirectory()), '/') . '/';
 	}
 
 	/**

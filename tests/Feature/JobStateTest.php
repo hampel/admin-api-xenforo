@@ -118,11 +118,12 @@ class JobStateTest extends TestCase
 
 		$this->assertSame(\XF::$debugMode, $failed['recorded']);
 		$this->assertSame(
-			['execute_class' => 'Tests\Fake\Mail', 'count' => 2, 'newest_date' => $this->now - 100],
+			['execute_class' => 'Tests\Fake\Mail', 'count' => 2, 'oldest_date' => $this->now - 500, 'newest_date' => $this->now - 100],
 			$byClass['Tests\Fake\Mail']
 		);
 		$this->assertSame(array_sum(array_column($failed['by_class'], 'count')), $failed['total']);
 		$this->assertSame($this->now - 100, $failed['newest_date']);
+		$this->assertLessThanOrEqual($this->now - 500, $failed['oldest_date']);
 	}
 
 	/**

@@ -20,9 +20,32 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertSame('src/XF/Mvc/Dispatcher.php', $this->repo()->getRelativeFilename($root . '/src/XF/Mvc/Dispatcher.php'));
 	}
 
-	public function test_a_path_outside_the_install_is_left_alone()
+	public function test_a_path_outside_the_install_keeps_only_the_file_name()
 	{
-		$this->assertSame('/somewhere/else/script.php', $this->repo()->getRelativeFilename('/somewhere/else/script.php'));
+		$this->assertSame('script.php', $this->repo()->getRelativeFilename('/somewhere/else/script.php'));
+		$this->assertFalse($this->repo()->isInInstall('/somewhere/else/script.php'));
+	}
+
+	/**
+	 * How XenForo stores most of them, so the case that decides whether the endpoint is useful.
+	 */
+	public function test_a_path_stored_relative_is_under_the_install_and_left_alone()
+	{
+		$this->assertSame('src/XF/Template/Templater.php', $this->repo()->getRelativeFilename('src/XF/Template/Templater.php'));
+		$this->assertTrue($this->repo()->isInInstall('src/XF/Template/Templater.php'));
+		$this->assertTrue($this->repo()->isInInstall(\XF::getRootDirectory() . '/src/XF.php'));
+	}
+
+	public function test_a_windows_path_outside_the_install_keeps_only_the_file_name()
+	{
+		$this->assertSame('script.php', $this->repo()->getRelativeFilename('C:\\Users\\someone\\script.php'));
+		$this->assertFalse($this->repo()->isInInstall('C:\\Users\\someone\\script.php'));
+	}
+
+	public function test_a_name_that_is_not_a_path_is_left_alone()
+	{
+		$this->assertSame('Command line code', $this->repo()->getRelativeFilename('Command line code'));
+		$this->assertFalse($this->repo()->isInInstall('Command line code'));
 	}
 
 	/**
@@ -30,9 +53,10 @@ class ErrorLogRepositoryTest extends TestCase
 	 */
 	public function test_a_sibling_directory_with_the_same_prefix_is_not_made_relative()
 	{
-		$sibling = \XF::getRootDirectory() . '-old/src/XF.php';
+		$sibling = realpath(\XF::getRootDirectory()) . '-old/src/XF.php';
 
-		$this->assertSame($sibling, $this->repo()->getRelativeFilename($sibling));
+		$this->assertFalse($this->repo()->isInInstall($sibling));
+		$this->assertSame('XF.php', $this->repo()->getRelativeFilename($sibling));
 	}
 
 	public function test_core_files_belong_to_xf()

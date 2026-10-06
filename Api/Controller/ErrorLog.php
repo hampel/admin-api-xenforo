@@ -26,7 +26,7 @@ class ErrorLog extends AbstractController
 	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now.
 	 * @api-in int $limit Maximum number of signatures to return, most frequent first. Default 20, maximum 100.
 	 *
-	 * @api-out array $window The window summarised: since and until
+	 * @api-out array $window The window summarised: since, until, and whether it starts before the log does
 	 * @api-out int $total Errors logged in the window
 	 * @api-out int $oldest_date Date of the oldest error in the window, or null
 	 * @api-out int $newest_date Date of the newest error in the window, or null

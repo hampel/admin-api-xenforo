@@ -34,9 +34,11 @@ class ErrorLogSummaryTest extends TestCase
 		$this->insertError(1100, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
 		$this->insertError(1200, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
 		$this->insertError(1300, 'ErrorException', $root . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10);
+		// stored both ways: XenForo usually strips the root, and a full path means the same file
 		$this->insertError(1400, 'TypeError', $root . '/src/XF/Mvc/Dispatcher.php', 20);
-		$this->insertError(1500, 'TypeError', $root . '/src/XF/Mvc/Dispatcher.php', 20);
-		$this->insertError(1600, 'TypeError', '/somewhere/else/script.php', 30);
+		$this->insertError(1500, 'TypeError', 'src/XF/Mvc/Dispatcher.php', 20);
+		$this->insertError(1600, 'TypeError', '/home/SECRET-account/work/script.php', 30);
+		$this->insertError(1700, 'TypeError', '/tmp/SECRET-session/script.php', 30);
 
 		// outside the window on either side
 		$this->insertError(999, 'LogicException', $root . '/src/XF.php', 1);
@@ -67,16 +69,17 @@ class ErrorLogSummaryTest extends TestCase
 	{
 		$summary = $this->summary();
 
-		$this->assertSame(['since' => self::SINCE, 'until' => self::UNTIL], $summary['window']);
-		$this->assertSame(6, $summary['total']);
+		$this->assertSame(self::SINCE, $summary['window']['since']);
+		$this->assertSame(self::UNTIL, $summary['window']['until']);
+		$this->assertSame(7, $summary['total']);
 		$this->assertSame(1100, $summary['oldest_date']);
-		$this->assertSame(1600, $summary['newest_date']);
+		$this->assertSame(1700, $summary['newest_date']);
 	}
 
 	public function test_it_groups_by_exception_type()
 	{
 		$this->assertSame([
-			['exception_type' => 'TypeError', 'count' => 3, 'newest_date' => 1600],
+			['exception_type' => 'TypeError', 'count' => 4, 'newest_date' => 1700],
 			['exception_type' => 'ErrorException', 'count' => 3, 'newest_date' => 1300],
 		], $this->summary()['by_type']);
 	}
@@ -90,6 +93,7 @@ class ErrorLogSummaryTest extends TestCase
 			'exception_type' => 'ErrorException',
 			'filename' => 'src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php',
 			'line' => 10,
+			'in_install' => true,
 			'add_on_id' => 'Hampel/AdminApi',
 			'count' => 3,
 			'first_date' => 1100,
@@ -101,8 +105,8 @@ class ErrorLogSummaryTest extends TestCase
 	{
 		$this->assertSame([
 			['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
+			['add_on_id' => null, 'count' => 2, 'newest_date' => 1700],
 			['add_on_id' => 'XF', 'count' => 2, 'newest_date' => 1500],
-			['add_on_id' => null, 'count' => 1, 'newest_date' => 1600],
 		], $this->summary()['by_add_on']);
 	}
 
@@ -112,8 +116,41 @@ class ErrorLogSummaryTest extends TestCase
 
 		$this->assertCount(1, $summary['signatures']);
 		$this->assertSame(3, $summary['signature_count']);
-		$this->assertSame(6, $summary['total']);
+		$this->assertSame(7, $summary['total']);
 		$this->assertCount(2, $summary['by_type']);
+	}
+
+	/**
+	 * A directory outside the install is the server's layout and can name an account. Two such
+	 * files that differ only by directory become one signature once it is dropped.
+	 */
+	public function test_a_file_outside_the_install_keeps_only_its_name()
+	{
+		$outside = array_values(array_filter($this->summary()['signatures'], function ($signature)
+		{
+			return !$signature['in_install'];
+		}));
+
+		$this->assertSame([[
+			'exception_type' => 'TypeError',
+			'filename' => 'script.php',
+			'line' => 30,
+			'in_install' => false,
+			'add_on_id' => null,
+			'count' => 2,
+			'first_date' => 1600,
+			'last_date' => 1700,
+		]], $outside);
+	}
+
+	/**
+	 * A window reaching back past the oldest entry counts nothing there, which looks the same as
+	 * a quiet day unless the response says so.
+	 */
+	public function test_it_says_when_the_window_starts_before_the_log_does()
+	{
+		$this->assertTrue($this->summary(['since' => 10, 'until' => 20])['window']['precedes_log']);
+		$this->assertFalse($this->summary(['since' => 999, 'until' => 2000])['window']['precedes_log']);
 	}
 
 	public function test_an_empty_window_is_a_result_and_not_an_error()
@@ -124,7 +161,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertNull($summary['oldest_date']);
 		$this->assertNull($summary['newest_date']);
 		$this->assertSame([], $summary['signatures']);
-		$this->assertGreaterThanOrEqual(8, $summary['log']['total']);
+		$this->assertGreaterThanOrEqual(9, $summary['log']['total']);
 	}
 
 	public function test_the_window_defaults_to_the_last_24_hours()
@@ -133,6 +170,7 @@ class ErrorLogSummaryTest extends TestCase
 		$window = $this->replyApiResult($reply)['window'];
 
 		$this->assertSame(86400, $window['until'] - $window['since']);
+		$this->assertFalse($window['precedes_log']);
 		$this->assertEqualsWithDelta(time(), $window['until'], 5);
 	}
 
