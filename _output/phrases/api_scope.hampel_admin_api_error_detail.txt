@@ -1,0 +1,1 @@
+Read individual server error log entries, with their messages and stack traces, through the Admin API endpoints

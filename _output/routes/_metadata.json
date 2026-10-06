@@ -8,6 +8,9 @@
     "api_admin-api_cron.json": {
         "hash": "847990e33f6d366a9859cc6bd01e4980"
     },
+    "api_admin-api_error-entries.json": {
+        "hash": "565af9c7d513bcc000b49dbebce7dfaf"
+    },
     "api_admin-api_error-log.json": {
         "hash": "471d0e25d936312780a3a287f4cc1a26"
     },

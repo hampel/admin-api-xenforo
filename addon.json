@@ -1,7 +1,7 @@
 {
     "legacy_addon_id": "",
     "title": "Admin API: read-only operational endpoints",
-    "description": "Adds read-only REST API endpoints for a forum's operational state - a summary of the server error log, an inventory of installed add-ons, the state of cron entries and the job queue, and which options and config.php settings are set, without their values. Each endpoint requires an administrator's own API key and that administrator's admin permission; super user keys are refused.",
+    "description": "Adds read-only REST API endpoints for a forum's operational state - a summary of the server error log, an inventory of installed add-ons, the state of cron entries and the job queue, and which options and config.php settings are set, without their values. A separately scoped endpoint returns individual error log entries. Each endpoint requires an administrator's own API key and that administrator's admin permission; super user keys are refused.",
     "version_id": 1000011,
     "version_string": "1.0.0a1",
     "dev": "Simon Hampel",

@@ -11,29 +11,27 @@ class SetupTest extends TestCase
 
 	private function usableWithOAuth()
 	{
-		return (int) $this->app()->db()->fetchOne(
-			'SELECT usable_with_oauth_clients FROM xf_api_scope WHERE api_scope_id = ?',
-			AbstractController::SCOPE
+		return $this->app()->db()->fetchPairs(
+			'SELECT api_scope_id, usable_with_oauth_clients FROM xf_api_scope WHERE addon_id = ? ORDER BY api_scope_id',
+			'Hampel/AdminApi'
 		);
 	}
 
 	/**
-	 * Importing a release leaves the scope on the column default, which is usable.
+	 * Importing a release leaves every scope on the column default, which is usable.
 	 */
-	public function test_the_scope_is_withheld_from_oauth_clients_after_a_release_import()
+	public function test_every_scope_is_withheld_from_oauth_clients_after_a_release_import()
 	{
-		$this->app()->db()->update(
-			'xf_api_scope',
-			['usable_with_oauth_clients' => 1],
-			'api_scope_id = ?',
-			AbstractController::SCOPE
-		);
-		$this->assertSame(1, $this->usableWithOAuth());
+		$this->app()->db()->update('xf_api_scope', ['usable_with_oauth_clients' => 1], 'addon_id = ?', 'Hampel/AdminApi');
+
+		$scopes = AbstractController::SCOPES;
+		sort($scopes);
+		$this->assertSame(array_fill_keys($scopes, 1), array_map('intval', $this->usableWithOAuth()));
 
 		$addOn = $this->app()->addOnManager()->getById('Hampel/AdminApi');
 		$stateChanges = [];
 		(new Setup($addOn, $this->app()))->postInstall($stateChanges);
 
-		$this->assertSame(0, $this->usableWithOAuth());
+		$this->assertSame(array_fill_keys($scopes, 0), array_map('intval', $this->usableWithOAuth()));
 	}
 }

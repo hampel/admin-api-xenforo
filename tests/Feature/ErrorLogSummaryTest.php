@@ -29,6 +29,9 @@ class ErrorLogSummaryTest extends TestCase
 
 	private const NO_TRACE = 'SECRET-TRACE #0 {main}';
 
+	/** @var int[] error_id by exception_date */
+	private $ids = [];
+
 	protected function setUp() : void
 	{
 		parent::setUp();
@@ -78,6 +81,8 @@ class ErrorLogSummaryTest extends TestCase
 			'trace_string' => $trace,
 			'request_state' => $state,
 		]);
+
+		$this->ids[$date] = (int) $this->app()->db()->lastInsertId();
 	}
 
 	private function summary(array $input = [])
@@ -134,6 +139,7 @@ class ErrorLogSummaryTest extends TestCase
 			'count' => 3,
 			'first_date' => 1100,
 			'last_date' => 1300,
+			'last_error_id' => $this->ids[1300],
 			'severity' => 'E_WARNING',
 			'origins' => ['web' => 3, 'cli' => 0, 'job' => 0, 'unknown' => 0],
 			'origin_add_ons' => [
@@ -225,6 +231,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(2, $outside[0]['count']);
 		$this->assertSame(1600, $outside[0]['first_date']);
 		$this->assertSame(1700, $outside[0]['last_date']);
+		$this->assertSame($this->ids[1700], $outside[0]['last_error_id']);
 		$this->assertSame(['web' => 0, 'cli' => 1, 'job' => 0, 'unknown' => 1], $outside[0]['origins']);
 	}
 

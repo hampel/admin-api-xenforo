@@ -19,34 +19,37 @@ class Setup extends AbstractSetup
 
 	public function postInstall(array &$stateChanges)
 	{
-		$this->withholdScopeFromOAuthClients();
+		$this->withholdScopesFromOAuthClients();
 	}
 
 	public function postUpgrade($previousVersion, array &$stateChanges)
 	{
-		$this->withholdScopeFromOAuthClients();
+		$this->withholdScopesFromOAuthClients();
 	}
 
 	public function postRebuild()
 	{
-		$this->withholdScopeFromOAuthClients();
+		$this->withholdScopesFromOAuthClients();
 	}
 
 	/**
-	 * A release carries an API scope's id and nothing else, so on import the scope takes the
-	 * column default and is offered to OAuth clients. The endpoints refuse an access token
-	 * whatever it holds; this stops the scope being offered for one in the first place.
+	 * A release carries an API scope's id and nothing else, so on import a scope takes the column
+	 * default and is offered to OAuth clients. The endpoints refuse an access token whatever it
+	 * holds; this stops the scopes being offered for one in the first place.
 	 */
-	public function withholdScopeFromOAuthClients()
+	public function withholdScopesFromOAuthClients()
 	{
-		$scope = \XF::em()->find('XF:ApiScope', AbstractController::SCOPE);
-		if (!$scope || !$scope->usable_with_oauth_clients)
+		foreach (AbstractController::SCOPES AS $scopeId)
 		{
-			return;
-		}
+			$scope = \XF::em()->find('XF:ApiScope', $scopeId);
+			if (!$scope || !$scope->usable_with_oauth_clients)
+			{
+				continue;
+			}
 
-		$scope->getBehavior('XF:DevOutputWritable')->setOption('write_dev_output', false);
-		$scope->usable_with_oauth_clients = false;
-		$scope->save();
+			$scope->getBehavior('XF:DevOutputWritable')->setOption('write_dev_output', false);
+			$scope->usable_with_oauth_clients = false;
+			$scope->save();
+		}
 	}
 }

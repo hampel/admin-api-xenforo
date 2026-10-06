@@ -1,0 +1,1 @@
+Give the error_id of a server error log entry. The error log summary returns one for each signature as last_error_id.

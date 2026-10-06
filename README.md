@@ -32,12 +32,15 @@ created — see *Access*.
    acting as, and so are a guest key and an OAuth access token. A super user key can act as any
    user and can ask XenForo to skip its permission checks, so there would be no single
    administrator whose permissions the request could be held to.
-2. **The key must hold the `hampel_admin_api:read` scope.**
+2. **The key must hold the scope for that endpoint.** There are two: `hampel_admin_api:read` for
+   every endpoint that returns counts and shape, and `hampel_admin_api:error_detail` for the one
+   that returns content.
 3. **The key's user must hold the admin permission for that endpoint.**
 
 So a key can never do more than the administrator it belongs to. A key with *all scopes* allowed
 passes the second check and still fails the third unless its user is an administrator with the
-permission. The scope exists to let an administrator issue a key that can do *less* than they can.
+permission. The scopes exist to let an administrator issue a key that can do *less* than they
+can — above all, a key for routine monitoring that cannot read a single error message.
 
 A super administrator holds every admin permission, so the per-endpoint permissions constrain
 ordinary administrators only.
@@ -47,7 +50,11 @@ To set it up:
 1. Under *Groups & permissions > Administrators*, give the administrator the permission for each
    endpoint they should reach.
 2. Under *Setup > API keys*, create a key of type *User* for that administrator, with only the
-   `hampel_admin_api:read` scope.
+   `hampel_admin_api:read` scope. Add `hampel_admin_api:error_detail` only to a key that is meant
+   to read error messages, and consider keeping that as a second key.
+
+Every endpoint needs `hampel_admin_api:read` except the last, which needs
+`hampel_admin_api:error_detail` instead.
 
 | endpoint | admin permission |
 |---|---|
@@ -57,6 +64,7 @@ To set it up:
 | `GET /api/admin-api/jobs/` | Read cron and job queue state through the API |
 | `GET /api/admin-api/options/` | Read which options are set, without their values, through the API |
 | `GET /api/admin-api/config/` | Read which config.php settings are set, without their values, through the API |
+| `GET /api/admin-api/error-entries/` | Read individual server error log entries through the API, **and** XenForo's own *View logs* |
 
 The JSON under each endpoint shows the shape of a response. The figures in it are illustrative.
 
@@ -123,6 +131,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "count": 4,
             "first_date": 1790340412,
             "last_date": 1790771401,
+            "last_error_id": 418,
             "severity": "E_USER_WARNING",
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
             "origin_add_ons": [
@@ -135,6 +144,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 }
 ```
 
+- `last_error_id` is the newest entry of a signature. It is what the error log entries endpoint
+  takes, and it is the only way in to that endpoint.
 - A **signature** is one exception type at one file and line. `signature_count` is how many there
   are in the window before `limit` is applied; the totals and the two `by_` groups always cover
   the whole window.
@@ -172,6 +183,65 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - **`window.precedes_log` is true when `since` is earlier than the oldest entry the log still
   holds.** The part of the window before that entry counts as zero whether or not anything
   happened then, so a quiet day there is not evidence of a quiet day.
+
+## Error log entries
+
+`GET /api/admin-api/error-entries/`
+
+**The one endpoint that returns content.** Everything else here says that something is wrong and
+where; this says why, by returning an entry's message and stack trace as XenForo logged them. A
+message can quote whatever was being handled when the error happened — a member's input, an email
+address, a query — which is why it sits behind its own scope and its own permission, and why a key
+used for monitoring should not hold either.
+
+It takes three things to reach it:
+
+- a key holding `hampel_admin_api:error_detail` — `hampel_admin_api:read` is not enough;
+- the *Read individual server error log entries through the API* admin permission;
+- XenForo's own *View logs* admin permission. Everything returned here is in the server error log
+  in the admin control panel, and an administrator who cannot open it there cannot read it here.
+
+| parameter | meaning |
+|---|---|
+| `error_id` | required. The entry to return — a signature's `last_error_id` from the summary |
+| `limit` | how many entries to return, counting the one asked for. Default 5, maximum 20 |
+| `request` | `1` to add the recorded request, the user id and the IP address to each entry |
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entries/?error_id=418&limit=1"
+```
+
+```json
+{
+    "signature_total": 4,
+    "entries": [
+        {
+            "error_id": 418,
+            "exception_date": 1790771401,
+            "exception_type": "ErrorException",
+            "message": "Template error: [E_USER_WARNING] Cannot call method canView on a non-object (NULL)",
+            "filename": "src/XF/Template/Templater.php",
+            "line": 1285,
+            "in_install": true,
+            "severity": "E_USER_WARNING",
+            "origin": "web",
+            "origin_add_on_id": "Vendor/AddOn",
+            "trace": "#0 [internal function]: XF\\Template\\Templater->handleTemplateError(512, ...)\n#1 ..."
+        }
+    ]
+}
+```
+
+- **There is no way to page through the log.** A request names one entry and gets it back with
+  the most recent others raised at the same type, file and line. `signature_total` says how many
+  the log holds for that place.
+- **The request, the user and the IP address are left out unless `request=1`.** Why an error
+  happened is nearly always in the message and the trace; who it happened to rarely matters and is
+  the most sensitive part. With `request=1` each entry gains `user_id`, `ip_address` and
+  `request` — the URL, referrer and submitted data of a web request, or the command line.
+  XenForo removes passwords from the submitted data before logging it, and nothing else.
+- Paths in `filename` and at the start of each trace line are relative to the forum's root. The
+  arguments inside a trace are returned as logged.
 
 ## Add-on inventory
 
@@ -440,13 +510,16 @@ string never is. `db.password` is reported as a string that is set, and that is 
 
 ## Errors
 
-Every refusal is a `403`, so read the error `code` rather than the status.
+Every refusal of access is a `403`, so read the error `code` rather than the status.
 
 | code | meaning |
 |---|---|
 | `hampel_adminapi_user_api_key_required` | the key is a super user key, a guest key, or an OAuth token was used |
-| `missing_scope` | the key does not hold `hampel_admin_api:read` |
+| `missing_scope` | the key does not hold the scope for this endpoint; the message names it |
 | `do_not_have_permission` | the key's user does not hold the admin permission for this endpoint |
+
+The error log entries endpoint also answers `400` with `hampel_adminapi_error_id_required` when no
+`error_id` is given, and `404` when there is no such entry.
 
 ## Licence
 

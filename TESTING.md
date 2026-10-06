@@ -13,18 +13,21 @@ checked. For whoever changes it next.
 | API route | `admin-api/jobs/` → `Api\Controller\Jobs` |
 | API route | `admin-api/options/` → `Api\Controller\Options` |
 | API route | `admin-api/config/` → `Api\Controller\Config` |
+| API route | `admin-api/error-entries/` → `Api\Controller\ErrorEntries` |
 | API scope | `hampel_admin_api:read`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
 | admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
 | admin permission | `hampelAdminApiOptions` |
 | admin permission | `hampelAdminApiConfig` |
-| phrases | 7 — the scope description, the five permission titles, one error |
+| admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
+| phrases | 10 — the two scope descriptions, the six permission titles, two errors |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
 cron entries, JS or LESS. The add-on creates no schema and reads only core tables; `Setup.php` has
 no install, upgrade or uninstall steps, and its post-install, post-upgrade and post-rebuild hooks
-withhold the scope from OAuth clients.
+withhold the scopes from OAuth clients.
 
 ## Fragile points
 
@@ -86,6 +89,14 @@ root. Treating "does not start with the root" as "outside" reports nearly every 
 outside and loses its add-on — the suite did not catch that until its rows were stored both ways,
 because a test that writes only full paths never meets the common case.
 
+**The detail endpoint is the only place content leaves the forum, and four things keep it narrow**:
+its own scope, its own permission plus `viewLogs`, entry by `error_id` only, and a cap of 20. Each
+has a test. The cap had a bug on the day it was written — a finder asked to fetch none returns
+them all, so `limit=1` returned every entry at that place — and only the test for it showed that.
+
+**A class constant in a test is evaluated while the suite is being built**, before XenForo and the
+add-on's classes can load. Naming an add-on class in one stops the whole run.
+
 **Three fields are worked out from columns that are never returned, and each is checked against a
 fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, and the add-on ids in
 `xf_addon`. The message, trace and request state are read only in part — 40 characters, 8000 and
@@ -127,8 +138,12 @@ vendor/bin/phpunit
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the
   per-class counts, the failed-job counts and the absence of job data, keys and exception text.
-- `tests/Feature/SetupTest.php` sets the scope's OAuth flag as a release import leaves it and
-  checks that the post-install hook clears it.
+- `tests/Feature/ErrorEntriesTest.php` covers the detail endpoint: what an entry returns, which
+  others come with it, the cap, the request data being absent unless asked for, and each of the
+  ways in being refused — the wrong scope in both directions, the summary's permission, a missing
+  `viewLogs`, a super user key.
+- `tests/Feature/SetupTest.php` sets every scope's OAuth flag as a release import leaves it and
+  checks that the post-install hook clears them.
 - `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
   uses, and checks what is returned, the filters and the counts.
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
@@ -152,10 +167,10 @@ tests fail without the first, one without the second, four without the third.
   command line. `origin: web` is tested with planted rows only.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
-- **The admin control panel.** The five permissions appear on the administrator edit page and the
-  scope appears on the API key page, each with its description rather than a raw phrase key.
+- **The admin control panel.** The six permissions appear on the administrator edit page and the
+  two scopes appear on the API key page, each with its description rather than a raw phrase key.
 - **Install on a forum that has never had it**, from a release zip, and uninstall again. After the
-  install, the scope must not be offered when editing an OAuth client. There is no upgrade path
+  install, neither scope may be offered when editing an OAuth client. There is no upgrade path
   to test until a version has been released.
 - **The declared floors.** The suite runs on one XenForo and one PHP version. XenForo 2.3.0 and
   PHP 7.4 are what the code is written to, not what it has been run on.

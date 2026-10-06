@@ -6,6 +6,9 @@ use XF\Mvc\ParameterBag;
 abstract class AbstractController extends BaseController
 {
 	const SCOPE = 'hampel_admin_api:read';
+	const SCOPE_ERROR_DETAIL = 'hampel_admin_api:error_detail';
+
+	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL];
 
 	/**
 	 * The admin permission the key's own user must hold to reach this controller.
@@ -15,13 +18,23 @@ abstract class AbstractController extends BaseController
 	abstract protected function getAdminPermissionId();
 
 	/**
+	 * The scope the key must hold. One scope covers every endpoint that returns no content.
+	 *
+	 * @return string
+	 */
+	protected function getScope()
+	{
+		return self::SCOPE;
+	}
+
+	/**
 	 * Three gates, and the order matters: the first is the one core cannot supply, the second only
 	 * narrows, and the third is the boundary.
 	 */
 	protected function preDispatchController($action, ParameterBag $params)
 	{
 		$this->assertUserApiKey();
-		$this->assertApiScope(self::SCOPE);
+		$this->assertApiScope($this->getScope());
 		$this->assertKeyUserAdminPermission($this->getAdminPermissionId());
 	}
 

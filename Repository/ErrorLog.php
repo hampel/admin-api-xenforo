@@ -48,7 +48,8 @@ class ErrorLog extends Repository
 			SELECT exception_type, filename, line,
 				COUNT(*) AS error_count,
 				MIN(exception_date) AS first_date,
-				MAX(exception_date) AS last_date
+				MAX(exception_date) AS last_date,
+				MAX(error_id) AS last_error_id
 			FROM xf_error_log
 			WHERE exception_date >= ? AND exception_date <= ?
 			GROUP BY exception_type, filename, line
@@ -88,6 +89,7 @@ class ErrorLog extends Repository
 				$signatures[$key]['count'] += $count;
 				$signatures[$key]['first_date'] = min($signatures[$key]['first_date'], $first);
 				$signatures[$key]['last_date'] = max($signatures[$key]['last_date'], $last);
+				$signatures[$key]['last_error_id'] = max($signatures[$key]['last_error_id'], (int) $row['last_error_id']);
 				continue;
 			}
 
@@ -100,6 +102,7 @@ class ErrorLog extends Repository
 				'count' => $count,
 				'first_date' => $first,
 				'last_date' => $last,
+				'last_error_id' => (int) $row['last_error_id'],
 				'severity' => null,
 				'origins' => array_fill_keys(self::ORIGINS, 0),
 				'origin_add_ons' => [],
@@ -146,6 +149,101 @@ class ErrorLog extends Repository
 				'newest_date' => $log['newest_date'] === null ? null : (int) $log['newest_date'],
 			],
 		];
+	}
+
+	/**
+	 * The detail tier: whole entries, message and trace included. Reached only by naming one entry,
+	 * and returns that entry and the most recent others raised at the same place - there is no way
+	 * to page through the log from here.
+	 *
+	 * The request, the user and the IP address are left out unless asked for. Most questions about
+	 * why an error happened are answered by the message and the trace.
+	 *
+	 * @param int $errorId
+	 * @param int $limit
+	 * @param bool $withRequest
+	 *
+	 * @return array|null Null when there is no such entry
+	 */
+	public function getEntries($errorId, $limit, $withRequest)
+	{
+		$entry = $this->em->find('XF:ErrorLog', $errorId);
+		if (!$entry)
+		{
+			return null;
+		}
+
+		$relative = $this->getRelativeFilename($entry->filename);
+		$filenames = [$entry->filename, $relative];
+		if ($this->isInInstall($entry->filename))
+		{
+			// the same file is stored relative by one request and in full by another
+			$filenames[] = $this->getRootPrefix() . $relative;
+		}
+
+		$total = $this->finder('XF:ErrorLog')
+			->where('exception_type', $entry->exception_type)
+			->where('filename', array_unique($filenames))
+			->where('line', $entry->line);
+
+		$addOnIds = $this->getInstalledAddOnIds();
+		$entries = [$this->describeEntry($entry, $addOnIds, $withRequest)];
+
+		// a finder asked for none returns them all
+		if ($limit > 1)
+		{
+			$others = clone $total;
+			$others = $others
+				->where('error_id', '<>', $entry->error_id)
+				->order('error_id', 'DESC')
+				->fetch($limit - 1);
+
+			foreach ($others AS $other)
+			{
+				$entries[] = $this->describeEntry($other, $addOnIds, $withRequest);
+			}
+		}
+
+		return [
+			'signature_total' => $total->total(),
+			'entries' => $entries,
+		];
+	}
+
+	protected function describeEntry(\XF\Entity\ErrorLog $entry, array $addOnIds, $withRequest)
+	{
+		$inInstall = $this->isInInstall($entry->filename);
+		$filename = $this->getRelativeFilename($entry->filename);
+		$trace = str_replace('\\', '/', $entry->trace_string);
+		$request = $entry->request_state;
+
+		$described = [
+			'error_id' => $entry->error_id,
+			'exception_date' => $entry->exception_date,
+			'exception_type' => $entry->exception_type,
+			'message' => $entry->message,
+			'filename' => $filename,
+			'line' => $entry->line,
+			'in_install' => $inInstall,
+			'severity' => $this->getSeverityFromMessage(substr($entry->message, 0, self::MESSAGE_START)),
+			'origin' => $this->getOrigin(
+				isset($request['url']) ? '{"url":' : (isset($request['cli']) ? '{"cli":' : ''),
+				strpos($trace, 'XF/Job/Manager.php(') !== false
+			),
+			'origin_add_on_id' => $this->getOriginAddOnId($inInstall ? $filename : '', $trace, $addOnIds),
+			'trace' => str_replace($this->getRootPrefix(), '', $entry->trace_string),
+		];
+
+		if ($withRequest)
+		{
+			$described['user_id'] = $entry->user_id;
+			$described['ip_address'] = $entry->ip_address === ''
+				? null
+				: \XF\Util\Ip::convertIpBinaryToString($entry->ip_address);
+			$described['request'] = $request;
+		}
+
+		return $described;
 	}
 
 	/**

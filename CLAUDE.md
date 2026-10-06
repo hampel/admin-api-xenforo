@@ -21,7 +21,8 @@ an administrator opts into a new listener by name.
 extends it:
 
 1. a user key only — super user keys, guest keys and OAuth tokens are refused;
-2. the `hampel_admin_api:read` scope;
+2. the scope the controller names in `getScope()` — `hampel_admin_api:read` unless it returns
+   content;
 3. the admin permission the controller names in `getAdminPermissionId()`.
 
 **The scope is not the boundary.** `allow_all_scopes` satisfies any scope check, and anyone can be
@@ -32,7 +33,7 @@ hold, because a super user key can turn core's permission checks off from the re
 one thing must not imply reading another. Cron and the job queue share `hampelAdminApiJobs`
 because they are one capability — cron entries are run by a job.
 
-## An endpoint returns aggregates, and personal data never
+## An endpoint returns aggregates, and personal data never — with one exception, kept apart
 
 **Read-only protects the forum and does nothing for the people on it.** Whatever an endpoint
 returns ends up in a log, a transcript or a third party's system, so the question for every field
@@ -47,6 +48,12 @@ is whether it can carry member data.
   cannot be closed that way, the message text above all, does not belong in this tier. A job's `execute_data` and `unique_key` are the same hazard.
 - **A field that can carry personal or request data does not join an existing endpoint.** If it
   is needed, it goes behind a separate endpoint with its own admin permission, used deliberately.
+- **`Api\Controller\ErrorEntries` is that endpoint, and the only one.** It has its own scope, so a
+  monitoring key cannot reach it; its own permission; and it asks for core's `viewLogs` as well,
+  because the API must not be a way round the control panel. It can only be entered through one
+  named entry, it caps what comes back, and it leaves out the request, user and IP address unless
+  asked. **Do not add a list, a search or a date range to it** — the summary is how an entry is
+  found, and that is what keeps this endpoint a deliberate act.
 - **Configuration is reported as shape, never as values.** `src/config.php` holds the database
   password; an endpoint returning configuration is a credential leak. `ValueShape` is the one
   place that decides what is shown, and it decides by type: a boolean, a null, a number up to
@@ -60,6 +67,7 @@ is whether it can carry member data.
   and export the entity with `DevelopmentOutput::export()`. `xf-dev:import` reads metadata and
   never creates it.
 - **Scope ids are lower case.** Core lowercases them on save.
+- **A new scope goes in `AbstractController::SCOPES`**, which is what `Setup.php` walks.
 - **A release carries a scope's id and nothing else.** `usable_with_oauth_clients` is not exported,
   so an installed scope takes the column default of usable. `Setup.php` sets it back after an
   install, an upgrade and a rebuild. The development install never shows this, because there the
