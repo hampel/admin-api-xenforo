@@ -22,7 +22,8 @@ php cmd.php xf:addon-install Hampel/AdminApi
 ```
 
 Nothing is reachable until an administrator has been given a permission and a key has been
-created — see *Access*.
+created — see *Access*. The add-on creates one small table, for the commands under *Testing with
+faults*, and removes it when uninstalled.
 
 ## Access
 
@@ -625,6 +626,48 @@ no definitions listing choices, so the exception options have does not apply her
   has, so `changed` is never zero.
 - **Key names are returned.** If your `config.php` uses a secret as an array *key*, this endpoint
   will show it; a value never is.
+
+## Testing with faults
+
+**On a healthy forum these endpoints have nothing to report**, which makes them hard to try out
+and harder to build anything on. Three commands plant a fault on purpose, so that a test forum has
+real errors — raised by real requests, with members behind them — for the endpoints to describe.
+
+**They are for a test forum, and they refuse to plant anything unless that forum says so.** Add
+this to `src/config.php`, and only where errors appearing in the log is what you want:
+
+```php
+$config['hampelAdminApi']['faults'] = true;
+```
+
+The switch is in the forum's own configuration and not an option to the command, so the command
+cannot be aimed at the wrong forum. Nothing here is reachable over the web or through the API.
+Anything else that watches the server error log — an alert, a digest — will see these errors too,
+which is the reason for the switch.
+
+```bash
+php cmd.php admin-api:fault-arm --batch=demo --members=3 > armed.json
+php cmd.php admin-api:fault-list
+php cmd.php admin-api:fault-clean demo
+```
+
+- **`fault-arm`** creates a page whose template calls a method on nothing, and members to view it
+  as. Every view of that page logs a template error. It prints what it made as JSON — the page's
+  route, and each member with a password, which is the only time those can be read, so keep the
+  output. XenForo may print lines of its own after the JSON.
+- **`fault-list`** shows what is planted and whether planting is enabled.
+- **`fault-clean`** removes a batch, or every batch when none is named: the page, its template,
+  the members, and the error log entries that page raised. **It is never refused**, so a forum
+  that has had the switch taken away can still get rid of what it holds.
+
+Everything is recorded as it is created, so a run that stops half-way can still be cleaned, and
+`fault-clean` touches nothing it has no record of. Uninstalling the add-on cleans every batch
+first.
+
+The page raises nothing until somebody views it. The add-on's repository has a script,
+`_driver/drive-faults.php`, that views it as a guest and as each member over HTTP; it is not in
+the release, and any HTTP client that can log in will do instead. Afterwards the error log
+summary shows the errors with a `web` origin, the members counted, and the page's template named.
 
 ## Errors
 

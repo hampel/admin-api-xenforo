@@ -1,20 +1,50 @@
 <?php namespace Hampel\AdminApi;
 
 use Hampel\AdminApi\Api\Controller\AbstractController;
+use Hampel\AdminApi\Fault\Manager;
 use XF\AddOn\AbstractSetup;
+use XF\Db\Schema\Create;
 
 class Setup extends AbstractSetup
 {
 	public function install(array $stepParams = [])
 	{
+		$this->createFaultTable();
 	}
 
 	public function upgrade(array $stepParams = [])
 	{
 	}
 
+	/**
+	 * Anything the fault commands planted is content this add-on put on the forum, so it goes
+	 * before the record of it does.
+	 */
 	public function uninstall(array $stepParams = [])
 	{
+		if ($this->schemaManager()->tableExists(Manager::TABLE))
+		{
+			(new Manager($this->app))->clean();
+		}
+
+		$this->schemaManager()->dropTable(Manager::TABLE);
+	}
+
+	/**
+	 * What the fault commands planted, written as each thing is saved.
+	 */
+	public function createFaultTable()
+	{
+		$this->schemaManager()->createTable(Manager::TABLE, function (Create $table)
+		{
+			$table->addColumn('fault_id', 'int')->autoIncrement();
+			$table->addColumn('batch', 'varchar', 16);
+			$table->addColumn('content_type', 'varchar', 25);
+			$table->addColumn('content_id', 'int');
+			$table->addColumn('created_date', 'int');
+
+			$table->addKey('batch');
+		});
 	}
 
 	public function postInstall(array &$stateChanges)

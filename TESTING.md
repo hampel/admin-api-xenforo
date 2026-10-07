@@ -24,10 +24,14 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
 | phrases | 10 — the two scope descriptions, the six permission titles, two errors |
 
+| CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
+| table | `xf_hampel_admin_api_fault` — what the fault commands planted |
+| config key | `hampelAdminApi.faults` in `config.php` |
+
 No class extensions, code event listeners, template modifications, templates, options, entities,
-cron entries, JS or LESS. The add-on creates no schema and reads only core tables; `Setup.php` has
-no install, upgrade or uninstall steps, and its post-install, post-upgrade and post-rebuild hooks
-withhold the scopes from OAuth clients.
+cron entries, JS or LESS. `Setup.php` creates the one table on install; on uninstall it cleans
+every fault batch and drops it. Its post-install, post-upgrade and post-rebuild hooks withhold the
+scopes from OAuth clients.
 
 ## Fragile points
 
@@ -95,6 +99,26 @@ A list is not followed, and that distinction is what stops a list of hostnames b
 **The summary query names its columns.** `SELECT *`, or one more column added for convenience, is
 how a message or a request reaches the response. One test encodes the whole response and searches
 it for values planted in the columns that must not appear.
+
+**A fault page that nobody can view raises nothing, and a new node cannot be viewed.** XenForo
+queues the permission rebuild for an administrator to trigger. Running it inside `arm` was not
+enough twice over: the node tree it reads is itself rebuilt at the end of the request, and a
+permission builder created earlier in the process — saving a member makes one — keeps the tree
+from before the node existed. So `arm` plants the page first, settles the tree, discards the
+builder and runs the rebuild until it finishes. Each of those was found by the driver being
+refused, on a real forum; nothing in the suite would have shown it.
+
+**A template may only call a method whose name starts with an allowed prefix** — `get`, `is`,
+`can` and the like. Anything else is refused when the template is saved, so the fault never
+reaches a visitor. The fault template calls `getFault()` on a variable nothing sets.
+
+**Saving a template commits the transaction a test is running in.** XenForo compiles it with a
+statement that does. So `arm` cannot run inside the suite without leaving a page and members on
+the forum the tests run against; the suite covers the guard and the clean-up with planted records,
+and `arm` is proved on a disposable forum.
+
+**XenForo prints after a command's own output** when the command left work queued, so the JSON
+`fault-arm` prints is followed by lines that are not JSON. The driver reads the first object.
 
 **XenForo stores most error-log filenames already relative to the install**, and a few in full.
 A relative path is therefore inside the install, and only an absolute one is tested against the
@@ -181,6 +205,10 @@ vendor/bin/phpunit
   others come with it, the cap, the request data being absent unless asked for, and each of the
   ways in being refused — the wrong scope in both directions, the summary's permission, a missing
   `viewLogs`, a super user key.
+- `tests/Feature/FaultTest.php` covers the three commands loading, the config guard in each
+  state, `arm` refusing and planting nothing, batch names, `clean` clearing records whose content
+  has gone, one batch leaving another, cleaning with the guard off, and the error log clean-up
+  taking its own page's rows and no neighbour's.
 - `tests/Feature/SetupTest.php` sets every scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears them.
 - `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
@@ -227,6 +255,22 @@ to SMTP that way, and the endpoint correctly reported the stored `sendmail`.
 To repeat it: build the release, and install the zip by path on a fresh instance with
 `$config['development']['enabled'] = false`.
 
+### The fault commands, the same day and the same way
+
+On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
+`hampelAdminApi.faults` on:
+
+| checked | result |
+|---|---|
+| `fault-arm`, then the driver straight away | every view served: a guest and each member, logged in through the login form |
+| what the views logged | one error per view, each with its request and the member who made it |
+| the summary over HTTP | all `web` origin, the members counted, `E_USER_WARNING`, the page's template named |
+| the entries endpoint with `request=1` | the message, the member's id, the address and the page's URL |
+| `fault-clean` | the page, its template, the members, their address rows and every error it raised: all gone, and nothing else |
+| a run that stopped half-way | `fault-clean` removed the three members and the page it had recorded |
+| uninstalling with a batch still planted | the batch was cleaned and the table dropped |
+| the same batch name twice | refused |
+
 ## Needs a human
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
@@ -234,8 +278,6 @@ To repeat it: build the release, and install the zip by path on a fresh instance
   administrator with only this add-on's scope and request each endpoint, then repeat with a
   super user key adding `api_bypass_permissions=1`, and with a key for an ordinary member that
   allows all scopes. The second and third must be refused.
-- **An error from a real web request.** Every row in a development log tends to come from the
-  command line. `origin: web` is tested with planted rows only.
 - **An install or upgrade that has really stopped part-way.** `pending_action` is tested with
   planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read

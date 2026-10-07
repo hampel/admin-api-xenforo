@@ -4,11 +4,15 @@ Standing guidance for a session working in this repository: what the add-on is f
 design rests on, and where the detail lives. `README.md` documents the endpoints and `TESTING.md`
 the surfaces and fragile points; this file does not repeat them.
 
-## The add-on is a read-only window onto operational state, and nothing else
+## The endpoints are a read-only window onto operational state, and nothing else
 
-It adds REST endpoints for what the core API leaves out — the server error log, the add-on
-inventory, cron entries, the job queue, and the shape of options and of `config.php` so far. It has no writes, no options and no schema. `Setup.php` does one thing, described
-under *Mechanics*.
+They cover what the core API leaves out — the server error log, the add-on inventory, cron
+entries, the job queue, and the shape of options and of `config.php` so far. **No endpoint
+writes, and none may.** The add-on has no options.
+
+**The one thing that writes is the fault commands, and they are kept away from everything else**:
+command line only, refused without a key in the forum's own `config.php`, and recording each thing
+they plant in the add-on's one table so it can be removed. See *The fault commands* below.
 
 **It does not speak any agent protocol and must not grow one.** A consumer — a monitoring script,
 or a separate tool that presents these endpoints to an agent — sits outside the forum. If a
@@ -71,6 +75,22 @@ is whether it can carry member data.
   only from core's source, never from what a value turned out to be on some forum.
 - **An array option is opened one level, and only for members its definition declares.** Keys
   allowed by `*` are data.
+
+## The fault commands plant real faults, and prove themselves by cleaning up
+
+`Fault\Manager` plants things for the endpoints to report; `Cli\Command\Fault*` are thin.
+
+- **A fault is data, never code that errors.** The page fault is a page node whose template calls
+  a method on nothing; viewing it raises a genuine template error. Nothing in the add-on's PHP
+  exists to throw, and nothing is reachable from the web. Keep it that way: a route or a
+  controller whose purpose is to fail must not be added, however it is guarded.
+- **Record first, then build on it.** Each thing is recorded the moment it is saved, before
+  anything that depends on it. `clean()` works from the records alone and removes each record only
+  after its content has gone. No naming convention identifies a fault.
+- **`clean` is never gated; `arm` always is.** A forum must be able to remove faults after the
+  key has been taken out of its config.
+- **A new kind of fault needs its clean-up written and tested before its planting.**
+- **Uninstall cleans every batch** before it drops the table.
 
 ## Mechanics
 
