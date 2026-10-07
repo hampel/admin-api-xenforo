@@ -109,13 +109,19 @@ path can still appear in one.
 **A class constant in a test is evaluated while the suite is being built**, before XenForo and the
 add-on's classes can load. Naming an add-on class in one stops the whole run.
 
-**Three fields are worked out from columns that are never returned, and each is checked against a
-fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, and the add-on ids in
-`xf_addon`. `pending_action` in the add-on inventory is closed the same way, against
+**Four fields are worked out from columns that are never returned, and each is checked against a
+fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, the add-on ids in
+`xf_addon`, and the template names in `xf_template`. `pending_action` in the add-on inventory is closed the same way, against
 `AddOns::PENDING_ACTIONS`. The message, trace and request state are read only in part — 40 characters, 8000 and
 7. Returning a matched group without the `in_array()` beside it would let whatever sits in
 brackets at the start of a message through. A test walks the forum's real log and fails if any
 derived value is outside its list.
+
+**The template is the innermost compiled-template frame, and the name is looked up, not trusted.**
+A path ending `templates/l1/s0/public/anything.php` names a template only if the forum has
+`public:anything`. The list of templates is loaded the first time such a path is seen, so a log
+with no template errors costs no query. A template named only inside an argument — the page a
+wrapper was wrapping — is not found.
 
 **`location` only recognises `vendor/`, `tests/` and `Test/` at the top of an add-on.** A directory
 of the same name further in is that add-on's own code, and is reported as such.
@@ -168,7 +174,7 @@ vendor/bin/phpunit
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
   the forum's real database credentials by key and by absence.
 - `tests/Unit/ValueShapeTest.php` covers the disclosure rule, flattening and comparison.
-- `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling and the three derivations,
+- `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling and the four derivations,
   including what must not be taken for a level and which trace paths must not be followed.
 
 To confirm the gate tests are real, remove one of the three calls in

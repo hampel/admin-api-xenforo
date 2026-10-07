@@ -38,7 +38,8 @@ class ErrorLog extends AbstractController
 	 * @api-out array $by_location Counts for each kind of code: core, an add-on's own, an add-on's bundled libraries or tests, and so on
 	 * @api-out array $by_add_on Count and newest date for each add-on the errors were raised in
 	 * @api-out array $by_origin_add_on Count and newest date for each add-on the errors originated in
-	 * @api-out array $examined How many rows the severity, origin and originating add-on rest on, and whether that is all of them
+	 * @api-out array $by_template Count and newest date for each template that was being rendered, with the add-on it belongs to
+	 * @api-out array $examined How many rows the severity, origin, originating add-on and template rest on, and whether that is all of them
 	 * @api-out array $signatures Count, first and last date for each type, file and line
 	 * @api-out int $signature_count Distinct signatures in the window, before the limit
 	 * @api-out array $log Total, oldest and newest date for the whole log, whatever the window

@@ -214,4 +214,70 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/Testing/Helper.php', true, 'Vendor/First'));
 		$this->assertSame('add_on', $repo->getLocation('src/addons/Vendor/First/vendorList.php', true, 'Vendor/First'));
 	}
+
+	private const TEMPLATES = [
+		'public:thread_view' => 'XF',
+		'public:vendor_first_widget' => 'Vendor/First',
+		'public:app.less' => 'XF',
+		'admin:tools_rebuild' => 'XF',
+		'email:made_in_a_style' => null,
+	];
+
+	public function test_the_innermost_compiled_template_is_the_one_named()
+	{
+		$trace = "#0 src/XF/Template/Templater.php(1285): handle('a')\n"
+			. "#1 internal_data/code_cache/templates/l1/s0/public/vendor_first_widget.php(12): call()\n"
+			. "#2 internal_data/code_cache/templates/l1/s0/public/thread_view.php(90): include()\n"
+			. "#3 {main}";
+
+		$this->assertSame(
+			['template' => 'public:vendor_first_widget', 'add_on_id' => 'Vendor/First'],
+			$this->repo()->getTemplateFromTrace('src/XF/Template/Templater.php', $trace, self::TEMPLATES)
+		);
+	}
+
+	public function test_an_error_raised_in_a_compiled_template_names_that_template()
+	{
+		$file = 'internal_data/code_cache/templates/l3/s12/admin/tools_rebuild.php';
+
+		$this->assertSame(
+			['template' => 'admin:tools_rebuild', 'add_on_id' => 'XF'],
+			$this->repo()->getTemplateFromTrace($file, '', self::TEMPLATES)
+		);
+	}
+
+	/**
+	 * The code cache can be configured anywhere, and a template title can contain a dot.
+	 */
+	public function test_the_code_cache_may_be_anywhere_and_a_title_may_contain_a_dot()
+	{
+		$trace = "#0 /var/cache/forum/templates/l1/s0/public/app.less.php(3): x()\n"
+			. "#1 C:\\cache\\templates\\l1\\s0\\email\\made_in_a_style.php(3): x()\n#2 {main}";
+
+		$this->assertSame(
+			['template' => 'public:app.less', 'add_on_id' => 'XF'],
+			$this->repo()->getTemplateFromTrace('', $trace, self::TEMPLATES)
+		);
+
+		$this->assertSame(
+			['template' => 'email:made_in_a_style', 'add_on_id' => null],
+			$this->repo()->getTemplateFromTrace('', substr($trace, strpos($trace, '#1')), self::TEMPLATES)
+		);
+	}
+
+	public function test_a_path_that_names_no_template_the_forum_has_is_not_a_template()
+	{
+		$repo = $this->repo();
+
+		$unknown = "#0 internal_data/code_cache/templates/l1/s0/public/member@example.com.php(3): x()\n#1 {main}";
+		$wrongType = "#0 internal_data/code_cache/templates/l1/s0/admin/thread_view.php(3): x()\n#1 {main}";
+		$inArgument = "#0 src/XF/Mvc/Dispatcher.php(20): open('templates/l1/s0/public/thread_view.php(3): ')\n#1 {main}";
+		$notCompiled = "#0 src/addons/Vendor/First/templates/public/thread_view.php(3): x()\n#1 {main}";
+
+		$this->assertNull($repo->getTemplateFromTrace('', $unknown, self::TEMPLATES));
+		$this->assertNull($repo->getTemplateFromTrace('', $wrongType, self::TEMPLATES));
+		$this->assertNull($repo->getTemplateFromTrace('', $inArgument, self::TEMPLATES));
+		$this->assertNull($repo->getTemplateFromTrace('', $notCompiled, self::TEMPLATES));
+		$this->assertNull($repo->getTemplateFromTrace('src/XF/Mvc/Dispatcher.php', '', self::TEMPLATES));
+	}
 }

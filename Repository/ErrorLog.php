@@ -18,6 +18,11 @@ class ErrorLog extends Repository
 
 	const ORIGINS = ['web', 'cli', 'job', 'unknown'];
 
+	const TEMPLATE_TYPES = ['public', 'admin', 'email'];
+
+	/** @var array|null "type:title" => add-on id, for every template the forum has */
+	protected $templates;
+
 	const LOCATIONS = ['core', 'add_on', 'add_on_vendor', 'add_on_tests', 'vendor', 'other', 'outside'];
 
 	/**
@@ -30,11 +35,11 @@ class ErrorLog extends Repository
 	];
 
 	/**
-	 * Returns exception_type, filename, line and exception_date, and three things worked out from
-	 * the columns that are never returned: a severity, an origin and an originating add-on. Each
-	 * can only take a value from a fixed list - a PHP error level, one of four origins, the id of
-	 * an installed add-on - so nothing written by a member or sent in a request can come back
-	 * through them. user_id and ip_address are not read at all.
+	 * Returns exception_type, filename, line and exception_date, and four things worked out from
+	 * the columns that are never returned: a severity, an origin, an originating add-on and the
+	 * template being rendered. Each can only take a value from a fixed list - a PHP error level,
+	 * one of four origins, the id of an installed add-on, the name of a template the forum has -
+	 * so nothing written by a member or sent in a request can come back through them. user_id and ip_address are not read at all.
 	 *
 	 * @param int $since
 	 * @param int $until
@@ -112,6 +117,7 @@ class ErrorLog extends Repository
 				'severity' => null,
 				'origins' => array_fill_keys(self::ORIGINS, 0),
 				'origin_add_ons' => [],
+				'templates' => [],
 			];
 		}
 
@@ -144,6 +150,7 @@ class ErrorLog extends Repository
 			'by_location' => $byLocation,
 			'by_add_on' => $this->sortGroup($byAddOn),
 			'by_origin_add_on' => $this->sortGroup($examined['by_origin_add_on']),
+			'by_template' => $this->sortGroup($examined['by_template']),
 			'examined' => [
 				'rows' => $examined['rows'],
 				'complete' => $examined['rows'] >= $total,
@@ -243,6 +250,7 @@ class ErrorLog extends Repository
 				strpos($trace, 'XF/Job/Manager.php(') !== false
 			),
 			'origin_add_on_id' => $this->getOriginAddOnId($inInstall ? $filename : '', $trace, $addOnIds),
+			'template' => $this->getTemplateFromTrace($inInstall ? $filename : '', $trace),
 			'trace' => $this->getRelativeTrace($entry->trace_string),
 		];
 
@@ -285,13 +293,14 @@ class ErrorLog extends Repository
 	 * @param string[] $addOnIds
 	 * @param array $signatures Updated in place
 	 *
-	 * @return array rows, by_severity, by_origin, by_origin_add_on
+	 * @return array rows, by_severity, by_origin, by_origin_add_on, by_template
 	 */
 	protected function examineRows($since, $until, array $addOnIds, array &$signatures)
 	{
 		$bySeverity = [];
 		$byOrigin = array_fill_keys(self::ORIGINS, 0);
 		$byOriginAddOn = [];
+		$byTemplate = [];
 		$severities = [];
 		$examined = 0;
 
@@ -324,7 +333,10 @@ class ErrorLog extends Repository
 				$addOnIds
 			);
 
+			$template = $this->getTemplateFromTrace($inInstall ? $filename : '', $row['trace_start']);
+
 			$this->addToGroup($bySeverity, 'severity', $severity, 1, $date);
+			$this->addTemplateToGroup($byTemplate, $template, $date);
 			$this->addToGroup($byOriginAddOn, 'add_on_id', $originAddOnId, 1, $date);
 			$byOrigin[$origin]++;
 
@@ -336,12 +348,14 @@ class ErrorLog extends Repository
 
 			$signatures[$key]['origins'][$origin]++;
 			$this->addToGroup($signatures[$key]['origin_add_ons'], 'add_on_id', $originAddOnId, 1, $date);
+			$this->addTemplateToGroup($signatures[$key]['templates'], $template, $date);
 			$severities[$key][$severity === null ? '' : $severity] = true;
 		}
 
 		foreach ($signatures AS $key => &$signature)
 		{
 			$signature['origin_add_ons'] = $this->sortGroup($signature['origin_add_ons']);
+			$signature['templates'] = $this->sortGroup($signature['templates']);
 
 			$found = array_keys($severities[$key] ?? []);
 			if (count($found) === 1)
@@ -360,6 +374,7 @@ class ErrorLog extends Repository
 			'by_severity' => $bySeverity,
 			'by_origin' => $byOrigin,
 			'by_origin_add_on' => $byOriginAddOn,
+			'by_template' => $byTemplate,
 		];
 	}
 
@@ -499,6 +514,98 @@ class ErrorLog extends Repository
 		}
 
 		return null;
+	}
+
+	/**
+	 * The template being rendered when the error happened: the innermost one, taken from the path
+	 * of its compiled file - .../templates/l1/s0/public/thread_view.php - in the error's own file
+	 * or the first trace frame that has one. Null when no template was being rendered.
+	 *
+	 * The name is only returned if the forum has a template of that type and title, so what comes
+	 * back is always a template's name and never whatever a path happened to spell.
+	 *
+	 * @param string $filename Relative to the install root, or empty when outside it
+	 * @param string $traceStart
+	 * @param array|null $templates "type:title" => add-on id. The forum's own when not given, and
+	 *                              only loaded once a path looks like a compiled template
+	 *
+	 * @return array|null template, add_on_id
+	 */
+	public function getTemplateFromTrace($filename, $traceStart, ?array $templates = null)
+	{
+		$paths = [$filename];
+		if (preg_match_all('~^#\d+ (.+?)\(\d+\): ~m', $traceStart, $matches))
+		{
+			$paths = array_merge($paths, $matches[1]);
+		}
+
+		$types = implode('|', self::TEMPLATE_TYPES);
+
+		foreach ($paths AS $path)
+		{
+			$path = str_replace('\\', '/', $path);
+
+			if (!preg_match('~(?:^|/)templates/l\d+/s\d+/(' . $types . ')/([^/]+)\.php$~', $path, $match))
+			{
+				continue;
+			}
+
+			if ($templates === null)
+			{
+				$templates = $this->getTemplates();
+			}
+
+			$name = $match[1] . ':' . $match[2];
+			if (array_key_exists($name, $templates))
+			{
+				return ['template' => $name, 'add_on_id' => $templates[$name]];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Every template in every style. A master template's add-on wins over a style's own copy.
+	 *
+	 * @return array "type:title" => add-on id, which is an empty string for one made in a style
+	 */
+	protected function getTemplates()
+	{
+		if ($this->templates === null)
+		{
+			$this->templates = [];
+
+			$rows = $this->db()->query('
+				SELECT type, title, addon_id
+				FROM xf_template
+				ORDER BY style_id DESC
+			');
+			while ($row = $rows->fetch())
+			{
+				$this->templates[$row['type'] . ':' . $row['title']] = $row['addon_id'] === '' ? null : $row['addon_id'];
+			}
+		}
+
+		return $this->templates;
+	}
+
+	protected function addTemplateToGroup(array &$group, $template, $date)
+	{
+		if ($template === null)
+		{
+			return;
+		}
+
+		$name = $template['template'];
+
+		if (!isset($group[$name]))
+		{
+			$group[$name] = $template + ['count' => 0, 'newest_date' => 0];
+		}
+
+		$group[$name]['count']++;
+		$group[$name]['newest_date'] = max($group[$name]['newest_date'], $date);
 	}
 
 	/**

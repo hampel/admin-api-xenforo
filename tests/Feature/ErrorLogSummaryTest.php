@@ -146,6 +146,7 @@ class ErrorLogSummaryTest extends TestCase
 			'origin_add_ons' => [
 				['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
 			],
+			'templates' => [],
 		], $summary['signatures'][0]);
 	}
 
@@ -213,6 +214,52 @@ class ErrorLogSummaryTest extends TestCase
 		);
 
 		$this->assertSame('mixed', $this->summary()['signatures'][0]['severity']);
+	}
+
+	/**
+	 * Three errors at one line of the templater, reached from two templates, and one raised
+	 * inside a compiled template itself. The innermost template is the one named.
+	 */
+	public function test_it_names_the_template_that_was_being_rendered()
+	{
+		$compiled = 'internal_data/code_cache/templates/l1/s0/public/';
+		$wrapper = "#0 src/XF/Template/Templater.php(1285): handle('SECRET')\n"
+			. "#1 {$compiled}account_wrapper.php(40): call('SECRET')\n"
+			. "#2 {$compiled}PAGE_CONTAINER.php(9): render()\n#3 {main}";
+		$container = "#0 src/XF/Template/Templater.php(1285): handle('SECRET')\n"
+			. '#1 ' . \XF::getRootDirectory() . "/{$compiled}PAGE_CONTAINER.php(9): render()\n#2 {main}";
+
+		$this->insertError(1810, 'ErrorException', 'src/XF/Template/Templater.php', 1285, 'Template error: [E_USER_WARNING] SECRET-MESSAGE', $wrapper, self::WEB);
+		$this->insertError(1820, 'ErrorException', 'src/XF/Template/Templater.php', 1285, 'Template error: [E_USER_WARNING] SECRET-MESSAGE', $wrapper, self::WEB);
+		$this->insertError(1830, 'ErrorException', 'src/XF/Template/Templater.php', 1285, 'Template error: [E_USER_WARNING] SECRET-MESSAGE', $container, self::WEB);
+		$this->insertError(1840, 'TypeError', $compiled . 'core.less.php', 3, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB);
+
+		$summary = $this->summary();
+
+		$this->assertSame([
+			['template' => 'public:account_wrapper', 'add_on_id' => 'XF', 'count' => 2, 'newest_date' => 1820],
+			['template' => 'public:core.less', 'add_on_id' => 'XF', 'count' => 1, 'newest_date' => 1840],
+			['template' => 'public:PAGE_CONTAINER', 'add_on_id' => 'XF', 'count' => 1, 'newest_date' => 1830],
+		], $summary['by_template']);
+
+		$this->assertSame([
+			['template' => 'public:account_wrapper', 'add_on_id' => 'XF', 'count' => 2, 'newest_date' => 1820],
+			['template' => 'public:PAGE_CONTAINER', 'add_on_id' => 'XF', 'count' => 1, 'newest_date' => 1830],
+		], $this->signature($summary, 'src/XF/Template/Templater.php')['templates']);
+	}
+
+	/**
+	 * A compiled-template path that names no template the forum has is somebody's text.
+	 */
+	public function test_a_template_the_forum_does_not_have_is_not_named()
+	{
+		$trace = "#0 internal_data/code_cache/templates/l1/s0/public/SECRET_no_such_template.php(4): x()\n#1 {main}";
+		$this->insertError(1810, 'ErrorException', 'src/XF/Template/Templater.php', 1285, 'SECRET-MESSAGE', $trace, self::WEB);
+
+		$summary = $this->summary();
+
+		$this->assertSame([], $summary['by_template']);
+		$this->assertSame([], $this->signature($summary, 'src/XF/Template/Templater.php')['templates']);
 	}
 
 	/**
@@ -315,6 +362,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertNull($summary['newest_date']);
 		$this->assertSame([], $summary['signatures']);
 		$this->assertSame([], $summary['by_severity']);
+		$this->assertSame([], $summary['by_template']);
 		$this->assertSame(['web' => 0, 'cli' => 0, 'job' => 0, 'unknown' => 0], $summary['by_origin']);
 		$this->assertSame(0, array_sum($summary['by_location']));
 		$this->assertSame(ErrorLog::LOCATIONS, array_keys($summary['by_location']));
@@ -369,9 +417,22 @@ class ErrorLogSummaryTest extends TestCase
 			$this->assertTrue($group['add_on_id'] === null || in_array($group['add_on_id'], $addOnIds, true));
 		}
 
+		$templates = $this->app()->db()->fetchAllColumn("SELECT DISTINCT CONCAT(type, ':', title) FROM xf_template");
+
+		foreach ($summary['by_template'] AS $group)
+		{
+			$this->assertContains($group['template'], $templates);
+			$this->assertTrue($group['add_on_id'] === null || in_array($group['add_on_id'], $addOnIds, true));
+		}
+
 		foreach ($summary['signatures'] AS $signature)
 		{
 			$this->assertContains($signature['severity'], $severities);
+
+			foreach ($signature['templates'] AS $group)
+			{
+				$this->assertContains($group['template'], $templates);
+			}
 			$this->assertSame(['web', 'cli', 'job', 'unknown'], array_keys($signature['origins']));
 			$this->assertContains($signature['location'], ErrorLog::LOCATIONS);
 

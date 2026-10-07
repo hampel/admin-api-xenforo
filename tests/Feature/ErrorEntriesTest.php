@@ -84,6 +84,7 @@ class ErrorEntriesTest extends TestCase
 			'severity' => null,
 			'origin' => 'web',
 			'origin_add_on_id' => 'Hampel/AdminApi',
+			'template' => null,
 			'trace' => "#0 src/XF/Mvc/Dispatcher.php(20): go('x')\n#1 src/addons/Hampel/AdminApi/Setup.php(7): run()\n#2 {main}",
 		]], $result['entries']);
 	}

@@ -76,7 +76,7 @@ The JSON under each endpoint shows the shape of a response. The figures in it ar
 exception type, the file, the line and the date — and never the message, the stack trace, the
 request, or the user and IP address behind an error, because those are where member data ends up.
 
-Three more things are *worked out* from the message, the trace and the request, and each can only
+Four more things are *worked out* from the message, the trace and the request, and each can only
 ever be a value from a fixed list, so nothing a member wrote or sent can come back through them:
 
 | field | worked out from | can only be |
@@ -84,6 +84,7 @@ ever be a value from a fixed list, so nothing a member wrote or sent can come ba
 | `severity` | the first characters of the message | a PHP error level, `fatal`, `mixed` or null |
 | origin | the first key of the recorded request, and whether the job runner is in the trace | `web`, `cli`, `job` or `unknown` |
 | originating add-on | the file paths in the trace | the id of an installed add-on, or null |
+| template | the path of a compiled template in the trace | the name of a template the forum has, or none |
 
 The user and the IP address are not read at all.
 
@@ -124,6 +125,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
     "by_origin_add_on": [
         {"add_on_id": "Vendor/AddOn", "count": 6, "newest_date": 1790771401}
     ],
+    "by_template": [
+        {"template": "public:thread_view", "add_on_id": "XF", "count": 4, "newest_date": 1790771401}
+    ],
     "examined": {"rows": 24, "complete": true},
     "signatures": [
         {
@@ -141,6 +145,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
             "origin_add_ons": [
                 {"add_on_id": "Vendor/AddOn", "count": 4, "newest_date": 1790771401}
+            ],
+            "templates": [
+                {"template": "public:thread_view", "add_on_id": "XF", "count": 4, "newest_date": 1790771401}
             ]
         }
     ],
@@ -181,6 +188,12 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   is usually the cause and occasionally one that only wraps a core class every request passes
   through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
   `origin_add_ons` the same for one signature, since one line of core is reached from many places.
+- **`by_template` and each signature's `templates` name the template being rendered**, as
+  `type:title`, with the add-on it belongs to — null for one made in a style. Every template
+  error is raised at the same few lines of XenForo's templater, so this is what tells one from
+  another. It is the *innermost* template: an error in a page wrapper is named for the wrapper,
+  not for the page inside it. An error with no entry here was not raised while rendering one, or
+  was about a template that does not exist.
 - `by_origin` and each signature's `origins` say how the errors arose: a `web` request, the `cli`,
   or a `job` — which includes every cron entry, however the job was triggered. Errors that are all
   `cli` are someone at a terminal, not members.
@@ -191,9 +204,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - `by_day` has one entry per UTC day, quiet days included, from the start of the window or of the
   log, whichever is later. A day before the log begins is left out, not shown as zero. At most 366
   days are returned, the most recent.
-- **`examined.complete` is false only in an error storm.** Severity, origin and originating add-on
-  are worked out from the most recent 20000 rows of the window. Every other figure is exact
-  whatever the size, so when `complete` is false those three describe the newest part only.
+- **`examined.complete` is false only in an error storm.** Severity, origin, originating add-on
+  and template are worked out from the most recent 20000 rows of the window. Every other figure is exact
+  whatever the size, so when `complete` is false those four describe the newest part only.
 - `log` describes the whole log whatever the window, so an empty window can be told apart from an
   empty log. XenForo prunes the log itself, so `log.oldest_date` is as far back as any window can
   usefully reach.
@@ -244,6 +257,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
             "severity": "E_USER_WARNING",
             "origin": "web",
             "origin_add_on_id": "Vendor/AddOn",
+            "template": {"template": "public:thread_view", "add_on_id": "XF"},
             "trace": "#0 [internal function]: XF\\Template\\Templater->handleTemplateError(512, ...)\n#1 ..."
         }
     ]
