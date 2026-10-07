@@ -35,11 +35,19 @@ class FaultClean extends Command
 		$removed = $manager->clean($batch);
 
 		$output->writeln(sprintf(
-			'Removed %d page(s), %d member(s) and %d error log entr%s.',
+			'Removed %d page(s), %d member(s), %d job(s), %d cron entr%s and %d add-on record(s).',
 			$removed['node'],
 			$removed['user'],
+			$removed['job'],
+			$removed['cron'],
+			$removed['cron'] === 1 ? 'y' : 'ies',
+			$removed['addon']
+		));
+		$output->writeln(sprintf(
+			'Removed %d error log entr%s and %d failed job record(s) they had raised.',
 			$removed['error_log'],
-			$removed['error_log'] === 1 ? 'y' : 'ies'
+			$removed['error_log'] === 1 ? 'y' : 'ies',
+			$removed['failed_job']
 		));
 
 		return 0;

@@ -40,7 +40,7 @@ class Setup extends AbstractSetup
 			$table->addColumn('fault_id', 'int')->autoIncrement();
 			$table->addColumn('batch', 'varchar', 16);
 			$table->addColumn('content_type', 'varchar', 25);
-			$table->addColumn('content_id', 'int');
+			$table->addColumn('content_id', 'varchar', 50);
 			$table->addColumn('created_date', 'int');
 
 			$table->addKey('batch');

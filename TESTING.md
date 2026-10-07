@@ -100,6 +100,22 @@ A list is not followed, and that distinction is what stops a list of hostnames b
 how a message or a request reaches the response. One test encodes the whole response and searches
 it for values planted in the columns that must not appear.
 
+**A job's class name has to be the right shape even when the class does not exist.** XenForo checks
+for a `\Job\` segment before it looks for the class. The first missing-job fault was named
+outside that pattern: instead of being skipped as a missing job, it threw out of the queue
+runner, abandoned the rest of that run, and was re-queued to do it again every fifteen minutes.
+Only a real queue run showed it — the suite plants the row and reads it back as `stalled`, which
+worked. The name is now `…\Job\NoSuchJob`, and takes XenForo's own "could not get runner,
+skipping" path.
+
+**What a planted job leaves behind is found by a marker, `adminApiFault:<batch>:`**, which is in
+the job's unique key and in the data the rejected job chokes on, and so in both error messages.
+It ends in a colon so that batch `a` does not match batch `ab`.
+
+**XenForo 2.3.0 drops a job that throws without recording it as failed.** It logs the error and
+removes the job. Later versions record a failed job, in debug mode. So the planted jobs exercise
+`failed.signatures` only on those versions, and that has not been run.
+
 **A fault page that nobody can view raises nothing, and a new node cannot be viewed.** XenForo
 queues the permission rebuild for an administrator to trigger. Running it inside `arm` was not
 enough twice over: the node tree it reads is itself rebuilt at the end of the request, and a
@@ -208,7 +224,11 @@ vendor/bin/phpunit
 - `tests/Feature/FaultTest.php` covers the three commands loading, the config guard in each
   state, `arm` refusing and planting nothing, batch names, `clean` clearing records whose content
   has gone, one batch leaving another, cleaning with the guard off, and the error log clean-up
-  taking its own page's rows and no neighbour's.
+  taking its own page's rows and no neighbour's. The job, cron and add-on faults are rows and
+  nothing else, so those are planted for real inside the test's transaction, read back through
+  each endpoint, cleaned, and the tables compared with how they started. One test hands `clean`
+  records naming real rows — this add-on, core, a real cron entry, a real job — and checks it
+  deletes none of them.
 - `tests/Feature/SetupTest.php` sets every scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears them.
 - `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
@@ -270,6 +290,11 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
 | a run that stopped half-way | `fault-clean` removed the three members and the page it had recorded |
 | uninstalling with a batch still planted | the batch was cleaned and the table dropped |
 | the same batch name twice | refused |
+| the `jobs` fault, before the queue ran | both jobs `stalled` |
+| the `jobs` fault, after `job.php` ran the queue | an error each with `job` origin, both jobs gone, and the rest of the queue run as normal |
+| the `cron` fault | `overdue`; no longer overdue once cron had run |
+| the `add-on` fault | `pending_action: upgrade`, not processing, and errors still being logged |
+| `fault-clean` after all four | every planted row and all eight errors gone; the forum's 19 cron entries and 2 add-ons untouched |
 
 ## Needs a human
 

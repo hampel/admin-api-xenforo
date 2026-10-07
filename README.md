@@ -630,8 +630,9 @@ no definitions listing choices, so the exception options have does not apply her
 ## Testing with faults
 
 **On a healthy forum these endpoints have nothing to report**, which makes them hard to try out
-and harder to build anything on. Three commands plant a fault on purpose, so that a test forum has
-real errors — raised by real requests, with members behind them — for the endpoints to describe.
+and harder to build anything on. Three commands plant faults on purpose, so that a test forum has
+something real for every endpoint to describe: errors raised by real requests with members behind
+them, jobs left waiting, an overdue cron entry, and an add-on whose upgrade never finished.
 
 **They are for a test forum, and they refuse to plant anything unless that forum says so.** Add
 this to `src/config.php`, and only where errors appearing in the log is what you want:
@@ -651,17 +652,35 @@ php cmd.php admin-api:fault-list
 php cmd.php admin-api:fault-clean demo
 ```
 
-- **`fault-arm`** creates a page whose template calls a method on nothing, and members to view it
-  as. Every view of that page logs a template error. It prints what it made as JSON — the page's
-  route, and each member with a password, which is the only time those can be read, so keep the
-  output. XenForo may print lines of its own after the JSON.
+- **`fault-arm`** plants one fault of each kind below, or only those named in `--faults`. It
+  prints what it made as JSON — the page's route, and each member with a password, which is the
+  only time those can be read, so keep the output. XenForo may print lines of its own after the
+  JSON.
 - **`fault-list`** shows what is planted and whether planting is enabled.
-- **`fault-clean`** removes a batch, or every batch when none is named: the page, its template,
-  the members, and the error log entries that page raised. **It is never refused**, so a forum
+- **`fault-clean`** removes a batch, or every batch when none is named: everything planted, and
+  the error log entries it raised. **It is never refused**, so a forum
   that has had the switch taken away can still get rid of what it holds.
 
+| `--faults=` | what is planted | what the endpoints then show |
+|---|---|---|
+| `page` | a page whose template calls a method on nothing, and members to view it as | nothing until it is viewed; then a template error per view, `web` origin, the members counted, the template named |
+| `jobs` | two overdue jobs: one whose class does not exist, one whose data its class rejects | both `stalled`; once the queue runs, an error each with `job` origin, and the jobs gone |
+| `cron` | a cron entry two hours past its next run | `overdue`, until cron next runs and moves it on |
+| `add-on` | a record of an inactive add-on with an upgrade left part-way | `pending_action: upgrade` with `is_processing` false |
+
+**None of these is code that fails.** Each is a row that XenForo itself trips over, the way it
+would on a forum where something had gone wrong: a job left behind by an add-on that was removed,
+a template with a mistake in it. The add-on contains nothing that throws.
+
+**The jobs and the cron entry are faults only until XenForo deals with them**, which it does the
+next time the queue runs — on a forum people are browsing, within a minute or two. Read the
+`stalled` and `overdue` state before that, and the errors after. A sandbox that nobody is browsing
+runs its queue only when asked: request `job.php`, or run `xf:run-jobs`. On XenForo 2.3.0 use
+`job.php`, because that version logs nothing from the command line.
+
 Everything is recorded as it is created, so a run that stops half-way can still be cleaned, and
-`fault-clean` touches nothing it has no record of. Uninstalling the add-on cleans every batch
+`fault-clean` touches nothing it has no record of — and for each record it checks that the row
+is still the fault it planted before deleting it. Uninstalling the add-on cleans every batch
 first.
 
 The page raises nothing until somebody views it. The add-on's repository has a script,

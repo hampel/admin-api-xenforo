@@ -13,9 +13,10 @@ class FaultArm extends Command
 	{
 		$this
 			->setName('admin-api:fault-arm')
-			->setDescription('Plants a page that raises an error when viewed, and members to view it as. Test forums only.')
+			->setDescription('Plants faults for the endpoints to report: an erroring page, stalled jobs, an overdue cron entry, a half-upgraded add-on. Test forums only.')
 			->addOption('batch', null, InputOption::VALUE_REQUIRED, 'A name for this run, 1 to 16 lower case letters and digits')
-			->addOption('members', null, InputOption::VALUE_REQUIRED, 'How many members to create', 3);
+			->addOption('members', null, InputOption::VALUE_REQUIRED, 'How many members to create for the page', 3)
+			->addOption('faults', null, InputOption::VALUE_REQUIRED, 'Which to plant, comma separated', implode(',', Manager::KINDS));
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output)
@@ -37,7 +38,8 @@ class FaultArm extends Command
 
 		try
 		{
-			$armed = $manager->arm($batch, $members);
+			$kinds = array_values(array_filter(array_map('trim', explode(',', (string) $input->getOption('faults')))));
+			$armed = $manager->arm($batch, $members, $kinds);
 		}
 		catch (\InvalidArgumentException $e)
 		{
@@ -54,7 +56,7 @@ class FaultArm extends Command
 			return 1;
 		}
 
-		$errors->writeln("Batch $batch: one page and $members member(s). Remove with admin-api:fault-clean $batch");
+		$errors->writeln("Batch $batch planted: " . implode(', ', $kinds) . ". Remove with admin-api:fault-clean $batch");
 
 		// the passwords exist nowhere else, so this is the only time they can be read
 		$output->writeln(json_encode($armed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));

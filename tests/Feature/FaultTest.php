@@ -156,10 +156,13 @@ class FaultTest extends TestCase
 	{
 		$this->plantRecord('gone', 'user', self::NODE);
 		$this->plantRecord('gone', 'node', self::NODE);
+		$this->plantRecord('gone', 'job', self::NODE);
+		$this->plantRecord('gone', 'cron', 'aaf_gone');
+		$this->plantRecord('gone', 'addon', 'AdminApiFault/Gone');
 
 		$removed = $this->manager()->clean('gone');
 
-		$this->assertSame(['node' => 0, 'user' => 0, 'error_log' => 0], $removed);
+		$this->assertSame(0, array_sum($removed));
 		$this->assertSame(0, $this->recordCount());
 	}
 
@@ -202,6 +205,168 @@ class FaultTest extends TestCase
 		$this->assertFalse($this->errorExists($mineToo));
 		$this->assertTrue($this->errorExists($other));
 		$this->assertTrue($this->errorExists($longer), 'a node id that merely starts the same was matched');
+	}
+
+	// the faults that are rows and nothing else, which can be planted here and rolled back
+
+	private function armRows($batch = 'rows')
+	{
+		$this->setConfig('hampelAdminApi', ['faults' => true]);
+
+		return $this->manager()->arm($batch, 0, ['jobs', 'cron', 'add-on']);
+	}
+
+	private function endpoint($route, array $permissions)
+	{
+		$this->actingAsAdminWithKey($permissions);
+
+		return $this->replyApiResult($this->dispatch($route, 'api'));
+	}
+
+	public function test_planted_jobs_show_as_stalled()
+	{
+		$armed = $this->armRows();
+
+		$this->assertSame(['orphan', 'rejected'], array_column($armed['jobs'], 'kind'));
+
+		$byClass = array_column($this->endpoint('admin-api/jobs/', ['hampelAdminApiJobs'])['by_class'], null, 'execute_class');
+
+		$this->assertSame(1, $byClass[Manager::MISSING_JOB]['total']);
+		$this->assertSame(1, $byClass[Manager::MISSING_JOB]['due']);
+		$this->assertSame(1, $byClass[Manager::MISSING_JOB]['stalled']);
+		$this->assertGreaterThanOrEqual(1, $byClass['XF\Job\IconUsage']['stalled']);
+	}
+
+	public function test_a_planted_cron_entry_shows_as_overdue()
+	{
+		$armed = $this->armRows();
+		$state = $this->endpoint('admin-api/cron/', ['hampelAdminApiJobs']);
+		$entries = array_column($state['entries'], null, 'entry_id');
+
+		$this->assertSame('aaf_rows', $armed['cron']['entry_id']);
+		$this->assertTrue($entries['aaf_rows']['overdue']);
+		$this->assertTrue($entries['aaf_rows']['add_on_active']);
+		$this->assertGreaterThanOrEqual(1, $state['overdue']);
+	}
+
+	public function test_a_planted_add_on_record_shows_an_unfinished_upgrade()
+	{
+		$armed = $this->armRows();
+		$addOns = array_column($this->endpoint('admin-api/add-ons/', ['hampelAdminApiAddOns'])['add_ons'], null, 'addon_id');
+
+		$this->assertSame('AdminApiFault/Rows', $armed['add_on']['addon_id']);
+		$this->assertSame('upgrade', $addOns['AdminApiFault/Rows']['pending_action']);
+		$this->assertFalse($addOns['AdminApiFault/Rows']['is_processing']);
+		$this->assertFalse($addOns['AdminApiFault/Rows']['active']);
+	}
+
+	/**
+	 * An add-on that is processing stops XenForo writing to its error log, which would hide every
+	 * other fault on the forum.
+	 */
+	public function test_nothing_planted_is_marked_as_processing()
+	{
+		$this->armRows();
+
+		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_addon WHERE is_processing = 1'));
+	}
+
+	public function test_cleaning_removes_every_planted_row_and_what_the_jobs_left()
+	{
+		$db = $this->app()->db();
+		$counts = function () use ($db)
+		{
+			return [
+				(int) $db->fetchOne('SELECT COUNT(*) FROM xf_job'),
+				(int) $db->fetchOne('SELECT COUNT(*) FROM xf_cron_entry'),
+				(int) $db->fetchOne('SELECT COUNT(*) FROM xf_addon'),
+				(int) $db->fetchOne('SELECT COUNT(*) FROM xf_error_log'),
+				(int) $db->fetchOne('SELECT COUNT(*) FROM xf_failed_job'),
+			];
+		};
+		$before = $counts();
+
+		$this->armRows('rows');
+		$this->armRows('rows2');
+
+		// what the queue leaves when it runs them: an error each, and a failed job record
+		$marker = $this->manager()->getMarker('rows');
+		foreach (["Could not get runner for job X (unique: {$marker}orphan). Skipping.", "XF\\Job\\IconUsage: Invalid content type: $marker"] AS $message)
+		{
+			$db->insert('xf_error_log', [
+				'exception_date' => 1500, 'user_id' => 0, 'ip_address' => '', 'exception_type' => 'Exception',
+				'message' => $message, 'filename' => 'src/XF/Job/Manager.php', 'line' => 260,
+				'trace_string' => '#0 {main}', 'request_state' => '{"cli":"x"}',
+			]);
+		}
+		$db->insert('xf_failed_job', [
+			'execute_class' => 'XF\Job\IconUsage', 'execute_data' => 'a:0:{}',
+			'exception' => "InvalidArgumentException: Invalid content type: $marker in /x.php:1", 'fail_date' => 1500,
+		]);
+
+		$removed = $this->manager()->clean('rows');
+
+		$this->assertSame(2, $removed['job']);
+		$this->assertSame(1, $removed['cron']);
+		$this->assertSame(1, $removed['addon']);
+		$this->assertSame(2, $removed['error_log']);
+		$this->assertSame(1, $removed['failed_job']);
+		$this->assertSame(['rows2'], array_keys($this->manager()->getBatches()));
+
+		$this->manager()->clean('rows2');
+
+		$this->assertSame($before, $counts());
+	}
+
+	/**
+	 * A record is a claim about a row. If the row it names has become something else - a real
+	 * add-on, a real cron entry, another job with a reused id - it is left alone.
+	 */
+	public function test_cleaning_will_not_delete_a_row_that_is_not_a_planted_fault()
+	{
+		$db = $this->app()->db();
+		$cron = $db->fetchOne('SELECT entry_id FROM xf_cron_entry ORDER BY entry_id LIMIT 1');
+		$job = (int) $db->fetchOne('SELECT job_id FROM xf_job ORDER BY job_id LIMIT 1');
+
+		$this->plantRecord('forged', 'addon', 'Hampel/AdminApi');
+		$this->plantRecord('forged', 'addon', 'XF');
+		$this->plantRecord('forged', 'cron', $cron);
+		if ($job)
+		{
+			$this->plantRecord('forged', 'job', $job);
+		}
+
+		$removed = $this->manager()->clean('forged');
+
+		$this->assertSame(0, array_sum($removed));
+		$this->assertSame(2, (int) $db->fetchOne("SELECT COUNT(*) FROM xf_addon WHERE addon_id IN ('Hampel/AdminApi', 'XF')"));
+		$this->assertSame(1, (int) $db->fetchOne('SELECT COUNT(*) FROM xf_cron_entry WHERE entry_id = ?', $cron));
+		if ($job)
+		{
+			$this->assertSame(1, (int) $db->fetchOne('SELECT COUNT(*) FROM xf_job WHERE job_id = ?', $job));
+		}
+	}
+
+	public function test_only_the_faults_asked_for_are_planted_and_an_unknown_one_is_refused()
+	{
+		$this->setConfig('hampelAdminApi', ['faults' => true]);
+
+		$armed = $this->manager()->arm('some', 0, ['cron']);
+		$this->assertSame(['batch', 'cron'], array_keys($armed));
+		$this->assertSame(['cron' => 1], $this->manager()->getBatches()['some']['records']);
+
+		foreach ([['nonsense'], ['cron', 'nonsense'], []] AS $kinds)
+		{
+			try
+			{
+				$this->manager()->arm('other', 0, $kinds);
+				$this->fail('accepted: ' . json_encode($kinds));
+			}
+			catch (\InvalidArgumentException $e)
+			{
+				$this->assertArrayNotHasKey('other', $this->manager()->getBatches());
+			}
+		}
 	}
 
 	public function test_cleaning_a_batch_that_does_not_exist_says_so()

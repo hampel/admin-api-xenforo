@@ -16,6 +16,27 @@ class Manager
 {
 	const TABLE = 'xf_hampel_admin_api_fault';
 
+	const KINDS = ['page', 'jobs', 'cron', 'add-on'];
+
+	/**
+	 * How far in the past a planted job or cron entry is dated: past the hour after which the
+	 * endpoints call one stalled or overdue.
+	 */
+	const OVERDUE_BY = 7200;
+
+	/**
+	 * Classes that do not exist, which is the point of them.
+	 *
+	 * The job's name still has to look like a job's - a \\Job\\ segment - because XenForo checks
+	 * the shape of the name before it looks for the class. A name of the wrong shape is not
+	 * skipped as a missing job: it throws out of the queue runner, which abandons the rest of
+	 * that run and re-queues the job to do the same again a quarter of an hour later.
+	 */
+	const MISSING_JOB = 'Hampel\\AdminApi\\Job\\NoSuchJob';
+	const MISSING_CRON = 'Hampel\\AdminApi\\Cron\\NoSuchCron';
+
+	const ADD_ON_TITLE = 'Admin API fault add-on';
+
 	/**
 	 * The last line calls a method on a variable nothing sets. XenForo only compiles a method call
 	 * whose name starts with an allowed prefix such as get, is or can - anything else is refused
@@ -78,15 +99,25 @@ TEMPLATE;
 	}
 
 	/**
-	 * A page whose template calls a method on nothing, and members to view it as. Each view logs
-	 * a template error raised by a web request, with that member behind it.
+	 * Plants one fault of each kind asked for. None of them is code that fails: each is a row that
+	 * XenForo itself trips over, the way it would on a forum where something had gone wrong.
+	 *
+	 * page    a page whose template calls a method on nothing, and members to view it as. Each
+	 *         view logs a template error raised by a web request, with that member behind it.
+	 * jobs    two queued jobs, both overdue: one whose class no longer exists, as an add-on that
+	 *         was removed leaves behind, and one whose data its class rejects. They show as
+	 *         stalled until the queue next runs, and then as errors raised by a job.
+	 * cron    a cron entry two hours overdue. It shows as overdue until cron next runs.
+	 * add-on  a record of an add-on whose upgrade stopped part-way.
 	 *
 	 * @param string $batch
 	 * @param int $memberCount
+	 * @param string[] $kinds From KINDS
 	 *
-	 * @return array batch, page, members - with the passwords, which exist nowhere else
+	 * @return array batch, and what was planted for each kind - with the members' passwords,
+	 *               which exist nowhere else
 	 */
-	public function arm($batch, $memberCount)
+	public function arm($batch, $memberCount, array $kinds = self::KINDS)
 	{
 		if (!$this->isEnabled())
 		{
@@ -103,19 +134,131 @@ TEMPLATE;
 			throw new \InvalidArgumentException("Batch $batch already exists. Clean it first, or name another.");
 		}
 
-		// the page first: saving a member builds permissions, and whatever builds them remembers
-		// the node tree as it was at that moment
-		$page = $this->createPage($batch);
-
-		$members = [];
-		for ($i = 1; $i <= $memberCount; $i++)
+		if (!$kinds || array_diff($kinds, self::KINDS))
 		{
-			$members[] = $this->createMember($batch, $i);
+			throw new \InvalidArgumentException('A fault is one of: ' . implode(', ', self::KINDS) . '.');
 		}
 
-		$this->rebuildPermissions();
+		$armed = ['batch' => $batch];
 
-		return ['batch' => $batch, 'page' => $page, 'members' => $members];
+		if (in_array('page', $kinds, true))
+		{
+			// the page first: saving a member builds permissions, and whatever builds them
+			// remembers the node tree as it was at that moment
+			$armed['page'] = $this->createPage($batch);
+
+			$armed['members'] = [];
+			for ($i = 1; $i <= $memberCount; $i++)
+			{
+				$armed['members'][] = $this->createMember($batch, $i);
+			}
+
+			$this->rebuildPermissions();
+		}
+
+		if (in_array('jobs', $kinds, true))
+		{
+			$armed['jobs'] = [
+				$this->createJob($batch, 'orphan', self::MISSING_JOB, []),
+				$this->createJob($batch, 'rejected', 'XF\\Job\\IconUsage', ['content_type' => $this->getMarker($batch)]),
+			];
+		}
+
+		if (in_array('cron', $kinds, true))
+		{
+			$armed['cron'] = $this->createCronEntry($batch);
+		}
+
+		if (in_array('add-on', $kinds, true))
+		{
+			$armed['add_on'] = $this->createAddOnRecord($batch);
+		}
+
+		return $armed;
+	}
+
+	/**
+	 * A string that appears in every error a batch's jobs raise and in nothing else: it ends
+	 * with a colon so that one batch's marker is never the start of another's.
+	 *
+	 * @param string $batch
+	 *
+	 * @return string
+	 */
+	public function getMarker($batch)
+	{
+		return "adminApiFault:$batch:";
+	}
+
+	/**
+	 * Written straight to the queue, as an overdue job. Going through the job manager would
+	 * bring the forum's next job run forward to now; a job that has been left waiting is the
+	 * thing being planted.
+	 */
+	protected function createJob($batch, $kind, $class, array $data)
+	{
+		$db = $this->app->db();
+
+		$db->insert('xf_job', [
+			'unique_key' => $this->getMarker($batch) . $kind,
+			'execute_class' => $class,
+			'execute_data' => serialize($data),
+			'manual_execute' => 0,
+			'trigger_date' => \XF::$time - self::OVERDUE_BY,
+		]);
+		$jobId = (int) $db->lastInsertId();
+
+		$this->record($batch, 'job', $jobId);
+
+		return ['job_id' => $jobId, 'kind' => $kind, 'execute_class' => $class];
+	}
+
+	/**
+	 * Written straight to the table for the same reason, and because saving the entity would
+	 * refuse a callback that does not exist.
+	 */
+	protected function createCronEntry($batch)
+	{
+		$entryId = 'aaf_' . $batch;
+
+		$this->app->db()->insert('xf_cron_entry', [
+			'entry_id' => $entryId,
+			'cron_class' => self::MISSING_CRON,
+			'cron_method' => 'run',
+			'run_rules' => json_encode(['day_type' => 'dom', 'dom' => [-1], 'hours' => [-1], 'minutes' => [0]]),
+			'active' => 1,
+			'next_run' => \XF::$time - self::OVERDUE_BY,
+			'addon_id' => 'Hampel/AdminApi',
+		]);
+
+		$this->record($batch, 'cron', $entryId);
+
+		return ['entry_id' => $entryId];
+	}
+
+	/**
+	 * Inactive, and not marked as processing: an add-on that is processing stops XenForo writing
+	 * to its error log at all, which would hide every other fault.
+	 */
+	protected function createAddOnRecord($batch)
+	{
+		$addOnId = 'AdminApiFault/' . ucfirst($batch);
+
+		$this->app->db()->insert('xf_addon', [
+			'addon_id' => $addOnId,
+			'title' => self::ADD_ON_TITLE . " ($batch)",
+			'version_string' => '1.0.0',
+			'version_id' => 1000070,
+			'json_hash' => '',
+			'active' => 0,
+			'is_legacy' => 0,
+			'is_processing' => 0,
+			'last_pending_action' => 'upgrade:1000170:2',
+		]);
+
+		$this->record($batch, 'addon', $addOnId);
+
+		return ['addon_id' => $addOnId, 'pending_action' => 'upgrade'];
 	}
 
 	/**
@@ -201,22 +344,51 @@ TEMPLATE;
 	 */
 	public function clean($batch = null)
 	{
-		$removed = ['node' => 0, 'user' => 0, 'error_log' => 0];
+		$removed = ['node' => 0, 'user' => 0, 'job' => 0, 'cron' => 0, 'addon' => 0, 'error_log' => 0, 'failed_job' => 0];
+		$db = $this->app->db();
 
 		foreach (array_reverse($this->getRecords($batch)) AS $record)
 		{
-			$id = (int) $record['content_id'];
+			$id = $record['content_id'];
 
 			switch ($record['content_type'])
 			{
 				case 'node':
-					$removed['error_log'] += $this->deleteErrorsFromPage($id);
-					$removed['node'] += $this->deleteEntity('XF:Node', $id);
+					$removed['error_log'] += $this->deleteErrorsFromPage((int) $id);
+					$removed['node'] += $this->deleteEntity('XF:Node', (int) $id);
 					break;
 
 				case 'user':
-					$removed['user'] += $this->deleteEntity('XF:User', $id);
-					$this->sweepUser($id);
+					$removed['user'] += $this->deleteEntity('XF:User', (int) $id);
+					$this->sweepUser((int) $id);
+					break;
+
+				case 'job':
+					// by id and by marker both, so a job id reused after the queue ran it is safe
+					$removed['job'] += $db->delete(
+						'xf_job',
+						'job_id = ? AND unique_key LIKE ?',
+						[(int) $id, $db->escapeLike($this->getMarker($record['batch']), '?%')]
+					);
+					$removed['error_log'] += $this->deleteMarked('xf_error_log', 'message', $record['batch']);
+					$removed['failed_job'] += $this->deleteMarked('xf_failed_job', 'exception', $record['batch']);
+					break;
+
+				case 'cron':
+					$removed['cron'] += $db->delete(
+						'xf_cron_entry',
+						'entry_id = ? AND cron_class = ?',
+						[$id, self::MISSING_CRON]
+					);
+					break;
+
+				case 'addon':
+					// the title is checked as well as the id: this must never be a real add-on's row
+					$removed['addon'] += $db->delete(
+						'xf_addon',
+						'addon_id = ? AND title LIKE ? AND active = 0',
+						[$id, $db->escapeLike(self::ADD_ON_TITLE, '?%')]
+					);
 					break;
 			}
 
@@ -250,6 +422,16 @@ TEMPLATE;
 			'trace_string LIKE ?',
 			'%/public/_page_node.' . $nodeId . '.php(%'
 		);
+	}
+
+	/**
+	 * What a batch's jobs left behind once the queue ran them: every such row quotes the marker.
+	 */
+	protected function deleteMarked($table, $column, $batch)
+	{
+		$db = $this->app->db();
+
+		return $db->delete($table, "$column LIKE ?", $db->escapeLike($this->getMarker($batch), '%?%'));
 	}
 
 	/**

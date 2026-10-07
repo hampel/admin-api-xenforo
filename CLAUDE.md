@@ -80,13 +80,23 @@ is whether it can carry member data.
 
 `Fault\Manager` plants things for the endpoints to report; `Cli\Command\Fault*` are thin.
 
-- **A fault is data, never code that errors.** The page fault is a page node whose template calls
-  a method on nothing; viewing it raises a genuine template error. Nothing in the add-on's PHP
+- **A fault is data, never code that errors.** A page node whose template calls a method on
+  nothing; a queued job whose class does not exist, and one whose data a core job rejects; a cron
+  entry dated in the past; an add-on record with an upgrade left part-way. XenForo trips over
+  each by itself. Nothing in the add-on's PHP
   exists to throw, and nothing is reachable from the web. Keep it that way: a route or a
   controller whose purpose is to fail must not be added, however it is guarded.
 - **Record first, then build on it.** Each thing is recorded the moment it is saved, before
   anything that depends on it. `clean()` works from the records alone and removes each record only
   after its content has gone. No naming convention identifies a fault.
+- **`clean` checks a row is still its fault before deleting it** — a job by its marker as well as
+  its id, a cron entry by its class, an add-on record by its title and by being inactive. A record
+  is a claim, and ids are reused.
+- **Rows for jobs and cron entries are written straight to their tables.** Going through the job
+  manager brings the forum's next queue run forward, and the cron entity refuses a callback that
+  does not exist.
+- **Never plant an add-on record with `is_processing` set.** XenForo stops writing its error log
+  while any add-on is processing.
 - **`clean` is never gated; `arm` always is.** A forum must be able to remove faults after the
   key has been taken out of its config.
 - **A new kind of fault needs its clean-up written and tested before its planting.**
