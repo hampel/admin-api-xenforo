@@ -28,16 +28,16 @@ class OptionShapeTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiOptions']);
 	}
 
-	private function insertOption($id, $dataType, $value, $default)
+	private function insertOption($id, $dataType, $value, $default, $format = 'textbox', $params = '', $subOptions = null)
 	{
 		$this->app()->db()->insert('xf_option', [
 			'option_id' => $id,
 			'option_value' => $value,
 			'default_value' => $default,
-			'edit_format' => 'textbox',
-			'edit_format_params' => '',
+			'edit_format' => $format,
+			'edit_format_params' => $params,
 			'data_type' => $dataType,
-			'sub_options' => $dataType === 'array' ? '*' : '',
+			'sub_options' => $subOptions !== null ? $subOptions : ($dataType === 'array' ? '*' : ''),
 			'validation_class' => '',
 			'validation_method' => '',
 			'advanced' => 0,
@@ -69,6 +69,7 @@ class OptionShapeTest extends TestCase
 			'disclosed' => false,
 			'value' => null,
 			'count' => null,
+			'members' => null,
 		], $options['adminApiTestKey']);
 
 		$this->assertFalse($options['adminApiTestBlank']['set']);
@@ -122,10 +123,93 @@ class OptionShapeTest extends TestCase
 	}
 
 	/**
-	 * Over every option the forum has, not only the planted ones: no string or array value may
-	 * appear whatever the option is.
+	 * A select or radio option lists what it can be set to, in a definition that ships with the
+	 * add-on. One of those values is not a secret; anything else in the same option still is.
 	 */
-	public function test_no_string_or_array_value_is_returned_for_any_option()
+	public function test_a_string_that_is_one_of_the_options_declared_choices_is_returned()
+	{
+		$choices = "compact={{ phrase('x') }}\nverbose={{ phrase('y') }}\n7={{ phrase('z') }}";
+		$this->insertOption('adminApiTestChoice', 'string', 'verbose', 'compact', 'select', $choices);
+		$this->insertOption('adminApiTestNumeric', 'string', '7', 'compact', 'radio', $choices);
+		$this->insertOption('adminApiTestOffList', 'string', 'SECRET-not-a-choice', 'compact', 'select', $choices);
+		$this->insertOption('adminApiTestTextbox', 'string', 'verbose', '', 'textbox', $choices);
+
+		$options = $this->options(['add_on_id' => self::ADD_ON]);
+
+		$this->assertTrue($options['adminApiTestChoice']['disclosed']);
+		$this->assertSame('verbose', $options['adminApiTestChoice']['value']);
+		$this->assertSame('7', $options['adminApiTestNumeric']['value']);
+
+		$this->assertFalse($options['adminApiTestOffList']['disclosed']);
+		$this->assertNull($options['adminApiTestOffList']['value']);
+		$this->assertTrue($options['adminApiTestOffList']['set']);
+
+		// the same text in a free-text option is somebody's text
+		$this->assertFalse($options['adminApiTestTextbox']['disclosed']);
+		$this->assertNull($options['adminApiTestTextbox']['value']);
+	}
+
+	/**
+	 * Only the members the definition names are listed, each under the ordinary rule. A member
+	 * allowed only by "*" has a key that is data, and is left out along with its value.
+	 */
+	public function test_an_array_option_reports_the_members_its_definition_declares()
+	{
+		$value = '{"enabled":true,"limit":25,"host":"SECRET-mail.example.com","inner":{"a":"SECRET"},'
+			. '"SECRET-undeclared-key":"SECRET-value","absent_is_fine":null}';
+		$this->insertOption('adminApiTestSetup', 'array', $value, '[]', 'template', 'x', "enabled\nlimit\nhost\ninner\nmissing\n*");
+
+		$option = $this->options(['add_on_id' => self::ADD_ON])['adminApiTestSetup'];
+
+		$this->assertNull($option['value']);
+		$this->assertSame(6, $option['count']);
+		$this->assertSame(['enabled', 'limit', 'host', 'inner'], array_keys($option['members']));
+
+		$this->assertTrue($option['members']['enabled']['value']);
+		$this->assertSame(25, $option['members']['limit']['value']);
+
+		$this->assertSame('string', $option['members']['host']['type']);
+		$this->assertTrue($option['members']['host']['set']);
+		$this->assertNull($option['members']['host']['value']);
+
+		$this->assertSame('array', $option['members']['inner']['type']);
+		$this->assertSame(1, $option['members']['inner']['count']);
+		$this->assertNull($option['members']['inner']['value']);
+	}
+
+	public function test_an_array_option_that_declares_no_members_reports_none()
+	{
+		$this->assertNull($this->options(['add_on_id' => self::ADD_ON])['adminApiTestList']['members']);
+	}
+
+	/**
+	 * The forum's own mail transport: the type is returned when it is one of the two core
+	 * supplies, and otherwise withheld. The host, the login and the password are not members the
+	 * definition declares, so they are not listed at all.
+	 */
+	public function test_the_mail_transport_type_is_a_known_choice_and_nothing_else_about_it_is_listed()
+	{
+		$options = $this->options(['add_on_id' => 'XF']);
+
+		if (!isset($options['emailTransport']['members']))
+		{
+			$this->markTestSkipped('this install stores no array for emailTransport');
+		}
+
+		$members = $options['emailTransport']['members'];
+
+		$this->assertSame(['emailTransport'], array_keys($members));
+		$this->assertContains($members['emailTransport']['value'], ['sendmail', 'smtp', null]);
+		$this->assertSame($members['emailTransport']['value'] !== null, $members['emailTransport']['disclosed']);
+		$this->assertNull($options['emailTransport']['value']);
+	}
+
+	/**
+	 * Over every option the forum has, not only the planted ones. A string is returned only where
+	 * the option's own definition lists it, and that is recomputed here from the table, not taken
+	 * from the endpoint.
+	 */
+	public function test_no_string_is_returned_for_any_option_unless_its_definition_lists_it()
 	{
 		$result = $this->shape();
 		$json = json_encode($result);
@@ -134,13 +218,56 @@ class OptionShapeTest extends TestCase
 		$this->assertStringNotContainsString('example.com', $json);
 		$this->assertStringNotContainsString('4242424242', $json);
 
+		$definitions = [];
+		foreach ($this->app()->db()->fetchAll('SELECT option_id, edit_format, edit_format_params, sub_options FROM xf_option') AS $row)
+		{
+			$definitions[$row['option_id']] = $row;
+		}
+
+		$isPlain = function ($value)
+		{
+			return $value === null || is_bool($value)
+				|| ((is_int($value) || is_float($value)) && abs($value) <= 999999);
+		};
+
+		$strings = 0;
+
 		foreach ($result['options'] AS $option)
 		{
-			$this->assertTrue(
-				$option['value'] === null || is_bool($option['value']) || is_int($option['value']) || is_float($option['value']),
-				$option['option_id']
-			);
+			$definition = $definitions[$option['option_id']];
+
+			if (is_string($option['value']))
+			{
+				$strings++;
+				$this->assertContains($definition['edit_format'], ['radio', 'select'], $option['option_id']);
+				$this->assertMatchesRegularExpression(
+					'/^\s*' . preg_quote($option['value'], '/') . '\s*=/m',
+					$definition['edit_format_params'],
+					$option['option_id']
+				);
+			}
+			else
+			{
+				$this->assertTrue($isPlain($option['value']), $option['option_id']);
+			}
+
+			foreach ((array) $option['members'] AS $key => $member)
+			{
+				$this->assertContains($key, preg_split('/\R/', $definition['sub_options']), $option['option_id']);
+
+				if (is_string($member['value']))
+				{
+					$this->assertSame('emailTransport', $option['option_id']);
+					$this->assertContains($member['value'], ['sendmail', 'smtp']);
+				}
+				else
+				{
+					$this->assertTrue($isPlain($member['value']), $option['option_id'] . '.' . $key);
+				}
+			}
 		}
+
+		$this->assertGreaterThan(0, $strings, 'no option on this forum exercised the choice rule');
 	}
 
 	public function test_it_needs_its_own_permission()

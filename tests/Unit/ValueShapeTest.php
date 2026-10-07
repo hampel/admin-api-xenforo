@@ -137,4 +137,45 @@ class ValueShapeTest extends TestCase
 		$this->assertTrue($shape->isSame(['a' => 1, 'b' => 2], ['b' => 2, 'a' => 1]));
 		$this->assertFalse($shape->isSame(['a' => 1], ['a' => 2]));
 	}
+
+	public function test_a_string_on_its_list_of_choices_is_returned()
+	{
+		$shape = (new ValueShape())->describeChoice('smtp', ['sendmail', 'smtp']);
+
+		$this->assertTrue($shape['disclosed']);
+		$this->assertSame('smtp', $shape['value']);
+		$this->assertSame('string', $shape['type']);
+	}
+
+	/**
+	 * The comparison is exact. Nothing is trimmed, lowered or loosely compared into matching.
+	 */
+	public function test_a_string_not_on_its_list_is_withheld()
+	{
+		$shape = new ValueShape();
+
+		foreach (['SECRET', 'SMTP', ' smtp', 'smtp ', '', '0'] AS $value)
+		{
+			$described = $shape->describeChoice($value, ['sendmail', 'smtp']);
+
+			$this->assertFalse($described['disclosed'], var_export($value, true));
+			$this->assertNull($described['value'], var_export($value, true));
+		}
+
+		$this->assertFalse($shape->describeChoice('anything', [])['disclosed']);
+	}
+
+	public function test_a_choice_given_as_a_number_matches_its_string()
+	{
+		$this->assertSame('7', (new ValueShape())->describeChoice('7', [7, 'a'])['value']);
+	}
+
+	public function test_a_value_that_is_not_a_string_keeps_the_ordinary_rule()
+	{
+		$shape = new ValueShape();
+
+		$this->assertTrue($shape->describeChoice(true, ['1'])['value']);
+		$this->assertNull($shape->describeChoice(['smtp'], ['smtp'])['value']);
+		$this->assertNull($shape->describeChoice(4242424242, ['4242424242'])['value']);
+	}
 }

@@ -469,14 +469,20 @@ whether failures were being recorded when the ones listed happened, or throughou
 
 **Which options are set and which have been changed — not what they hold.** An option can be an
 API key, an SMTP password or a member's email address, and nothing about its name reliably says
-so. So the rule is by type, with no judgement involved:
+so. So the rule involves no judgement about what a value looks like:
 
 | the value is | returned |
 |---|---|
 | a boolean, or null | as it is |
 | a number no larger than 999999 | as it is |
 | a larger number | withheld — it is as likely an account number as a limit |
-| a string, an array, or anything else | withheld, always |
+| a string that is one of the choices the option's own definition lists | as it is |
+| any other string, an array, or anything else | withheld, always |
+
+**A choice is returned because it is on a published list, not because it looks harmless.** A
+select or radio option's definition names every value it can take, and that definition ships
+with XenForo or the add-on. If the stored value is exactly one of those, it is returned; a value
+that is not on the list is withheld like any other string, and so is every free-text option.
 
 A withheld value still says its `type`, whether it is `set` (not null, not an empty string, not an
 empty array), whether it `is_default`, and for an array how many members it has.
@@ -503,7 +509,8 @@ empty array), whether it `is_default`, and for an array how many members it has.
             "set": true,
             "disclosed": false,
             "value": null,
-            "count": null
+            "count": null,
+            "members": null
         },
         {
             "option_id": "boardActive",
@@ -514,12 +521,36 @@ empty array), whether it `is_default`, and for an array how many members it has.
             "set": true,
             "disclosed": true,
             "value": true,
-            "count": null
+            "count": null,
+            "members": null
+        },
+        {
+            "option_id": "emailTransport",
+            "add_on_id": "XF",
+            "data_type": "array",
+            "is_default": false,
+            "type": "array",
+            "set": true,
+            "disclosed": false,
+            "value": null,
+            "count": 7,
+            "members": {
+                "emailTransport": {"type": "string", "set": true, "disclosed": true, "value": "smtp", "count": null}
+            }
         }
     ]
 }
 ```
 
+- **`members` opens an array option one level**, for the members its definition declares by
+  name — whether registration is `enabled`, whether it needs `moderation` — each under the same
+  rule. It is `null` for anything that is not an array or declares none. A definition can also
+  allow any key at all; a member present only on that allowance is not listed, because such a
+  key is data, so `count` can be larger than the number of members shown.
+- **The mail transport is `emailTransport.members.emailTransport`.** `sendmail` and `smtp`, the
+  two XenForo supplies, are returned. A transport an add-on supplies is withheld, which with
+  `set: true` reads as "something other than those two". The host, the login and the password
+  are not declared members and are not listed at all.
 - **`value: null` with `disclosed: false` means withheld**, not empty. Read `set` for that.
 - **`set` is not "on".** It means the option holds something: a boolean that is `false` is still
   `set: true`. Read `value` for whether a flag is on.
@@ -537,8 +568,8 @@ empty array), whether it `is_default`, and for an array how many members it has.
 `GET /api/admin-api/config/`
 
 The settings in force from `src/config.php` merged over XenForo's defaults, one entry per dotted
-key, under the same rule as options: a boolean, a null and a small number are returned, and a
-string never is. `db.password` is reported as a string that is set, and that is all.
+key. A boolean, a null and a small number are returned, and a string never is — configuration has
+no definitions listing choices, so the exception options have does not apply here. `db.password` is reported as a string that is set, and that is all.
 
 | parameter | meaning |
 |---|---|

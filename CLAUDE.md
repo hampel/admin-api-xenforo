@@ -63,6 +63,14 @@ is whether it can carry member data.
   place that decides what is shown, and it decides by type: a boolean, a null, a number up to
   999999. **Do not add a rule that shows a string because it looks harmless** — the bug in that
   rule is a credential in a response.
+- **A string is returned in exactly one case: it is on a list the option's definition publishes.**
+  A radio or select option's choices come from its `edit_format_params`; the value must equal
+  one of them. That is a lookup, not a judgement, and it is what `describeChoice()` is. Where core
+  keeps a choice in an option template instead — the mail transport — the list is a constant in
+  `Api\Controller\Options`, holding only the values core itself switches on. Add to that table
+  only from core's source, never from what a value turned out to be on some forum.
+- **An array option is opened one level, and only for members its definition declares.** Keys
+  allowed by `*` are data.
 
 ## Mechanics
 

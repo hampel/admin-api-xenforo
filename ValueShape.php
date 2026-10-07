@@ -7,6 +7,10 @@
  * and they are most of what "how is this configured" needs. Everything else - every string above
  * all - is reported only as a type and whether it is set. There is deliberately no rule that
  * decides a string is harmless enough to show: the bug in that rule is a credential in a response.
+ *
+ * The one way a string is returned is as a choice: when the setting's own definition lists the
+ * values it can take and the string is one of them. That is not a judgement about the string. A
+ * value that is not on its list is withheld like any other.
  */
 class ValueShape
 {
@@ -35,6 +39,27 @@ class ValueShape
 			'value' => $disclosed ? $value : null,
 			'count' => is_array($value) ? count($value) : null,
 		];
+	}
+
+	/**
+	 * Describes a value that is meant to be one of a fixed set of choices.
+	 *
+	 * @param mixed $value
+	 * @param array $choices The values the setting's definition allows
+	 *
+	 * @return array type, set, disclosed, value, count
+	 */
+	public function describeChoice($value, array $choices)
+	{
+		$described = $this->describe($value);
+
+		if (is_string($value) && $value !== '' && in_array($value, array_map('strval', $choices), true))
+		{
+			$described['disclosed'] = true;
+			$described['value'] = $value;
+		}
+
+		return $described;
 	}
 
 	/**

@@ -73,11 +73,18 @@ the file. So the file cannot be trusted by shape: a message can end in something
 reduced to a name that must look like a PHP file's; and the *last* ` in ` on the line is taken,
 because a message can contain one. The tests plant forged locations of each kind.
 
-**What an option or a setting discloses is decided in one place, `ValueShape::isDisclosable()`,
-by type alone.** Loosening it — showing a string because its name looks harmless, raising the
-number ceiling — is how a credential reaches a response. Each endpoint has a test that walks every
-real option or setting on the forum and fails if any returned value is not a boolean, a null or a
-small number, and the config test searches the response for the forum's own database password.
+**What an option or a setting discloses is decided in one place, `ValueShape`, by type — plus one
+lookup.** Loosening it — showing a string because its name looks harmless, raising the number
+ceiling — is how a credential reaches a response. The lookup is `describeChoice()`: a string is
+returned when it equals a choice the option's definition lists, compared exactly. The options
+test walks every real option on the forum, recomputes each option's choices and declared members
+from `xf_option` itself, and fails if a string came back that is not on its own list or a member
+that is not declared. The config test fails on any string at all, and searches the response for
+the forum's own database password.
+
+**A select option's choices are written `value=label`, sometimes with spaces round the equals
+sign.** XenForo's own parser handles both; a hand-written pattern that expects none will call a
+correct result wrong, as the test's first version did.
 
 **`value: null` is ambiguous without `disclosed`.** A withheld string and a real null both carry
 it. A consumer that reads `value` alone will report every string option as empty.
@@ -177,7 +184,9 @@ vendor/bin/phpunit
 - `tests/Feature/SetupTest.php` sets every scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears them.
 - `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
-  uses, and checks what is returned, the filters and the counts.
+  uses, and checks what is returned, the filters and the counts — including a choice on and off
+  its list, the same text in a free-text option, and an array with declared, undeclared and
+  nested members.
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
   the forum's real database credentials by key and by absence.
 - `tests/Unit/ValueShapeTest.php` covers the disclosure rule, flattening and comparison.
