@@ -102,6 +102,21 @@ is whether it can carry member data.
 - **A new kind of fault needs its clean-up written and tested before its planting.**
 - **Uninstall cleans every batch** before it drops the table.
 
+## The config and validate commands
+
+`admin-api:config` and `admin-api:validate` follow the house pattern for every add-on; the
+`xenforo-addon-validate` skill, where available, is the authority on it.
+
+- **The checks live in `Check\HealthCheck`, and the command renders them.** A check returns rows of
+  outcome, label and detail. It is about whether this add-on can do its job on this forum, never
+  about the forum's health — that is what the endpoints report.
+- **`Cli\RendersReport` is a copy of another add-on's trait, namespace changed and nothing else.**
+  Do not improve it here: fix the original and take it again.
+- **Every `\XF::logError()` and `logException()` in the add-on begins with `AdminApi: `.** A test
+  scans the source for one that does not.
+- **Extend the checks whenever the add-on comes to depend on something new** — a table, an option,
+  another add-on.
+
 ## Mechanics
 
 - **No `xf-make:*` command exists for an API scope or an admin permission.** Create the entity so

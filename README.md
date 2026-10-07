@@ -627,6 +627,43 @@ no definitions listing choices, so the exception options have does not apply her
 - **Key names are returned.** If your `config.php` uses a secret as an array *key*, this endpoint
   will show it; a value never is.
 
+## Checking a forum is set up
+
+Two commands answer "is it set up" and "does it work" from the command line, on any forum,
+including one you cannot log in to.
+
+```bash
+php cmd.php admin-api:config
+php cmd.php admin-api:validate
+```
+
+**`admin-api:config` reads and prints, and changes nothing.** It shows whether the REST API is on,
+each scope, how many administrators hold each admin permission, and every API key that holds one
+of the scopes — its id, its title, whose it is, what it holds and when it was last used. A key's
+value is never shown.
+
+**`admin-api:validate` proves it.** It checks that the API is enabled, that the scopes, admin
+permissions and routes are in place, that at least one key can actually read, and that each
+endpoint's reader runs. It names any key that holds a scope and can never use it, with the reason:
+a super user key, an inactive key, a user who is not an administrator or lacks the permission.
+
+| | all fine | warnings only | any failure |
+|---|---|---|---|
+| `admin-api:validate` | 0 | 0 | 1 |
+| `admin-api:validate --strict` | 0 | 2 | 1 |
+
+- **A warning exits 0**, so `admin-api:validate && next-step` can gate a deploy. A forum on which
+  no key can read yet is a warning: nothing is broken, and the add-on does nothing.
+- **`--strict` makes a warning exit 2**, for a monitor that wants to hear of one, and changes
+  nothing else. **This is not the monitoring-plugin numbering**, where 1 is a warning: here 1
+  always means failed.
+- **By default it logs one error to the server error log, reads it back through the summary and
+  removes it.** That is the only proof that what the forum logs is what the endpoints read, and
+  anything watching the error log will see it for a moment. `--unattended` skips it, for a gate
+  nobody is watching. The entry begins `AdminApi: ` like every row this add-on logs.
+- It warns when the fault commands below are enabled, or have left anything planted — which on a
+  live forum is the thing you would want to hear.
+
 ## Testing with faults
 
 **On a healthy forum these endpoints have nothing to report**, which makes them hard to try out

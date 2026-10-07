@@ -24,6 +24,7 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
 | phrases | 10 — the two scope descriptions, the six permission titles, two errors |
 
+| CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
 | table | `xf_hampel_admin_api_fault` — what the fault commands planted |
 | config key | `hampelAdminApi.faults` in `config.php` |
@@ -99,6 +100,14 @@ A list is not followed, and that distinction is what stops a list of hostnames b
 **The summary query names its columns.** `SELECT *`, or one more column added for convenience, is
 how a message or a request reaches the response. One test encodes the whole response and searches
 it for values planted in the columns that must not appear.
+
+**A helper on a command must not be called `run()`**, which is the command's own public method;
+`Validate` renders through `rows()`. And the report trait writes grey through `muted()`, never a
+grey tag, which an older XenForo console throws on.
+
+**`validate`'s probe depends on XenForo logging an error raised from the command line**, which
+2.3.0 does not do. There the probe is a warning that says so, not a failure: the add-on is not
+what is broken.
 
 **A job's class name has to be the right shape even when the class does not exist.** XenForo checks
 for a `\Job\` segment before it looks for the class. The first missing-job fault was named
@@ -229,6 +238,12 @@ vendor/bin/phpunit
   each endpoint, cleaned, and the tables compared with how they started. One test hands `clean`
   records naming real rows — this add-on, core, a real cron entry, a real job — and checks it
   deletes none of them.
+- `tests/Feature/CommandsTest.php` covers `config` and `validate`: both load; a clean forum exits
+  0; nobody able to read is a warning and still 0; `--strict` makes that 2 and changes nothing
+  else; the API being off is 1 either way; a check that throws fails its own row and the rest
+  still report; a key that can never work is named with its reason; `--unattended` writes nothing;
+  the probe leaves nothing behind; `config` describes a key and never shows it, and changes
+  nothing. One test scans the source for a logged error without the add-on's prefix.
 - `tests/Feature/SetupTest.php` sets every scope's OAuth flag as a release import leaves it and
   checks that the post-install hook clears them.
 - `tests/Feature/OptionShapeTest.php` adds options of each type under an add-on id nothing real
@@ -307,6 +322,11 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
   planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
+- **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
+  probe was run once on a development forum: logged, read back, removed. What an alert on the
+  server error log makes of a row that exists for a moment has not been looked at.
+- **`admin-api:config` and `admin-api:validate` from a release zip.** They were written after the
+  last sandbox run, so they have only run from the working copy.
 - **The upgrade path.** There is none to test until a version has been released.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
