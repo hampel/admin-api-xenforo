@@ -41,6 +41,10 @@ is whether it can carry member data.
 
 - **Name the columns a query reads.** The error log summary returns four of ten, and the other six
   are the reason it exists.
+- **A count of people is not a person, and an id is.** The summary counts distinct `user_id`s in
+  the query and returns the number. No id is selected, grouped on in the output, or kept in PHP.
+  A breakdown that would let a count be tied to an individual — per user, per IP address — is
+  not a count any more.
 - **A field worked out from a withheld column must be closed.** The summary reads the start of
   the message, the trace and the request, and returns only a value from a fixed list: a PHP error
   level, one of four origins, an installed add-on's id, the name of a template the forum has. Check the value against the list in code

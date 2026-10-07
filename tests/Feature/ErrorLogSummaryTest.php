@@ -68,11 +68,11 @@ class ErrorLogSummaryTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
 	}
 
-	private function insertError($date, $type, $filename, $line, $message, $trace, $state)
+	private function insertError($date, $type, $filename, $line, $message, $trace, $state, $userId = self::SECRET_USER)
 	{
 		$this->app()->db()->insert('xf_error_log', [
 			'exception_date' => $date,
-			'user_id' => self::SECRET_USER,
+			'user_id' => $userId,
 			'ip_address' => inet_pton(self::SECRET_IP),
 			'exception_type' => $type,
 			'message' => $message,
@@ -141,6 +141,8 @@ class ErrorLogSummaryTest extends TestCase
 			'first_date' => 1100,
 			'last_date' => 1300,
 			'last_error_id' => $this->ids[1300],
+			'members' => 1,
+			'member_errors' => 3,
 			'severity' => 'E_WARNING',
 			'origins' => ['web' => 3, 'cli' => 0, 'job' => 0, 'unknown' => 0],
 			'origin_add_ons' => [
@@ -214,6 +216,61 @@ class ErrorLogSummaryTest extends TestCase
 		);
 
 		$this->assertSame('mixed', $this->summary()['signatures'][0]['severity']);
+	}
+
+	/**
+	 * Every planted row so far belongs to one member, so the whole window has one.
+	 */
+	public function test_it_counts_the_members_affected_and_not_the_errors()
+	{
+		$summary = $this->summary();
+
+		$this->assertSame(1, $summary['members']);
+		$this->assertSame(7, $summary['member_errors']);
+	}
+
+	public function test_a_guest_the_command_line_and_a_job_are_nobody()
+	{
+		$file = 'src/XF/Pub/Controller/Thing.php';
+		$this->insertError(1810, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 0);
+		$this->insertError(1820, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI, null);
+		$this->insertError(1830, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 900001);
+		$this->insertError(1840, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 900002);
+		$this->insertError(1850, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 900002);
+
+		$summary = $this->summary();
+		$signature = $this->signature($summary, $file);
+
+		$this->assertSame(5, $signature['count']);
+		$this->assertSame(2, $signature['members']);
+		$this->assertSame(3, $signature['member_errors']);
+
+		$this->assertSame(3, $summary['members']);
+		$this->assertSame(10, $summary['member_errors']);
+	}
+
+	/**
+	 * One file stored relative by one request and in full by another is one signature, and a
+	 * member behind both is one member.
+	 */
+	public function test_a_member_is_counted_once_across_a_file_stored_two_ways()
+	{
+		$signature = $this->signature($this->summary(), 'src/XF/Mvc/Dispatcher.php');
+
+		$this->assertSame(2, $signature['count']);
+		$this->assertSame(1, $signature['members']);
+		$this->assertSame(2, $signature['member_errors']);
+
+		// one more member behind each form: three people, where either form alone shows two and
+		// adding the two forms up shows four
+		$this->insertError(1450, 'TypeError', \XF::getRootDirectory() . '/src/XF/Mvc/Dispatcher.php', 20, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 900003);
+		$this->insertError(1460, 'TypeError', 'src/XF/Mvc/Dispatcher.php', 20, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 900004);
+
+		$signature = $this->signature($this->summary(), 'src/XF/Mvc/Dispatcher.php');
+
+		$this->assertSame(4, $signature['count']);
+		$this->assertSame(3, $signature['members']);
+		$this->assertSame(4, $signature['member_errors']);
 	}
 
 	/**
@@ -361,6 +418,8 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertNull($summary['oldest_date']);
 		$this->assertNull($summary['newest_date']);
 		$this->assertSame([], $summary['signatures']);
+		$this->assertSame(0, $summary['members']);
+		$this->assertSame(0, $summary['member_errors']);
 		$this->assertSame([], $summary['by_severity']);
 		$this->assertSame([], $summary['by_template']);
 		$this->assertSame(['web' => 0, 'cli' => 0, 'job' => 0, 'unknown' => 0], $summary['by_origin']);
@@ -393,6 +452,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertStringNotContainsString('example.com', $json);
 		$this->assertStringNotContainsString('password', $json);
 		$this->assertStringNotContainsString((string) self::SECRET_USER, $json);
+		$this->assertStringNotContainsString('user_id', $json);
 		$this->assertStringNotContainsString(self::SECRET_IP, $json);
 		$this->assertStringNotContainsString(\XF::getRootDirectory(), $json);
 	}

@@ -117,6 +117,12 @@ fixed list before it is kept**: `ErrorLog::SEVERITIES`, `ErrorLog::ORIGINS`, the
 brackets at the start of a message through. A test walks the forum's real log and fails if any
 derived value is outside its list.
 
+**A distinct count cannot be added up.** A file stored relative by one request and in full by
+another is two rows of the grouped query and one signature, and a member behind both must be
+counted once. Those signatures are recounted with a query of their own. The test for it needs a
+member unique to each stored form: with the same members behind both, the first row's count is
+already the right answer and the test passes with the recount removed.
+
 **The template is the innermost compiled-template frame, and the name is looked up, not trusted.**
 A path ending `templates/l1/s0/public/anything.php` names a template only if the forum has
 `public:anything`. The list of templates is loaded the first time such a path is seen, so a log
@@ -154,7 +160,8 @@ vendor/bin/phpunit
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
   personal and request column, of the install's own path, and of any directory outside it. Its
   rows differ in level, origin and call path, so each derived field is asserted in both its
-  per-forum and per-signature form.
+  per-forum and per-signature form. It also plants errors for a guest, the command line and
+  several members, and checks that only members are counted and each only once.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`, and plants an
   add-on record in each unfinished state to check what is reported for it.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and

@@ -86,7 +86,8 @@ ever be a value from a fixed list, so nothing a member wrote or sent can come ba
 | originating add-on | the file paths in the trace | the id of an installed add-on, or null |
 | template | the path of a compiled template in the trace | the name of a template the forum has, or none |
 
-The user and the IP address are not read at all.
+The user behind an error is read only to be **counted** — how many different members, never
+which. The IP address is not read at all.
 
 | parameter | meaning |
 |---|---|
@@ -104,6 +105,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
     "total": 24,
     "oldest_date": 1790305832,
     "newest_date": 1790857181,
+    "members": 3,
+    "member_errors": 9,
     "by_day": [
         {"day": "2026-09-25", "count": 12},
         {"day": "2026-09-26", "count": 0}
@@ -141,6 +144,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "first_date": 1790340412,
             "last_date": 1790771401,
             "last_error_id": 1001,
+            "members": 2,
+            "member_errors": 4,
             "severity": "E_USER_WARNING",
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
             "origin_add_ons": [
@@ -188,6 +193,13 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   is usually the cause and occasionally one that only wraps a core class every request passes
   through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
   `origin_add_ons` the same for one signature, since one line of core is reached from many places.
+- **`members` is how many different logged-in members an error happened to**, for the whole window
+  and for each signature, and `member_errors` is how many of the errors those were. A guest, the
+  command line and a job count as nobody, so `members: 0` beside a non-zero `web` origin means
+  guests only. A member behind two signatures is counted in both and once in the window's total,
+  so the signatures do not add up to it. This is the number that says whether the entries
+  endpoint is worth opening with `request=1`: it tells you someone was affected, and only that
+  endpoint tells you who.
 - **`by_template` and each signature's `templates` name the template being rendered**, as
   `type:title`, with the add-on it belongs to — null for one made in a style. Every template
   error is raised at the same few lines of XenForo's templater, so this is what tells one from

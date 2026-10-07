@@ -39,7 +39,10 @@ class ErrorLog extends Repository
 	 * the columns that are never returned: a severity, an origin, an originating add-on and the
 	 * template being rendered. Each can only take a value from a fixed list - a PHP error level,
 	 * one of four origins, the id of an installed add-on, the name of a template the forum has -
-	 * so nothing written by a member or sent in a request can come back through them. user_id and ip_address are not read at all.
+	 * so nothing written by a member or sent in a request can come back through them.
+	 *
+	 * user_id is read only to be counted: how many different members an error happened to, never
+	 * which. ip_address is not read at all.
 	 *
 	 * @param int $since
 	 * @param int $until
@@ -56,7 +59,9 @@ class ErrorLog extends Repository
 				COUNT(*) AS error_count,
 				MIN(exception_date) AS first_date,
 				MAX(exception_date) AS last_date,
-				MAX(error_id) AS last_error_id
+				MAX(error_id) AS last_error_id,
+				COUNT(DISTINCT CASE WHEN user_id > 0 THEN user_id END) AS member_count,
+				SUM(CASE WHEN user_id > 0 THEN 1 ELSE 0 END) AS member_error_count
 			FROM xf_error_log
 			WHERE exception_date >= ? AND exception_date <= ?
 			GROUP BY exception_type, filename, line
@@ -72,6 +77,7 @@ class ErrorLog extends Repository
 		$byAddOn = [];
 		$byLocation = array_fill_keys(self::LOCATIONS, 0);
 		$signatures = [];
+		$stored = [];
 
 		foreach ($rows AS $row)
 		{
@@ -93,10 +99,12 @@ class ErrorLog extends Repository
 
 			// two files outside the install can share a name once their directories are dropped
 			$key = $this->getSignatureKey($row['exception_type'], $filename, $row['line'], $inInstall);
+			$stored[$key][] = $row['filename'];
 
 			if (isset($signatures[$key]))
 			{
 				$signatures[$key]['count'] += $count;
+				$signatures[$key]['member_errors'] += (int) $row['member_error_count'];
 				$signatures[$key]['first_date'] = min($signatures[$key]['first_date'], $first);
 				$signatures[$key]['last_date'] = max($signatures[$key]['last_date'], $last);
 				$signatures[$key]['last_error_id'] = max($signatures[$key]['last_error_id'], (int) $row['last_error_id']);
@@ -114,11 +122,27 @@ class ErrorLog extends Repository
 				'first_date' => $first,
 				'last_date' => $last,
 				'last_error_id' => (int) $row['last_error_id'],
+				'members' => (int) $row['member_count'],
+				'member_errors' => (int) $row['member_error_count'],
 				'severity' => null,
 				'origins' => array_fill_keys(self::ORIGINS, 0),
 				'origin_add_ons' => [],
 				'templates' => [],
 			];
+		}
+
+		// the same member can be behind both of two rows that were merged, so those are recounted
+		foreach ($stored AS $key => $filenames)
+		{
+			if (count($filenames) > 1 && $signatures[$key]['member_errors'])
+			{
+				$signatures[$key]['members'] = $this->countMembers(
+					$since,
+					$until,
+					'AND exception_type = ? AND line = ? AND filename IN (' . $db->quote($filenames) . ')',
+					[$signatures[$key]['exception_type'], $signatures[$key]['line']]
+				);
+			}
 		}
 
 		$examined = $this->examineRows($since, $until, $addOnIds, $signatures);
@@ -143,6 +167,8 @@ class ErrorLog extends Repository
 			'total' => $total,
 			'oldest_date' => $oldest,
 			'newest_date' => $newest,
+			'members' => $total ? $this->countMembers($since, $until) : 0,
+			'member_errors' => array_sum(array_column($signatures, 'member_errors')),
 			'by_day' => $this->getDays($since, $until, $logOldest),
 			'by_type' => $this->sortGroup($byType),
 			'by_severity' => $this->sortGroup($examined['by_severity']),
@@ -163,6 +189,28 @@ class ErrorLog extends Repository
 				'newest_date' => $log['newest_date'] === null ? null : (int) $log['newest_date'],
 			],
 		];
+	}
+
+	/**
+	 * How many different members errors in the window happened to. A count and nothing else: no
+	 * id leaves the query. A guest, the command line and a job have no member.
+	 *
+	 * @param int $since
+	 * @param int $until
+	 * @param string $extraWhere
+	 * @param array $extraParams
+	 *
+	 * @return int
+	 */
+	protected function countMembers($since, $until, $extraWhere = '', array $extraParams = [])
+	{
+		return (int) $this->db()->fetchOne('
+			SELECT COUNT(DISTINCT user_id)
+			FROM xf_error_log
+			WHERE exception_date >= ? AND exception_date <= ?
+				AND user_id > 0
+				' . $extraWhere . '
+		', array_merge([$since, $until], $extraParams));
 	}
 
 	/**

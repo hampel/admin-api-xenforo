@@ -20,7 +20,8 @@ class ErrorLog extends AbstractController
 	 * @api-desc Summarises the server error log over a time window: counts by exception type, by
 	 *   add-on, by day and by signature (type, file and line), with the PHP error level, whether
 	 *   each arose from a web request, the command line or a job, and the add-on it originated in.
-	 *   Returns no message, stack trace, request data, user or IP address. Requires a user API key holding the hampel_admin_api:read scope,
+	 *   Counts the members affected without
+	 *   identifying them, and returns no message, stack trace, request data, user or IP address. Requires a user API key holding the hampel_admin_api:read scope,
 	 *   whose user has the hampelAdminApiErrorLog admin permission.
 	 *
 	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.
@@ -31,6 +32,8 @@ class ErrorLog extends AbstractController
 	 * @api-out int $total Errors logged in the window
 	 * @api-out int $oldest_date Date of the oldest error in the window, or null
 	 * @api-out int $newest_date Date of the newest error in the window, or null
+	 * @api-out int $members How many different members an error in the window happened to
+	 * @api-out int $member_errors How many of the errors happened to a member
 	 * @api-out array $by_day Count for each UTC day from the start of the window or of the log
 	 * @api-out array $by_type Count and newest date for each exception type
 	 * @api-out array $by_severity Count and newest date for each PHP error level
