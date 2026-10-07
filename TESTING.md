@@ -197,6 +197,36 @@ To confirm the gate tests are real, remove one of the three calls in
 `Api\Controller\AbstractController::preDispatchController()` and run `AuthorisationTest`: four
 tests fail without the first, one without the second, four without the third.
 
+## Proved on a clean forum
+
+On 2026-10-07 the release zip was installed on a disposable forum that had never had the add-on,
+at **XenForo 2.3.0 Patch 2 on PHP 7.4.33** — both declared floors at once — with development mode
+off, and then uninstalled.
+
+| checked | result |
+|---|---|
+| the install took the release's data, not development output | `Importing add-on data`, and no `_output/` appeared |
+| every PHP file parses on 7.4 | `php -l` clean |
+| what was installed | 2 scopes, 6 admin permissions, 7 routes, 10 phrases with their text |
+| **both scopes are withheld from OAuth clients** | `usable_with_oauth_clients` 0 for each — the column default is 1, so `Setup` did this |
+| every endpoint, with a user key for an administrator | 200, with real data |
+| the read scope on the entries endpoint, and the detail scope on a summary | 403 `missing_scope`, both ways |
+| a super user key, with and without `api_bypass_permissions=1` | 403 `hampel_adminapi_user_api_key_required`, on a summary and on the entries endpoint |
+| uninstall | no scope, key grant, permission, phrase or route left; no error logged; the forum still renders |
+
+**XenForo 2.3.0 does not log an error raised from the command line.** Its logger converts the
+request's IP address unconditionally and that throws for the empty address a CLI run has; the
+exception is swallowed and no row is written. Later 2.3 releases guard it. So on 2.3.0 the summary
+will show no `cli` origin whatever happens there, and the error rows for this check had to be
+planted. Nothing in this add-on can change that.
+
+**The options endpoint reports options as stored.** A forum whose `config.php` overrides an option
+in code is running with a value this endpoint does not show: the sandbox pins its mail transport
+to SMTP that way, and the endpoint correctly reported the stored `sendmail`.
+
+To repeat it: build the release, and install the zip by path on a fresh instance with
+`$config['development']['enabled'] = false`.
+
 ## Needs a human
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
@@ -210,10 +240,7 @@ tests fail without the first, one without the second, four without the third.
   planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
-- **The admin control panel.** The six permissions appear on the administrator edit page and the
-  two scopes appear on the API key page, each with its description rather than a raw phrase key.
-- **Install on a forum that has never had it**, from a release zip, and uninstall again. After the
-  install, neither scope may be offered when editing an OAuth client. There is no upgrade path
-  to test until a version has been released.
-- **The declared floors.** The suite runs on one XenForo and one PHP version. XenForo 2.3.0 and
-  PHP 7.4 are what the code is written to, not what it has been run on.
+- **The upgrade path.** There is none to test until a version has been released.
+- **The admin control panel pages themselves.** The phrases are checked in the database after an
+  install; nobody has looked at the administrator edit page, the API key page or the OAuth client
+  page in a browser.

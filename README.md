@@ -206,6 +206,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   another. It is the *innermost* template: an error in a page wrapper is named for the wrapper,
   not for the page inside it. An error with no entry here was not raised while rendering one, or
   was about a template that does not exist.
+- **XenForo 2.3.0 itself does not log errors raised from the command line**, so on that version
+  `cli` is always zero. Later 2.3 releases log them.
 - `by_origin` and each signature's `origins` say how the errors arose: a `web` request, the `cli`,
   or a `job` — which includes every cron entry, however the job was triggered. Errors that are all
   `cli` are someone at a terminal, not members.
@@ -551,6 +553,8 @@ empty array), whether it `is_default`, and for an array how many members it has.
   two XenForo supplies, are returned. A transport an add-on supplies is withheld, which with
   `set: true` reads as "something other than those two". The host, the login and the password
   are not declared members and are not listed at all.
+- **Options are reported as stored.** A `config.php` that overrides an option in code changes what
+  the forum runs with and not what is stored, and this endpoint shows what is stored.
 - **`value: null` with `disclosed: false` means withheld**, not empty. Read `set` for that.
 - **`set` is not "on".** It means the option holds something: a boolean that is `false` is still
   `set: true`. Read `value` for whether a flag is on.
