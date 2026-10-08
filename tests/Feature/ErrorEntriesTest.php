@@ -166,6 +166,21 @@ class ErrorEntriesTest extends TestCase
 		$this->assertReplyIsError($reply, 403, 'hampel_admin_api:error_detail');
 	}
 
+	/**
+	 * Access is settled before the request is looked at, so asking with no error_id says which
+	 * kind of key was used and returns nothing: a key without the scope is refused for the scope,
+	 * and a key with it is told the parameter is missing. A consumer can rely on that to check
+	 * its keys without ever fetching an entry.
+	 */
+	public function test_the_scope_is_checked_before_the_parameter()
+	{
+		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:error_detail');
+
+		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'error_id');
+	}
+
 	public function test_the_detail_scope_does_not_reach_the_summaries()
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiErrorDetail', 'viewLogs'], self::KEY);
