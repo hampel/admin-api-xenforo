@@ -15,6 +15,25 @@ class RedactorTest extends TestCase
 		return (new Redactor($known, $hide, $show))->redact($path, $value, $trusted);
 	}
 
+	/**
+	 * A key can contain a dot - a hostname, a template name - and a list has numeric keys. The
+	 * dotted path cannot tell "a.b" from a key called "a.b"; the segments can.
+	 */
+	public function test_each_redaction_says_where_it_is_one_key_at_a_time()
+	{
+		$result = $this->redact('hosts', [
+			'mail.example.com' => ['password' => 'SECRET'],
+			'list' => ['plain', 'k3J9xQ2mP7vL4nR8tW6yB1cD5fG0hZ'],
+		]);
+
+		$this->assertSame([
+			['path' => 'mail.example.com.password', 'segments' => ['mail.example.com', 'password'], 'reason' => Redactor::NAME],
+			['path' => 'list.1', 'segments' => ['list', '1'], 'reason' => Redactor::VALUE],
+		], $result['redactions']);
+
+		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME]], $this->redact('apiKey', 'SECRET')['redactions']);
+	}
+
 	private function reasons(array $result)
 	{
 		return array_column($result['redactions'], 'reason', 'path');

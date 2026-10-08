@@ -551,8 +551,20 @@ has to get past all of them:
 | `value` | it looks like a credential whatever it is called: a known token format, or a long random string |
 | `url` | it is a URL carrying a login or a long opaque part, as a webhook does. The scheme and host are kept, since where it points is not the secret |
 
-A withheld part comes back as `null`, and `redactions` lists each one with its path and reason,
-so nothing is mistaken for empty. Booleans, numbers and empty values are shown.
+A withheld part comes back as `null`, and `redactions` lists each one, so nothing is mistaken for
+empty. Booleans, numbers and empty values are shown.
+
+```json
+{"path": "smtp.example.com.password", "segments": ["smtp.example.com", "password"], "reason": "name"}
+```
+
+- **`segments` is how to find the part; `path` is for reading.** A key can contain a dot and a
+  list has numeric keys, so the dotted `path` cannot always be split back into keys. `segments`
+  is one entry per key, each a string. Both are empty when the whole value was withheld.
+- **On the configuration endpoint each setting is already a single dotted key**, so a redaction
+  there has a path only for one member of a list the setting holds. It also carries
+  `inherited_from`: the key above the setting whose redaction took this one with it, or `null`
+  when the setting was withheld in its own right.
 
 ### Trusted add-ons, and declaring yours
 

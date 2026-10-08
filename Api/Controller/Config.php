@@ -64,7 +64,7 @@ class Config extends AbstractController
 				foreach ($result['redactions'] AS $redaction)
 				{
 					$path = $redaction['path'] === '' ? (string) $top : $top . '.' . $redaction['path'];
-					$redactions[$path][] = $redaction['reason'];
+					$redactions[$path][] = $redaction;
 				}
 			}
 		}
@@ -98,15 +98,31 @@ class Config extends AbstractController
 				continue;
 			}
 
-			// everything withheld at or beneath this key: a withheld array leaves one null leaf
+			// A setting here is a leaf, so a redaction is one of three things: of the setting
+			// itself; of something above it, which takes the whole setting with it; or of one
+			// member of a list the setting holds, which is the only case with a path.
 			$withheld = [];
-			foreach ($redactions AS $path => $reasons)
+			$depth = substr_count($key, '.');
+			foreach ($redactions AS $path => $found)
 			{
-				if ($path === $key || strpos($path, $key . '.') === 0 || strpos($key, $path . '.') === 0)
+				foreach ($found AS $redaction)
 				{
-					foreach ($reasons AS $reason)
+					if ($path === $key)
 					{
-						$withheld[] = ['path' => $path === $key ? '' : $path, 'reason' => $reason];
+						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'inherited_from' => null];
+					}
+					else if (strpos($key, $path . '.') === 0)
+					{
+						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'inherited_from' => $path];
+					}
+					else if (strpos($path, $key . '.') === 0)
+					{
+						$withheld[] = [
+							'path' => substr($path, strlen($key) + 1),
+							'segments' => array_slice($redaction['segments'], $depth),
+							'reason' => $redaction['reason'],
+							'inherited_from' => null,
+						];
 					}
 				}
 			}

@@ -83,17 +83,20 @@ class Redactor
 	 * @param bool $trusted Whether the add-on that owns it has had its secrets declared
 	 *
 	 * @return array value - a copy with each withheld part replaced by null; redactions - a list
-	 *               of [path, reason] for each such part, the path relative to the setting
+	 *               of [path, segments, reason] for each such part, relative to the setting
 	 */
 	public function redact($path, $value, $trusted)
 	{
 		$redactions = [];
-		$safe = $this->walk($path, '', $this->leafName($path), $value, $trusted, false, 0, $redactions);
+		$safe = $this->walk($path, [], $this->leafName($path), $value, $trusted, false, 0, $redactions);
 
 		return ['value' => $safe, 'redactions' => $redactions];
 	}
 
-	protected function walk($path, $relative, $name, $value, $trusted, $shown, $depth, array &$redactions)
+	/**
+	 * @param string[] $relative The keys leading from the setting to this value
+	 */
+	protected function walk($path, array $relative, $name, $value, $trusted, $shown, $depth, array &$redactions)
 	{
 		// nothing to withhold, and saying so would read as a secret being present
 		if ($value === null || $value === '' || $value === [])
@@ -141,7 +144,7 @@ class Redactor
 			{
 				$safe[$key] = $this->walk(
 					$path . '.' . $key,
-					$relative === '' ? (string) $key : $relative . '.' . $key,
+					array_merge($relative, [(string) $key]),
 					// a list's members have no name of their own; they answer to the list's
 					is_string($key) ? $key : $name,
 					$member,
@@ -178,7 +181,7 @@ class Redactor
 		$address = $this->getAddressOfSecretUrl($value);
 		if ($address !== null)
 		{
-			$redactions[] = ['path' => $relative, 'reason' => self::URL];
+			$redactions[] = $this->describe($relative, self::URL);
 
 			return $address;
 		}
@@ -186,11 +189,20 @@ class Redactor
 		return $value;
 	}
 
-	protected function withhold($relative, $reason, array &$redactions)
+	protected function withhold(array $relative, $reason, array &$redactions)
 	{
-		$redactions[] = ['path' => $relative, 'reason' => $reason];
+		$redactions[] = $this->describe($relative, $reason);
 
 		return null;
+	}
+
+	/**
+	 * A key can itself contain a dot, so the dotted path is for reading and the segments are for
+	 * finding the value: each is one key, exactly as it is in the array.
+	 */
+	protected function describe(array $relative, $reason)
+	{
+		return ['path' => implode('.', $relative), 'segments' => $relative, 'reason' => $reason];
 	}
 
 	protected function isPlain($value)

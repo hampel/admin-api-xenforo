@@ -120,7 +120,7 @@ class ValuesTest extends TestCase
 		$options = $this->byId($this->options(['add_on_id' => self::TRUSTED]));
 
 		$this->assertNull($options['adminApiTestApiKey']['value']);
-		$this->assertSame([['path' => '', 'reason' => Redactor::NAME]], $options['adminApiTestApiKey']['redactions']);
+		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME]], $options['adminApiTestApiKey']['redactions']);
 		$this->assertTrue($options['adminApiTestApiKey']['set']);
 		$this->assertFalse($options['adminApiTestApiKey']['disclosed']);
 
@@ -136,7 +136,7 @@ class ValuesTest extends TestCase
 		$option = $this->byId($this->options(['add_on_id' => self::TRUSTED]))['adminApiTestMail'];
 
 		$this->assertSame(['type' => 'smtp', 'host' => 'mail.example.com', 'port' => 587, 'password' => null], $option['value']);
-		$this->assertSame([['path' => 'password', 'reason' => Redactor::NAME]], $option['redactions']);
+		$this->assertSame([['path' => 'password', 'segments' => ['password'], 'reason' => Redactor::NAME]], $option['redactions']);
 		$this->assertSame(4, $option['count']);
 	}
 
@@ -332,6 +332,32 @@ class ValuesTest extends TestCase
 
 		$this->assertSame('h.example.com', $settings['hampelAdminApi.service.host']['value']);
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
-		$this->assertNotEmpty($settings['hampelAdminApi.service.oauth.client']['redactions']);
+
+		// the whole setting is withheld, and it says which key above it is the reason
+		$this->assertSame(
+			[['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'inherited_from' => 'hampelAdminApi.service.oauth']],
+			$settings['hampelAdminApi.service.oauth.client']['redactions']
+		);
+		$this->assertNull($settings['hampelAdminApi.service.oauth.client']['value']);
+	}
+
+	/**
+	 * A setting is a leaf, so the only redaction with a path is one member of a list it holds.
+	 */
+	public function test_a_config_redaction_has_a_path_only_inside_a_list()
+	{
+		$this->setConfig('hampelAdminApi', ['mirrors' => ['https://a.example.com/', 'k3J9xQ2mP7vL4nR8tW6yB1cD5fG0hZ']]);
+
+		$setting = array_column($this->config()['settings'], null, 'key')['hampelAdminApi.mirrors'];
+
+		$this->assertSame(['https://a.example.com/', null], $setting['value']);
+		$this->assertSame(
+			[['path' => '1', 'segments' => ['1'], 'reason' => Redactor::VALUE, 'inherited_from' => null]],
+			$setting['redactions']
+		);
+
+		$direct = array_column($this->config()['settings'], null, 'key')['db.password']['redactions'];
+		$this->assertSame('', $direct[0]['path']);
+		$this->assertNull($direct[0]['inherited_from']);
 	}
 }
