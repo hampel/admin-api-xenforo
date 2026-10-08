@@ -67,9 +67,12 @@ class Options extends AbstractController
 		{
 			// what the forum is running with: config.php can replace an option in code, and then
 			// the stored value is not the one in force
-			$stored = $option->option_value;
-			$value = isset($live[$option->option_id]) ? $live[$option->option_id] : $stored;
-			$isDefault = $shape->isSame($value, $option->default_value);
+			$dataType = $option->data_type;
+			$stored = $this->castValue($dataType, $option->option_value);
+			$value = isset($live[$option->option_id])
+				? $this->castValue($dataType, $live[$option->option_id])
+				: $stored;
+			$isDefault = $shape->isSame($value, $this->castValue($dataType, $option->default_value));
 			$optionAddOnId = $option->addon_id;
 
 			if (!isset($byAddOn[$optionAddOnId]))
@@ -183,5 +186,43 @@ class Options extends AbstractController
 		}
 
 		return $members;
+	}
+
+	/**
+	 * A value as the type its option declares. Later XenForo releases do this when an option is
+	 * read; 2.3.0 does not, and hands back every flag and number as the string it is stored as -
+	 * which would be judged, and withheld, as text.
+	 *
+	 * @param string $dataType
+	 * @param mixed $value
+	 *
+	 * @return mixed
+	 */
+	protected function castValue($dataType, $value)
+	{
+		if ($value !== null && !is_scalar($value))
+		{
+			return $value;
+		}
+
+		switch ($dataType)
+		{
+			case 'boolean':
+				return (bool) $value;
+
+			case 'integer':
+			case 'unsigned_integer':
+			case 'positive_integer':
+				return (int) $value;
+
+			case 'numeric':
+			case 'unsigned_numeric':
+				return is_numeric($value) ? $value + 0 : 0;
+
+			case 'array':
+				return [];
+		}
+
+		return $value;
 	}
 }

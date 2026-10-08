@@ -34,4 +34,48 @@ class SetupTest extends TestCase
 
 		$this->assertSame(array_fill_keys($scopes, 0), array_map('intval', $this->usableWithOAuth()));
 	}
+
+	/**
+	 * XenForo deletes every listener for an event when the event goes, so uninstalling this
+	 * add-on takes other add-ons' declarations with it. Installing it again puts them back.
+	 */
+	public function test_another_add_ons_lost_declaration_listener_is_put_back_once()
+	{
+		$path = tempnam(sys_get_temp_dir(), 'adminapi-listeners-');
+		file_put_contents($path, '<?xml version="1.0" encoding="utf-8"?>
+<code_event_listeners>
+  <listener event_id="hampel_admin_api_redaction" execute_order="10" callback_class="Hampel\\AdminApi\\Listener" callback_method="adminApiRedaction" active="1" description="planted"/>
+  <listener event_id="app_setup" execute_order="10" callback_class="Hampel\\AdminApi\\Listener" callback_method="adminApiRedaction" active="1" description="another event"/>
+  <listener event_id="hampel_admin_api_redaction" execute_order="10" callback_class="Tests\\No\\SuchClass" callback_method="gone" active="1" description="callback gone"/>
+</code_event_listeners>');
+
+		$setup = new class($this->app()->addOnManager()->getById('Hampel/AdminApi'), $this->app()) extends \Hampel\AdminApi\Setup
+		{
+			public $files = [];
+
+			protected function getListenerDataFiles()
+			{
+				return $this->files;
+			}
+		};
+		$setup->files = ['Tests/Unknown' => $path];
+
+		try
+		{
+			$this->assertSame(1, $setup->restoreDeclarationListeners());
+			$this->assertSame(0, $setup->restoreDeclarationListeners(), 'and not twice');
+		}
+		finally
+		{
+			unlink($path);
+		}
+
+		$rows = $this->app()->db()->fetchAll(
+			"SELECT event_id, callback_class, active FROM xf_code_event_listener WHERE addon_id = 'Tests/Unknown'"
+		);
+		$this->assertSame(
+			[['event_id' => 'hampel_admin_api_redaction', 'callback_class' => 'Hampel\\AdminApi\\Listener', 'active' => 1]],
+			$rows
+		);
+	}
 }

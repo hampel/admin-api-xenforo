@@ -73,7 +73,7 @@ class RedactorTest extends TestCase
 		return array_map(function ($name) { return [$name]; }, [
 			'imageProxyBypass', 'bypassType', 'ban_user', 'keywords', 'monkeyBusiness', 'authorName', 'tokenise',
 			'boardTitle', 'smtpHost', 'smtpAuth', 'emailTransport', 'userGroups', 'keyboardShortcuts',
-			'hampelPrivateSiteHomeMessage', 'privateFeedTitle', 'resultsNetwork',
+			'hampelPrivateSiteHomeMessage', 'privateFeedTitle', 'resultsNetwork', 'publicKey', 'vapidPublicKey',
 		]);
 	}
 

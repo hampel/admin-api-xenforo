@@ -598,7 +598,11 @@ public static function adminApiRedaction(array &$declarations)
 - **An add-on with no secrets declares an empty list.** That is still a declaration, and it is
   what moves the add-on's settings from "set" to shown.
 - The event only fires when the Admin API is installed, so listening costs nothing where it is
-  not. The name and value rules above apply whatever you declare.
+  not, and your add-on does not need to require this one. The name and value rules above apply
+  whatever you declare.
+- **Uninstalling the Admin API removes every listener for its event**, yours included: XenForo
+  deletes an event's listeners with the event. Installing it again, or rebuilding it, puts back
+  each one that an installed add-on's release registers.
 
 ### Overriding it on one forum
 

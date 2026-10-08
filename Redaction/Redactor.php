@@ -43,7 +43,7 @@ class Redactor
 	const SECRET_WORD = '/(?<!by)pass(word|wd|phrase)?$|passw|pwd|secret|token|salt|webhook|credential'
 		. '|private_?key|licen[cs]e|api_?key|oauth|username$/i';
 
-	const SECRET_SUFFIX = '/(^|_)key$|[a-z]Key$|(^|_)dsn$|[a-z]Dsn$|(^|_)login$|[a-z]Login$/';
+	const SECRET_SUFFIX = '/(^|_)key$|[a-z](?<![Pp]ublic)Key$|(^|_)dsn$|[a-z]Dsn$|(^|_)login$|[a-z]Login$/';
 
 	/** Shapes a credential comes in, whatever it is called. */
 	const SECRET_FORMATS = [

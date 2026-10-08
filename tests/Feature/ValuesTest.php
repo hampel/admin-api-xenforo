@@ -174,6 +174,29 @@ class ValuesTest extends TestCase
 		$this->assertFalse($registry->isTrustedAddOn('Some/OtherAddOn'));
 	}
 
+	/**
+	 * XenForo 2.3.0 hands a flag back as "1" and a number as "25". Judged as they arrive they are
+	 * text, and an undeclared add-on's text is withheld - so its switches and limits would be too.
+	 */
+	public function test_a_flag_or_a_number_stored_as_a_string_is_returned_as_its_own_type()
+	{
+		$this->insertOption('adminApiTestStoredFlag', self::UNTRUSTED, 'boolean', '1');
+		$this->insertOption('adminApiTestStoredOff', self::UNTRUSTED, 'boolean', '0');
+		$this->insertOption('adminApiTestStoredCount', self::UNTRUSTED, 'unsigned_integer', '25');
+		$this->insertOption('adminApiTestStoredRate', self::UNTRUSTED, 'numeric', '1.5');
+
+		foreach ([self::BOTH_SCOPES, []] AS $key)
+		{
+			$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED], ['hampelAdminApiOptions', 'option'], $key));
+
+			$this->assertTrue($options['adminApiTestStoredFlag']['value']);
+			$this->assertFalse($options['adminApiTestStoredOff']['value']);
+			$this->assertSame(25, $options['adminApiTestStoredCount']['value']);
+			$this->assertSame(1.5, $options['adminApiTestStoredRate']['value']);
+			$this->assertTrue($options['adminApiTestStoredFlag']['disclosed']);
+		}
+	}
+
 	public function test_text_from_an_add_on_nobody_has_declared_is_withheld()
 	{
 		$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED]));

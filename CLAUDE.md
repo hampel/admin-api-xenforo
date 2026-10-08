@@ -80,6 +80,12 @@ is whether it can carry member data.
   add-on to that list, ours included** — decided by Simon on 2026-10-08. A list here would have to
   know which add-ons may be named in a public file, and would go stale without their authors
   knowing. This add-on declares in `Listener`, which is also the reference for anyone else's.
+- **`Setup` restores other add-ons' listeners for the event**, because uninstalling this add-on
+  makes XenForo delete them. It is the one place this add-on writes a row another add-on owns;
+  it writes only what that add-on's own release data registers, and never to its `_output/`.
+- **Cast an option's value to its declared type before judging it.** XenForo 2.3.0 hands back
+  flags and numbers as strings, and the development forum does not, so the suite cannot catch a
+  regression here.
 - **A secret is redacted whether or not it is set.** An empty one returned as `""` reads as
   shown; the redaction carries `set` instead.
 - **A string is returned in exactly one case: it is on a list the option's definition publishes.**

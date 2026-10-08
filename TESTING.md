@@ -20,6 +20,7 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
+| other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
 | admin permission | `hampelAdminApiOnline` |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
@@ -334,7 +335,39 @@ planted. Nothing in this add-on can change that.
 **At the time, the options endpoint reported options as stored**, and the sandbox showed why that
 is wrong: it pins its mail transport to SMTP in config code, and the endpoint reported the stored
 `sendmail`. The endpoint now reports the value in force and flags `overridden` when the two
-differ. That has not been re-run in a sandbox.
+differ.
+
+### Values, the declaration hook and who is online, 2026-10-08
+
+The same two floors — XenForo 2.3.0 Patch 2 on PHP 7.4.33, development off, the release zip
+installed by path — plus two scratch add-ons made for the run: one with a text option, a secret
+and an empty secret, which answers the redaction event; one with a text option and a switch, which
+does not. Each also had a key in `config.php`.
+
+Every check passed over HTTP with a non-super administrator's keys: values mode on options and
+`config.php`; the declared add-on's text shown and its secret and its empty secret withheld; the
+undeclared add-on's text withheld and its switch shown; the database host and name shown and the
+login and salt withheld; a key with the read scope alone given shape and told why; who is online;
+and the four older endpoints. `admin-api:config` and `admin-api:validate` ran from the zip,
+`validate` exiting 0. Every PHP file in the zip lints under 7.4. The error log stayed empty.
+
+**It found two defects, both fixed before this was written.**
+
+- **XenForo 2.3.0 returns every option as the string it is stored as.** Later releases cast a
+  boolean or a number when the option is read; 2.3.0 does not, so 54 of 55 boolean options arrived
+  as `"1"` or `"0"`. Judged as text they were withheld for an undeclared add-on, and in the shape
+  tier too. The endpoint now casts to the option's declared type itself. **The suite cannot show
+  this**, because the forum it runs on already casts; only a 2.3.0 forum does.
+- **Uninstalling this add-on deletes every other add-on's listener for its event.** XenForo's
+  `CodeEvent` entity deletes all listeners for an event when the event goes. Installed again, the
+  add-on found nobody declaring anything, and nothing said why. `Setup` now puts back, after an
+  install or a rebuild, any listener for the event that an installed add-on's release data
+  registers and that is missing. Seen in the sandbox: listeners gone after the uninstall, both
+  back after the reinstall.
+
+**An add-on that listens for the event installs cleanly where nothing defines it**, on 2.3.0 and
+on 2.2.19 Patch 2: the listener row is written, the forum and its control panel render, the error
+log stays empty, and it uninstalls. That is what lets an add-on declare without requiring this one.
 
 To repeat it: build the release, and install the zip by path on a fresh instance with
 `$config['development']['enabled'] = false`.
@@ -380,8 +413,6 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
 - **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
   probe was run once on a development forum: logged, read back, removed. What an alert on the
   server error log makes of a row that exists for a moment has not been looked at.
-- **`admin-api:config` and `admin-api:validate` from a release zip.** They were written after the
-  last sandbox run, so they have only run from the working copy.
 - **The upgrade path.** There is none to test until a version has been released.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
