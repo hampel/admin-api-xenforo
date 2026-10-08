@@ -552,12 +552,16 @@ has to get past all of them:
 | `url` | it is a URL carrying a login or a long opaque part, as a webhook does. The scheme and host are kept, since where it points is not the secret |
 
 A withheld part comes back as `null`, and `redactions` lists each one, so nothing is mistaken for
-empty. Booleans, numbers and empty values are shown.
+empty. Booleans and numbers are shown.
 
 ```json
-{"path": "smtp.example.com.password", "segments": ["smtp.example.com", "password"], "reason": "name"}
+{"path": "smtp.example.com.password", "segments": ["smtp.example.com", "password"], "reason": "name", "set": true}
 ```
 
+- **A secret is withheld whether or not it holds anything, and `set` says which.** A blank
+  password comes back as `null` with a redaction whose `set` is `false`, never as `""` — an
+  empty string would be indistinguishable from a value that had been shown. An empty value that
+  is not a secret is returned as it is.
 - **`segments` is how to find the part; `path` is for reading.** A key can contain a dot and a
   list has numeric keys, so the dotted `path` cannot always be split back into keys. `segments`
   is one entry per key, each a string. Both are empty when the whole value was withheld.
@@ -569,9 +573,10 @@ empty. Booleans, numbers and empty values are shown.
 ### Trusted add-ons, and declaring yours
 
 **An add-on's text settings are only shown once somebody has said which of them are secrets.**
-XenForo and its official add-ons are listed in this add-on, from their source. Any other add-on
-is untrusted until it declares, and until then its text settings are reported as set or not —
-its switches and numbers are still shown.
+XenForo and its official add-ons are listed in this add-on, from their source, because they will
+never answer an event of ours. **Every other add-on is untrusted until it declares for itself,
+whoever wrote it** — this add-on declares through the same event. Until then its text settings
+are reported as set or not; its switches and numbers are still shown.
 
 **To declare, listen for the `hampel_admin_api_redaction` code event** and add an entry for your
 own add-on:

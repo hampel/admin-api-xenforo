@@ -120,7 +120,7 @@ class ValuesTest extends TestCase
 		$options = $this->byId($this->options(['add_on_id' => self::TRUSTED]));
 
 		$this->assertNull($options['adminApiTestApiKey']['value']);
-		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME]], $options['adminApiTestApiKey']['redactions']);
+		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'set' => true]], $options['adminApiTestApiKey']['redactions']);
 		$this->assertTrue($options['adminApiTestApiKey']['set']);
 		$this->assertFalse($options['adminApiTestApiKey']['disclosed']);
 
@@ -136,8 +136,42 @@ class ValuesTest extends TestCase
 		$option = $this->byId($this->options(['add_on_id' => self::TRUSTED]))['adminApiTestMail'];
 
 		$this->assertSame(['type' => 'smtp', 'host' => 'mail.example.com', 'port' => 587, 'password' => null], $option['value']);
-		$this->assertSame([['path' => 'password', 'segments' => ['password'], 'reason' => Redactor::NAME]], $option['redactions']);
+		$this->assertSame([['path' => 'password', 'segments' => ['password'], 'reason' => Redactor::NAME, 'set' => true]], $option['redactions']);
 		$this->assertSame(4, $option['count']);
+	}
+
+	/**
+	 * Reported from a real session: a blank SMTP password came back as "", which reads as shown.
+	 */
+	public function test_an_empty_secret_inside_an_option_is_withheld_and_marked_unset()
+	{
+		$this->insertOption('adminApiTestBlank', self::TRUSTED, 'array', json_encode(['host' => 'h.example.com', 'password' => '']));
+
+		$option = $this->byId($this->options(['add_on_id' => self::TRUSTED]))['adminApiTestBlank'];
+
+		$this->assertSame(['host' => 'h.example.com', 'password' => null], $option['value']);
+		$this->assertSame(
+			[['path' => 'password', 'segments' => ['password'], 'reason' => Redactor::NAME, 'set' => false]],
+			$option['redactions']
+		);
+		$this->assertFalse($option['disclosed']);
+	}
+
+	/**
+	 * Only XenForo and its official add-ons are trusted without saying so; this add-on is
+	 * trusted because it answers its own event, like any other.
+	 */
+	public function test_no_add_on_but_the_official_ones_is_trusted_without_declaring()
+	{
+		$registry = new Registry($this->app());
+
+		foreach (array_keys(Registry::OPTIONS) AS $addOnId)
+		{
+			$this->assertMatchesRegularExpression('/^XF[A-Z]*$/', $addOnId);
+		}
+
+		$this->assertTrue($registry->isTrustedAddOn('Hampel/AdminApi'), 'by its own listener');
+		$this->assertFalse($registry->isTrustedAddOn('Some/OtherAddOn'));
 	}
 
 	public function test_text_from_an_add_on_nobody_has_declared_is_withheld()
@@ -335,7 +369,7 @@ class ValuesTest extends TestCase
 
 		// the whole setting is withheld, and it says which key above it is the reason
 		$this->assertSame(
-			[['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'inherited_from' => 'hampelAdminApi.service.oauth']],
+			[['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'set' => true, 'inherited_from' => 'hampelAdminApi.service.oauth']],
 			$settings['hampelAdminApi.service.oauth.client']['redactions']
 		);
 		$this->assertNull($settings['hampelAdminApi.service.oauth.client']['value']);
@@ -352,7 +386,7 @@ class ValuesTest extends TestCase
 
 		$this->assertSame(['https://a.example.com/', null], $setting['value']);
 		$this->assertSame(
-			[['path' => '1', 'segments' => ['1'], 'reason' => Redactor::VALUE, 'inherited_from' => null]],
+			[['path' => '1', 'segments' => ['1'], 'reason' => Redactor::VALUE, 'set' => true, 'inherited_from' => null]],
 			$setting['redactions']
 		);
 

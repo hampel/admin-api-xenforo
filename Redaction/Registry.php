@@ -6,11 +6,15 @@ use XF\App;
  * Which add-ons have had their secrets declared, and what those secrets are.
  *
  * An add-on's settings are returned as values only if somebody has said which of them are
- * secrets - which is what makes it safe to show the rest. Three sources, in this order:
+ * secrets - which is what makes it safe to show the rest. Two sources:
  *
- *   1. XenForo and its official add-ons, listed here from their source.
- *   2. Add-ons listed here because their options were reviewed when this was written.
- *   3. Any add-on that answers the hampel_admin_api_redaction code event for itself.
+ *   1. XenForo and its official add-ons, listed here from their source, because they will
+ *      never answer an event of ours.
+ *   2. Any other add-on that answers the hampel_admin_api_redaction code event for itself -
+ *      this one included, in Listener.
+ *
+ * No other add-on is listed here, whoever wrote it: a list in this file would name add-ons that
+ * are nobody's business but their forum's, and would go stale without their authors knowing.
  *
  * An add-on in none of them is untrusted: its text settings are reported as set or not, and no
  * more, exactly as every setting was before values were returned at all.
@@ -39,34 +43,6 @@ class Registry
 		'XFRM' => [],
 		'XFI' => [],
 
-		'Hampel/AdminApi' => [],
-		'Hampel/AccountUpgradesInfo' => [],
-		'Hampel/ApprovalQueuePlus' => [],
-		'Hampel/ArchiveSite' => [],
-		'Hampel/BannerGenerator' => [],
-		'Hampel/Close' => ['hampelCloseApiKey'],
-		'Hampel/EventLogging' => [],
-		'Hampel/Fuse' => [],
-		'Hampel/Geoblock' => ['geoblockLicenseKey'],
-		'Hampel/HelpSpot' => ['helpspotLookupKey'],
-		'Hampel/HideAdverts' => [],
-		'Hampel/HideSidebar' => [],
-		'Hampel/HideSignatures' => [],
-		'Hampel/HomePageTitle' => [],
-		'Hampel/KnownBots' => ['knownbotsSendUserAgents.validation_token', 'knownbotsSendUserAgents.api_token'],
-		'Hampel/LinkWidgets' => [],
-		'Hampel/LocationExplain' => [],
-		'Hampel/LogDigest' => [],
-		'Hampel/Monolog' => ['monologSlack.webhook'],
-		'Hampel/NativeAds' => [
-			'nativeAdsImpressionTrackingEncryptionKey', 'nativeAdsImpressionsApiKey', 'nativeAdsReportsApiKey',
-		],
-		'Hampel/Newsletters' => [],
-		'Hampel/PhotoOrders' => [],
-		'Hampel/PrivateSite' => [],
-		'Hampel/Slack' => ['hampelSlackWebhookUrl'],
-		'Hampel/SparkPostMail' => ['emailTransport.apiKey'],
-		'Hampel/WhatsNewDigest' => [],
 	];
 
 	/**
@@ -74,14 +50,6 @@ class Registry
 	 * the ones among them, and the ones every forum adds, that are withheld.
 	 */
 	const CONFIG = ['db.username', 'db.password', 'globalSalt', 'cache.config.password', 'http.proxy'];
-
-	/**
-	 * Top-level config.php keys that an add-on listed above owns, and so are trusted with it.
-	 */
-	const CONFIG_OWNERS = [
-		'hampelAdminApi' => 'Hampel/AdminApi',
-		'monolog' => 'Hampel/Monolog',
-	];
 
 	/** @var App */
 	protected $app;
@@ -168,7 +136,7 @@ class Registry
 	}
 
 	/**
-	 * Built-in lists first, then whatever add-ons declare for themselves. A listener adds:
+	 * The official add-ons first, then whatever add-ons declare for themselves. A listener adds:
 	 *
 	 *   $declarations['Vendor/AddOn'] = [
 	 *       'options' => ['vendorApiKey', 'vendorService.password'],
@@ -193,11 +161,6 @@ class Registry
 		{
 			$declarations[$addOnId] = ['options' => $options, 'config' => []];
 		}
-		foreach (self::CONFIG_OWNERS AS $key => $addOnId)
-		{
-			$declarations[$addOnId]['config'][$key] = [];
-		}
-
 		$declared = [];
 		$this->app->fire(self::EVENT, [&$declared]);
 

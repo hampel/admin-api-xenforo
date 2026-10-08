@@ -14,7 +14,8 @@
  *   value      it looks like a credential, whatever it is called
  *   url        it is a URL carrying a login or a long opaque part; the address is kept
  *
- * Booleans, nulls and numbers are shown unless an override or a known-secret entry names them.
+ * Booleans and numbers are shown unless an override or a known-secret entry names them. An
+ * empty secret is withheld like a full one, and its redaction says it is not set.
  *
  * Has no dependency on XenForo, so every rule here can be tested with plain values.
  */
@@ -83,7 +84,7 @@ class Redactor
 	 * @param bool $trusted Whether the add-on that owns it has had its secrets declared
 	 *
 	 * @return array value - a copy with each withheld part replaced by null; redactions - a list
-	 *               of [path, segments, reason] for each such part, relative to the setting
+	 *               of [path, segments, reason, set] for each such part, relative to the setting
 	 */
 	public function redact($path, $value, $trusted)
 	{
@@ -98,12 +99,6 @@ class Redactor
 	 */
 	protected function walk($path, array $relative, $name, $value, $trusted, $shown, $depth, array &$redactions)
 	{
-		// nothing to withhold, and saying so would read as a secret being present
-		if ($value === null || $value === '' || $value === [])
-		{
-			return $value;
-		}
-
 		// the forum's own word comes first, in either direction, and carries down to what is inside
 		if (isset($this->forceShow[$path]))
 		{
@@ -111,19 +106,26 @@ class Redactor
 		}
 		else if (isset($this->forceRedact[$path]))
 		{
-			return $this->withhold($relative, self::OVERRIDE, $redactions);
+			return $this->withhold($relative, self::OVERRIDE, $value, $redactions);
 		}
 
+		// A secret is withheld whether or not it holds anything: an empty password that came back
+		// as "" would be indistinguishable from one that was shown. The redaction says it is unset.
 		if (!$shown)
 		{
 			if (isset($this->known[$path]))
 			{
-				return $this->withhold($relative, self::KNOWN, $redactions);
+				return $this->withhold($relative, self::KNOWN, $value, $redactions);
 			}
 
-			if ($this->isSecretName($name) && !$this->isPlain($value))
+			if ($this->isSecretName($name) && !is_bool($value) && !is_int($value) && !is_float($value))
 			{
-				return $this->withhold($relative, self::NAME, $redactions);
+				return $this->withhold($relative, self::NAME, $value, $redactions);
+			}
+
+			if ($value === '' && !$trusted)
+			{
+				return $this->withhold($relative, self::UNTRUSTED, $value, $redactions);
 			}
 		}
 
@@ -136,7 +138,7 @@ class Redactor
 		{
 			if ($depth >= self::MAX_DEPTH)
 			{
-				return $this->withhold($relative, self::UNREPRESENTABLE, $redactions);
+				return $this->withhold($relative, self::UNREPRESENTABLE, $value, $redactions);
 			}
 
 			$safe = [];
@@ -160,7 +162,7 @@ class Redactor
 
 		if (!is_string($value))
 		{
-			return $this->withhold($relative, self::UNREPRESENTABLE, $redactions);
+			return $this->withhold($relative, self::UNREPRESENTABLE, $value, $redactions);
 		}
 
 		if ($shown || $value === '')
@@ -170,18 +172,18 @@ class Redactor
 
 		if (!$trusted)
 		{
-			return $this->withhold($relative, self::UNTRUSTED, $redactions);
+			return $this->withhold($relative, self::UNTRUSTED, $value, $redactions);
 		}
 
 		if ($this->looksLikeSecret($value))
 		{
-			return $this->withhold($relative, self::VALUE, $redactions);
+			return $this->withhold($relative, self::VALUE, $value, $redactions);
 		}
 
 		$address = $this->getAddressOfSecretUrl($value);
 		if ($address !== null)
 		{
-			$redactions[] = $this->describe($relative, self::URL);
+			$redactions[] = $this->describe($relative, self::URL, $value);
 
 			return $address;
 		}
@@ -189,20 +191,26 @@ class Redactor
 		return $value;
 	}
 
-	protected function withhold(array $relative, $reason, array &$redactions)
+	protected function withhold(array $relative, $reason, $value, array &$redactions)
 	{
-		$redactions[] = $this->describe($relative, $reason);
+		$redactions[] = $this->describe($relative, $reason, $value);
 
 		return null;
 	}
 
 	/**
 	 * A key can itself contain a dot, so the dotted path is for reading and the segments are for
-	 * finding the value: each is one key, exactly as it is in the array.
+	 * finding the value: each is one key, exactly as it is in the array. "set" is whether there
+	 * was anything there to withhold, which is all that is said about it.
 	 */
-	protected function describe(array $relative, $reason)
+	protected function describe(array $relative, $reason, $value)
 	{
-		return ['path' => implode('.', $relative), 'segments' => $relative, 'reason' => $reason];
+		return [
+			'path' => implode('.', $relative),
+			'segments' => $relative,
+			'reason' => $reason,
+			'set' => !($value === null || $value === '' || $value === []),
+		];
 	}
 
 	protected function isPlain($value)

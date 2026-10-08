@@ -74,9 +74,14 @@ is whether it can carry member data.
   part. A change that makes one of them looser has to assume the others have already failed.
   When a rule turns out too eager, narrow that rule and add the name to its test; do not add an
   exception higher up.
-- **An add-on is trusted only by declaration** — in `Redaction\Registry`, or by answering the
-  `hampel_admin_api_redaction` event. Adding an add-on to the built-in list means its options were
-  read, one by one, by whoever added it.
+- **An add-on is trusted only by declaring for itself**, by answering the
+  `hampel_admin_api_redaction` event. `Redaction\Registry` lists XenForo and its official add-ons
+  and nothing else, because those are the only ones that cannot answer. **Do not add any other
+  add-on to that list, ours included** — decided by Simon on 2026-10-08. A list here would have to
+  know which add-ons may be named in a public file, and would go stale without their authors
+  knowing. This add-on declares in `Listener`, which is also the reference for anyone else's.
+- **A secret is redacted whether or not it is set.** An empty one returned as `""` reads as
+  shown; the redaction carries `set` instead.
 - **A string is returned in exactly one case: it is on a list the option's definition publishes.**
   A radio or select option's choices come from its `edit_format_params`; the value must equal
   one of them. That is a lookup, not a judgement, and it is what `describeChoice()` is. Where core

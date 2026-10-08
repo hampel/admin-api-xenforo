@@ -19,6 +19,7 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
+| code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | admin permission | `hampelAdminApiOnline` |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
@@ -96,8 +97,17 @@ boundary.
 "private"). The fix each time was to narrow that pattern. A false positive only hides a value;
 check the list of innocent names in `RedactorTest` before widening anything.
 
-**An empty value is never reported as withheld.** Saying a blank password was redacted reads as
-a password being set.
+**An empty secret is withheld like a full one, and its redaction says `set: false`.** The first
+version did the opposite, on the reasoning that reporting a blank password as redacted reads as a
+password being set. A session using the API through a client then read a blank SMTP password
+returned as `""` as a secret that had been *shown*. Both readings are wrong, and `set` on the
+redaction is what removes them. An untrusted add-on's empty text is withheld the same way.
+
+**No add-on is trusted by being listed, except XenForo's own.** The first version listed every
+first-party add-on on the development forum with the secrets read off its option names. The list
+came out the same day: it put add-on names in a public file, and each entry was one person's
+reading of somebody else's options. A test fails if any id that is not an official add-on's is
+added to `Registry::OPTIONS`.
 
 **The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
 values mode and fails if any declared secret came back, if anything returned is named or shaped

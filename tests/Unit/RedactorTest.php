@@ -27,11 +27,11 @@ class RedactorTest extends TestCase
 		]);
 
 		$this->assertSame([
-			['path' => 'mail.example.com.password', 'segments' => ['mail.example.com', 'password'], 'reason' => Redactor::NAME],
-			['path' => 'list.1', 'segments' => ['list', '1'], 'reason' => Redactor::VALUE],
+			['path' => 'mail.example.com.password', 'segments' => ['mail.example.com', 'password'], 'reason' => Redactor::NAME, 'set' => true],
+			['path' => 'list.1', 'segments' => ['list', '1'], 'reason' => Redactor::VALUE, 'set' => true],
 		], $result['redactions']);
 
-		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME]], $this->redact('apiKey', 'SECRET')['redactions']);
+		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'set' => true]], $this->redact('apiKey', 'SECRET')['redactions']);
 	}
 
 	private function reasons(array $result)
@@ -100,15 +100,47 @@ class RedactorTest extends TestCase
 		$this->assertTrue($this->redact('requireApiKey', true)['value']);
 	}
 
-	public function test_nothing_is_reported_withheld_where_there_is_nothing_to_withhold()
+	/**
+	 * An empty secret that came back as "" could not be told from one that was shown. It is
+	 * withheld like a full one, and the redaction says there was nothing there.
+	 */
+	public function test_an_empty_secret_is_withheld_and_says_it_is_not_set()
 	{
 		foreach ([null, '', []] AS $empty)
 		{
-			$this->assertSame(
-				['value' => $empty, 'redactions' => []],
-				$this->redact('apiKey', $empty, true, ['apiKey'], ['apiKey'])
-			);
+			foreach ([
+				Redactor::NAME => $this->redact('smtpLoginPassword', $empty),
+				Redactor::KNOWN => $this->redact('boringName', $empty, true, ['boringName']),
+				Redactor::OVERRIDE => $this->redact('boringName', $empty, true, [], ['boringName']),
+			] AS $reason => $result)
+			{
+				$this->assertNull($result['value']);
+				$this->assertSame(
+					[['path' => '', 'segments' => [], 'reason' => $reason, 'set' => false]],
+					$result['redactions']
+				);
+			}
 		}
+
+		$inside = $this->redact('emailTransport', ['smtpHost' => 'mail.example.com', 'smtpLoginPassword' => '']);
+		$this->assertSame(['smtpHost' => 'mail.example.com', 'smtpLoginPassword' => null], $inside['value']);
+		$this->assertFalse($inside['redactions'][0]['set']);
+	}
+
+	public function test_an_empty_value_that_is_not_a_secret_is_returned_as_it_is()
+	{
+		foreach ([null, '', []] AS $empty)
+		{
+			$this->assertSame(['value' => $empty, 'redactions' => []], $this->redact('boardTitle', $empty));
+		}
+
+		// nothing can be said about an untrusted add-on's text, so its empty text is withheld too
+		$untrusted = $this->redact('someText', '', false);
+		$this->assertSame(Redactor::UNTRUSTED, $untrusted['redactions'][0]['reason']);
+		$this->assertFalse($untrusted['redactions'][0]['set']);
+		$this->assertSame(['value' => null, 'redactions' => []], $this->redact('someText', null, false));
+
+		$this->assertSame('', $this->redact('smtpLoginPassword', '', true, [], [], ['smtpLoginPassword'])['value']);
 	}
 
 	public function test_a_known_secret_is_withheld_whatever_it_is_called_and_whatever_its_type()

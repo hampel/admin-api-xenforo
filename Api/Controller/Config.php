@@ -109,11 +109,11 @@ class Config extends AbstractController
 				{
 					if ($path === $key)
 					{
-						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'inherited_from' => null];
+						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'set' => $redaction['set'], 'inherited_from' => null];
 					}
 					else if (strpos($key, $path . '.') === 0)
 					{
-						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'inherited_from' => $path];
+						$withheld[] = ['path' => '', 'segments' => [], 'reason' => $redaction['reason'], 'set' => $shape->describe($value)['set'], 'inherited_from' => $path];
 					}
 					else if (strpos($path, $key . '.') === 0)
 					{
@@ -121,6 +121,7 @@ class Config extends AbstractController
 							'path' => substr($path, strlen($key) + 1),
 							'segments' => array_slice($redaction['segments'], $depth),
 							'reason' => $redaction['reason'],
+							'set' => $redaction['set'],
 							'inherited_from' => null,
 						];
 					}
