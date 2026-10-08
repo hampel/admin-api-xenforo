@@ -112,18 +112,29 @@ class CommandsTest extends TestCase
 	}
 
 	/**
-	 * These two need a forum on which no key can read yet, which a development forum is. They do
-	 * not make one: taking away a real key's grant, even inside a transaction, is not this
-	 * suite's to do.
+	 * A forum on which no key holds either scope, whatever keys the real one has: the check is
+	 * given none to look at, so no real key or grant is touched to arrange it.
 	 */
-	private function requireNoReader()
+	private function validateWithNoKeys(array $input = ['--unattended' => true])
 	{
-		[, $display] = $this->validate();
-
-		if (strpos($display, '[warn] keys that can read') === false)
+		$command = new class extends Validate
 		{
-			$this->markTestSkipped('a key on this forum can already read');
-		}
+			protected function getHealthCheck()
+			{
+				return new class(\XF::app()) extends HealthCheck
+				{
+					public function getKeys()
+					{
+						return [];
+					}
+				};
+			}
+		};
+
+		$tester = new CommandTester($command);
+		$exit = $tester->execute($input);
+
+		return [$exit, $tester->getDisplay()];
 	}
 
 	/**
@@ -132,9 +143,7 @@ class CommandsTest extends TestCase
 	 */
 	public function test_nobody_being_able_to_read_is_a_warning_and_exits_zero()
 	{
-		$this->requireNoReader();
-
-		[$exit, $display] = $this->validate();
+		[$exit, $display] = $this->validateWithNoKeys();
 
 		$this->assertSame(0, $exit, $display);
 		$this->assertStringContainsString('[warn] keys that can read', $display);
@@ -143,10 +152,8 @@ class CommandsTest extends TestCase
 
 	public function test_strict_turns_a_warning_into_two_and_changes_nothing_else()
 	{
-		$this->requireNoReader();
-
-		[$plainExit, $plain] = $this->validate();
-		[$strictExit, $strict] = $this->validate(['--unattended' => true, '--strict' => true]);
+		[$plainExit, $plain] = $this->validateWithNoKeys();
+		[$strictExit, $strict] = $this->validateWithNoKeys(['--unattended' => true, '--strict' => true]);
 
 		$this->assertSame(0, $plainExit);
 		$this->assertSame(2, $strictExit);
@@ -315,16 +322,25 @@ class CommandsTest extends TestCase
 		$this->assertStringNotContainsString(substr($key->api_key, 0, 8), $display);
 	}
 
-	public function test_config_says_not_set_and_never_a_blank()
+	/**
+	 * An empty value reads as "not set": a blank reads as a setting that is fine. The trait every
+	 * row goes through is what guarantees it, so that is what is asked.
+	 */
+	public function test_an_empty_value_prints_not_set_and_never_a_blank()
 	{
-		$this->requireNoReader();
-
-		if (strpos($this->config(), 'Planted') !== false || !preg_match('/keys \.+ not set/', $this->config()))
+		$command = new class extends Config
 		{
-			$this->markTestSkipped('a key on this forum holds one of the scopes');
-		}
+			public function render($output)
+			{
+				$this->report = $output;
+				$this->detail('keys', '');
+			}
+		};
 
-		$this->assertMatchesRegularExpression('/keys \.+ not set/', $this->config());
+		$output = new \Symfony\Component\Console\Output\BufferedOutput();
+		$command->render($output);
+
+		$this->assertMatchesRegularExpression('/keys \.+ not set/', $output->fetch());
 	}
 
 	public function test_config_changes_nothing()
