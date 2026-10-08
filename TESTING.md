@@ -15,19 +15,23 @@ checked. For whoever changes it next.
 | API route | `admin-api/config/` → `Api\Controller\Config` |
 | API route | `admin-api/error-entries/` → `Api\Controller\ErrorEntries` |
 | API scope | `hampel_admin_api:read`, not usable with OAuth clients |
+| API route | `admin-api/online/` → `Api\Controller\Online` |
 | API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:values`, not usable with OAuth clients |
+| code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
+| admin permission | `hampelAdminApiOnline` |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
 | admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
 | admin permission | `hampelAdminApiOptions` |
 | admin permission | `hampelAdminApiConfig` |
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
-| phrases | 10 — the two scope descriptions, the six permission titles, two errors |
+| phrases | 12 — the three scope descriptions, the seven permission titles, two errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
 | table | `xf_hampel_admin_api_fault` — what the fault commands planted |
-| config key | `hampelAdminApi.faults` in `config.php` |
+| config key | `hampelAdminApi.faults`, `hampelAdminApi.redact` and `hampelAdminApi.show` in `config.php` |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
 cron entries, JS or LESS. `Setup.php` creates the one table on install; on uninstall it cleans
@@ -78,8 +82,34 @@ the file. So the file cannot be trusted by shape: a message can end in something
 reduced to a name that must look like a PHP file's; and the *last* ` in ` on the line is taken,
 because a message can contain one. The tests plant forged locations of each kind.
 
-**What an option or a setting discloses is decided in one place, `ValueShape`, by type — plus one
-lookup.** Loosening it — showing a string because its name looks harmless, raising the number
+**The name rule is two patterns because case means two things**, and the first version had one.
+A single case-sensitive pattern matched `password` and missed `smtpLoginPassword`, `clientSecret`,
+`accessToken`, `globalSalt` and `slackWebhookUrl` — every credential word that follows another
+word in a camel-case name. Nothing leaked, because each of those was also on the declared list,
+which is the layers doing what they are for; but the rule that is supposed to catch an
+*undeclared* secret was not working, and only its own unit test showed it. Words are matched in
+any case; `Key`, `Dsn` and `Login` keep their case, because there the capital is the word
+boundary.
+
+**The name rule has been too eager three times, and each is now a test**: `imageProxyBypass`
+(ends in "pass"), `ban_user` (ends in "user"), and `hampelPrivateSiteHomeMessage` (contains
+"private"). The fix each time was to narrow that pattern. A false positive only hides a value;
+check the list of innocent names in `RedactorTest` before widening anything.
+
+**An empty value is never reported as withheld.** Saying a blank password was redacted reads as
+a password being set.
+
+**The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
+values mode and fails if any declared secret came back, if anything returned is named or shaped
+like a credential, or if an untrusted add-on's text was returned. It runs against whatever the
+forum holds, so it is only as good as the forum: on one with few secrets configured it proves
+little, and the masked review below is the complement.
+
+**Who is online groups on the address and never returns it.** XenForo keeps one session per guest
+address, which is why the size of the largest network is the figure that shows a swarm.
+
+**What an option or a setting discloses in the shape tier is decided in one place, `ValueShape`,
+by type — plus one lookup.** Loosening it — showing a string because its name looks harmless, raising the number
 ceiling — is how a credential reaches a response. The lookup is `describeChoice()`: a string is
 returned when it equals a choice the option's definition lists, compared exactly. The options
 test walks every real option on the forum, recomputes each option's choices and declared members
@@ -252,6 +282,14 @@ vendor/bin/phpunit
   nested members.
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
   the forum's real database credentials by key and by absence.
+- `tests/Unit/RedactorTest.php` covers every redaction rule with made-up values: names that are
+  credentials and names that only resemble them, values that are tokens and long values that are
+  not, URLs, arrays, lists, the untrusted tier, and the forum's overrides in both directions.
+- `tests/Feature/ValuesTest.php` covers the gate — the scope, core's `option` permission, the
+  values scope alone — then options and `config.php` in values mode, the declaration event, a
+  malformed declaration, and the sweep over every real option.
+- `tests/Feature/OnlineTest.php` plants a swarm of guests in one network, robots and members, and
+  checks the counts, the network figures, and that no address, member or request detail returns.
 - `tests/Unit/ValueShapeTest.php` covers the disclosure rule, flattening and comparison.
 - `tests/Unit/ErrorLogRepositoryTest.php` covers the path handling and the four derivations,
   including what must not be taken for a level and which trace paths must not be followed.
@@ -283,9 +321,10 @@ exception is swallowed and no row is written. Later 2.3 releases guard it. So on
 will show no `cli` origin whatever happens there, and the error rows for this check had to be
 planted. Nothing in this add-on can change that.
 
-**The options endpoint reports options as stored.** A forum whose `config.php` overrides an option
-in code is running with a value this endpoint does not show: the sandbox pins its mail transport
-to SMTP that way, and the endpoint correctly reported the stored `sendmail`.
+**At the time, the options endpoint reported options as stored**, and the sandbox showed why that
+is wrong: it pins its mail transport to SMTP in config code, and the endpoint reported the stored
+`sendmail`. The endpoint now reports the value in force and flags `overridden` when the two
+differ. That has not been re-run in a sandbox.
 
 To repeat it: build the release, and install the zip by path on a fresh instance with
 `$config['development']['enabled'] = false`.
@@ -322,6 +361,12 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
   planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
   correctly on a forum whose cron trigger has really stopped has not been seen.
+- **A masked review of values mode on a forum with real secrets configured.** Ask for options and
+  config in values mode and, for every string returned, look at its length and first few
+  characters only. Done on a development forum on 2026-10-08, where it found three names the
+  rules hid needlessly and nothing they let through; a production forum has more secrets set and
+  is the review that matters.
+- **Who is online, on a forum under real load.** The figures are tested with planted sessions.
 - **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
   probe was run once on a development forum: logged, read back, removed. What an alert on the
   server error log makes of a row that exists for a moment has not been looked at.

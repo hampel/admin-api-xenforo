@@ -43,6 +43,7 @@ class ConfigShapeTest extends TestCase
 			'disclosed' => false,
 			'value' => null,
 			'count' => null,
+			'redactions' => null,
 		], $this->settings()['adminApiTest.password']);
 	}
 

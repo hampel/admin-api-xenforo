@@ -33,9 +33,10 @@ faults*, and removes it when uninstalled.
    acting as, and so are a guest key and an OAuth access token. A super user key can act as any
    user and can ask XenForo to skip its permission checks, so there would be no single
    administrator whose permissions the request could be held to.
-2. **The key must hold the scope for that endpoint.** There are two: `hampel_admin_api:read` for
-   every endpoint that returns counts and shape, and `hampel_admin_api:error_detail` for the one
-   that returns content.
+2. **The key must hold the scope for that endpoint.** `hampel_admin_api:read` covers every
+   endpoint that returns counts and shape, and `hampel_admin_api:error_detail` the one that
+   returns error content. A third, `hampel_admin_api:values`, adds to the read scope: with it the
+   options and configuration endpoints return what settings are set to, not only whether.
 3. **The key's user must hold the admin permission for that endpoint.**
 
 So a key can never do more than the administrator it belongs to. A key with *all scopes* allowed
@@ -65,6 +66,7 @@ Every endpoint needs `hampel_admin_api:read` except the last, which needs
 | `GET /api/admin-api/jobs/` | Read cron and job queue state through the API |
 | `GET /api/admin-api/options/` | Read which options are set, without their values, through the API |
 | `GET /api/admin-api/config/` | Read which config.php settings are set, without their values, through the API |
+| `GET /api/admin-api/online/` | Read counts of who is online through the API |
 | `GET /api/admin-api/error-entries/` | Read individual server error log entries through the API, **and** XenForo's own *View logs* |
 
 The JSON under each endpoint shows the shape of a response. The figures in it are illustrative.
@@ -466,9 +468,143 @@ to its table only when debug mode is on, so on a production forum `total: 0` wit
 where a production job failure shows up. `recorded` is the setting as it is now: it does not say
 whether failures were being recorded when the ones listed happened, or throughout since.
 
+## Who is online
+
+`GET /api/admin-api/online/`
+
+**Counts of who the forum considers online, split the way that matters when something is
+hammering it**: members, guests, and robots the forum recognised — with guests being where robots
+that do not identify themselves end up. No member is named and no address is returned.
+
+```json
+{
+    "now": 1791453581,
+    "window_minutes": 15,
+    "total": 1840,
+    "members": 37,
+    "guests": 1512,
+    "robots": 291,
+    "errors": 12,
+    "newest_date": 1791453579,
+    "guest_networks": {
+        "sessions": 1512, "ipv4": 1490,
+        "largest_24": 640, "distinct_24": 212,
+        "largest_16": 911, "distinct_16": 87
+    },
+    "robot_networks": {
+        "sessions": 291, "ipv4": 291,
+        "largest_24": 44, "distinct_24": 61,
+        "largest_16": 120, "distinct_16": 19
+    },
+    "by_robot": [
+        {"robot_key": "googlebot", "count": 120}
+    ],
+    "by_action": [
+        {"controller": "XF\\Pub\\Controller\\ThreadController", "action": "Index", "count": 902, "members": 11, "guests": 804, "robots": 87}
+    ]
+}
+```
+
+- `window_minutes` is the forum's own "online status timeout" option, so these are the figures the
+  forum's own online list is built from.
+- **`guest_networks` is what tells a crowd from a swarm.** XenForo keeps one session per guest
+  address, so a thousand guests is a thousand addresses. `largest_24` is how many of them sit in
+  the single busiest /24 network and `distinct_24` how many /24s there are in all; the same for
+  /16. Forty guests spread over forty networks are visitors. Six hundred in one /24 is one
+  operator. The networks themselves are not returned.
+- Network figures are for IPv4. `sessions` less `ipv4` is how many were IPv6, which are counted
+  and not grouped.
+- `by_robot` names the robots, most numerous first, up to fifty; any beyond that, or with a key
+  that is not shaped like one, are counted together under a `null` key.
+- `by_action` is what sessions were last doing — the controller and action, never the thread or
+  page — for the 25 busiest.
+- `errors` is how many sessions' last request ended in an error.
+
+For alerting, the numbers to watch are `guests`, `robots` and `guest_networks.largest_24`. This
+endpoint reports them; deciding what is too many is the caller's.
+
+## Values and secrets
+
+**By default the next two endpoints say whether a setting is set, and not what to.** That is safe
+and, for working out why a forum is misbehaving, close to useless. A key that also holds
+`hampel_admin_api:values` is given the values, with the secrets removed.
+
+**What it takes to see values:**
+
+- the key holds `hampel_admin_api:values` as well as `hampel_admin_api:read`;
+- for options, the key's user also holds XenForo's own *option* admin permission — the options
+  pages in the control panel are where these values are otherwise seen, and the API asks for what
+  they ask for.
+
+Every response says which it gave: `mode` is `values` or `shape`, and `mode_reason` says why when
+it is `shape`.
+
+**A value is shown unless one of these says it is a secret.** They are independent, so a secret
+has to get past all of them:
+
+| `reason` | withheld because |
+|---|---|
+| `override` | this forum's `config.php` says to |
+| `known_secret` | it is on the list of secrets for the add-on that owns it |
+| `name` | its name, or the name of something it sits inside, reads like a credential: password, secret, token, salt, webhook, an API or private key, a username |
+| `untrusted_add_on` | it is text belonging to an add-on nobody has declared the secrets of |
+| `value` | it looks like a credential whatever it is called: a known token format, or a long random string |
+| `url` | it is a URL carrying a login or a long opaque part, as a webhook does. The scheme and host are kept, since where it points is not the secret |
+
+A withheld part comes back as `null`, and `redactions` lists each one with its path and reason,
+so nothing is mistaken for empty. Booleans, numbers and empty values are shown.
+
+### Trusted add-ons, and declaring yours
+
+**An add-on's text settings are only shown once somebody has said which of them are secrets.**
+XenForo and its official add-ons are listed in this add-on, from their source. Any other add-on
+is untrusted until it declares, and until then its text settings are reported as set or not —
+its switches and numbers are still shown.
+
+**To declare, listen for the `hampel_admin_api_redaction` code event** and add an entry for your
+own add-on:
+
+```php
+public static function adminApiRedaction(array &$declarations)
+{
+    $declarations['Vendor/AddOn'] = [
+        'options' => ['vendorApiKey', 'vendorService.password'],
+        'config' => ['vendorAddOn' => ['vendorAddOn.secret']],
+    ];
+}
+```
+
+- `options` lists the options that are secrets: an option id, or `optionId.member` for one member
+  of an array option.
+- `config` lists the top-level `config.php` keys your add-on reads, each with the dotted keys
+  under it that are secrets.
+- **An add-on with no secrets declares an empty list.** That is still a declaration, and it is
+  what moves the add-on's settings from "set" to shown.
+- The event only fires when the Admin API is installed, so listening costs nothing where it is
+  not. The name and value rules above apply whatever you declare.
+
+### Overriding it on one forum
+
+For a secret the rules miss, or a value they hide needlessly, in `src/config.php`:
+
+```php
+$config['hampelAdminApi']['redact']['options'] = ['someOption', 'otherOption.member'];
+$config['hampelAdminApi']['redact']['config'] = ['some.config.key'];
+$config['hampelAdminApi']['show']['options'] = ['publicSiteKey'];
+```
+
+`redact` wins over every rule and `show` wins over `redact`. `show` is also how to see the text
+settings of an add-on that has not declared, one setting at a time.
+
 ## Options
 
 `GET /api/admin-api/options/`
+
+With the values scope, each option carries its `value` and `redactions` as described above; the
+rest of this section is what a key without it is given.
+
+**The value is the one in force.** A `config.php` that replaces an option in code changes what the
+forum runs with and not what is stored; `overridden` is true when the two differ.
 
 **Which options are set and which have been changed — not what they hold.** An option can be an
 API key, an SMTP password or a member's email address, and nothing about its name reliably says
@@ -554,8 +690,6 @@ empty array), whether it `is_default`, and for an array how many members it has.
   two XenForo supplies, are returned. A transport an add-on supplies is withheld, which with
   `set: true` reads as "something other than those two". The host, the login and the password
   are not declared members and are not listed at all.
-- **Options are reported as stored.** A `config.php` that overrides an option in code changes what
-  the forum runs with and not what is stored, and this endpoint shows what is stored.
 - **`value: null` with `disclosed: false` means withheld**, not empty. Read `set` for that.
 - **`set` is not "on".** It means the option holds something: a boolean that is `false` is still
   `set: true`. Read `value` for whether a flag is on.
@@ -571,6 +705,11 @@ empty array), whether it `is_default`, and for an array how many members it has.
 ## Configuration
 
 `GET /api/admin-api/config/`
+
+With the values scope each setting carries its `value` and `redactions`, as under *Values and
+secrets*. The database password and username and the global salt are always withheld; the
+database host and name are shown. A top-level key XenForo does not define is untrusted until an
+add-on claims it in its declaration. What follows is what a key without the scope is given.
 
 The settings in force from `src/config.php` merged over XenForo's defaults, one entry per dotted
 key. A boolean, a null and a small number are returned, and a string never is — configuration has

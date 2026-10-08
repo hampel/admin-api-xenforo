@@ -37,7 +37,7 @@ hold, because a super user key can turn core's permission checks off from the re
 one thing must not imply reading another. Cron and the job queue share `hampelAdminApiJobs`
 because they are one capability — cron entries are run by a job.
 
-## An endpoint returns aggregates, and personal data never — with one exception, kept apart
+## An endpoint returns aggregates, and personal data never — with two exceptions, each kept apart
 
 **Read-only protects the forum and does nothing for the people on it.** Whatever an endpoint
 returns ends up in a log, a transcript or a third party's system, so the question for every field
@@ -62,11 +62,21 @@ is whether it can carry member data.
   named entry, it caps what comes back, and it leaves out the request, user and IP address unless
   asked. **Do not add a list, a search or a date range to it** — the summary is how an entry is
   found, and that is what keeps this endpoint a deliberate act.
-- **Configuration is reported as shape, never as values.** `src/config.php` holds the database
-  password; an endpoint returning configuration is a credential leak. `ValueShape` is the one
-  place that decides what is shown, and it decides by type: a boolean, a null, a number up to
-  999999. **Do not add a rule that shows a string because it looks harmless** — the bug in that
-  rule is a credential in a response.
+- **Settings are reported as shape unless the key holds the values scope.** `src/config.php` holds
+  the database password, and an option can hold an API key. `ValueShape` decides what the shape
+  tier shows, by type: a boolean, a null, a number up to 999999.
+- **The values tier shows a setting unless it is a secret, and that is the second exception.** It
+  exists because shape alone could not answer "how is this forum configured" for someone
+  troubleshooting it — decided by Simon on 2026-10-08, against this file's earlier rule. It is
+  kept apart by its own scope, by core's `option` permission for options, and by trust tiers.
+- **`Redaction\Redactor` holds every rule, and they are independent on purpose**: the forum's
+  override, the declared list, the name, the untrusted tier, the value's shape, a URL's opaque
+  part. A change that makes one of them looser has to assume the others have already failed.
+  When a rule turns out too eager, narrow that rule and add the name to its test; do not add an
+  exception higher up.
+- **An add-on is trusted only by declaration** — in `Redaction\Registry`, or by answering the
+  `hampel_admin_api_redaction` event. Adding an add-on to the built-in list means its options were
+  read, one by one, by whoever added it.
 - **A string is returned in exactly one case: it is on a list the option's definition publishes.**
   A radio or select option's choices come from its `edit_format_params`; the value must equal
   one of them. That is a lookup, not a judgement, and it is what `describeChoice()` is. Where core

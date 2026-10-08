@@ -8,7 +8,9 @@ abstract class AbstractController extends BaseController
 	const SCOPE = 'hampel_admin_api:read';
 	const SCOPE_ERROR_DETAIL = 'hampel_admin_api:error_detail';
 
-	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL];
+	const SCOPE_VALUES = 'hampel_admin_api:values';
+
+	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES];
 
 	/**
 	 * The admin permission the key's own user must hold to reach this controller.
@@ -67,5 +69,32 @@ abstract class AbstractController extends BaseController
 		{
 			throw $this->exception($this->noPermission());
 		}
+	}
+
+	/**
+	 * Whether this request may be given the values of settings, and not only their shape. It takes
+	 * a scope of its own on top of the endpoint's, so that a key issued for monitoring cannot read
+	 * them, and whatever admin permissions the endpoint says a value needs.
+	 *
+	 * @param string[] $permissions Admin permissions the key's user must also hold
+	 *
+	 * @return string|null Null when values may be returned; otherwise why not
+	 */
+	protected function getValuesRefusal(array $permissions = [])
+	{
+		if (!\XF::apiKey()->hasScope(self::SCOPE_VALUES))
+		{
+			return 'the key does not hold the ' . self::SCOPE_VALUES . ' scope';
+		}
+
+		foreach ($permissions AS $permission)
+		{
+			if (!\XF::visitor()->hasAdminPermission($permission))
+			{
+				return "the key's user does not hold the $permission admin permission";
+			}
+		}
+
+		return null;
 	}
 }

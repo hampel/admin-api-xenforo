@@ -29,6 +29,12 @@
         "version_string": "1.0.0a1",
         "hash": "73f2baa78f1213738d1bc423a839689d"
     },
+    "admin_permission.hampelAdminApiOnline.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "06baa63c36d7edc3b0db98f71e7f2696"
+    },
     "admin_permission.hampelAdminApiOptions.txt": {
         "global_cache": false,
         "version_id": 1000011,
@@ -46,6 +52,12 @@
         "version_id": 1000011,
         "version_string": "1.0.0a1",
         "hash": "bee64f1767df87c0b9eeab955d480892"
+    },
+    "api_scope.hampel_admin_api_values.txt": {
+        "global_cache": false,
+        "version_id": 1000011,
+        "version_string": "1.0.0a1",
+        "hash": "47be5fcad6a70bc7b62bf143a765d40b"
     },
     "hampel_adminapi_error_id_required.txt": {
         "global_cache": false,

@@ -27,6 +27,7 @@ class HealthCheck
 		'hampelAdminApiJobs',
 		'hampelAdminApiOptions',
 		'hampelAdminApiConfig',
+		'hampelAdminApiOnline',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -36,9 +37,10 @@ class HealthCheck
 		'hampelAdminApiJobs',
 		'hampelAdminApiOptions',
 		'hampelAdminApiConfig',
+		'hampelAdminApiOnline',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online'];
 
 	/** @var App */
 	protected $app;
@@ -135,6 +137,7 @@ class HealthCheck
 		$rows = [];
 		$readers = 0;
 		$detailReaders = 0;
+		$valueReaders = 0;
 
 		foreach ($this->getKeys() AS $key)
 		{
@@ -150,6 +153,10 @@ class HealthCheck
 				{
 					$readers++;
 				}
+				else if ($scopeId === AbstractController::SCOPE_VALUES)
+				{
+					$valueReaders++;
+				}
 				else
 				{
 					$detailReaders++;
@@ -164,7 +171,10 @@ class HealthCheck
 				: [self::WARN, 'keys that can read', 'none - no API key can reach any endpoint yet'],
 			$detailReaders
 				? [self::OK, 'keys for error entries', (string) $detailReaders]
-				: [self::SKIP, 'keys for error entries', 'none, which is the safe default']
+				: [self::SKIP, 'keys for error entries', 'none, which is the safe default'],
+			$valueReaders
+				? [self::OK, 'keys that see values', (string) $valueReaders]
+				: [self::SKIP, 'keys that see values', 'none - options and config.php are reported by shape only']
 		);
 
 		return $rows;
@@ -234,6 +244,14 @@ class HealthCheck
 			return null;
 		}
 
+		if ($scopeId === AbstractController::SCOPE_VALUES)
+		{
+			// it adds to the read scope and does nothing without it
+			return in_array(AbstractController::SCOPE, $key['scopes'], true)
+				? null
+				: 'it needs the ' . AbstractController::SCOPE . ' scope as well';
+		}
+
 		if ($scopeId === AbstractController::SCOPE_ERROR_DETAIL)
 		{
 			$missing = array_diff(['hampelAdminApiErrorDetail', 'viewLogs'], $key['admin_permissions']);
@@ -257,6 +275,7 @@ class HealthCheck
 		$jobs = $this->app->repository('Hampel\AdminApi:Job')->getState($now);
 		$cron = $this->app->repository('Hampel\AdminApi:Cron')->getState($now);
 		$settings = (new ValueShape())->flatten($this->app->config());
+		$online = $this->app->repository('Hampel\AdminApi:Online')->getState($now);
 
 		return [
 			[self::OK, 'error log', "read: {$errors['total']} in the last day, {$errors['log']['total']} in the log"],
@@ -265,6 +284,7 @@ class HealthCheck
 			[self::OK, 'add-ons', 'read: ' . count($this->app->addOnManager()->getAllAddOns()) . ' known'],
 			[self::OK, 'options', 'read: ' . $this->app->finder('XF:Option')->total() . ' options'],
 			[self::OK, 'config.php', 'read: ' . count($settings) . ' settings'],
+			[self::OK, 'who is online', "read: {$online['total']} sessions in the last {$online['window_minutes']} minutes"],
 		];
 	}
 

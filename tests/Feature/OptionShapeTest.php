@@ -64,12 +64,14 @@ class OptionShapeTest extends TestCase
 			'add_on_id' => self::ADD_ON,
 			'data_type' => 'string',
 			'is_default' => false,
+			'overridden' => false,
 			'type' => 'string',
 			'set' => true,
 			'disclosed' => false,
 			'value' => null,
 			'count' => null,
 			'members' => null,
+			'redactions' => null,
 		], $options['adminApiTestKey']);
 
 		$this->assertFalse($options['adminApiTestBlank']['set']);
