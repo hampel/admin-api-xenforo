@@ -163,14 +163,63 @@ class CommandsTest extends TestCase
 		);
 	}
 
+	/**
+	 * Judged on the keys a test planted and no others: what the forum's own keys can or cannot do
+	 * is the forum's business, and changes under the suite.
+	 */
+	private function validateWithPlantedKeysOnly(array $input)
+	{
+		$command = new class extends Validate
+		{
+			protected function getHealthCheck()
+			{
+				return new class(\XF::app()) extends HealthCheck
+				{
+					public function getKeys()
+					{
+						return array_values(array_filter(parent::getKeys(), function (array $key)
+						{
+							return $key['title'] === 'Planted for a test';
+						}));
+					}
+				};
+			}
+		};
+
+		$tester = new CommandTester($command);
+		$exit = $tester->execute($input);
+
+		return [$exit, $tester->getDisplay()];
+	}
+
 	public function test_strict_with_nothing_to_warn_about_exits_zero()
 	{
 		$this->plantKey(['hampelAdminApiErrorLog']);
 
-		[$exit, $display] = $this->validate(['--unattended' => true, '--strict' => true]);
+		[$exit, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true, '--strict' => true]);
 
 		$this->assertStringNotContainsString('[warn]', $display);
 		$this->assertSame(0, $exit);
+	}
+
+	/**
+	 * A key can be handed the values scope without its user being allowed to see values. That is
+	 * a key that does less than whoever issued it thinks, which is a warning and not a failure.
+	 */
+	public function test_a_values_key_whose_user_lacks_the_values_permission_is_a_warning()
+	{
+		$scopes = ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values']];
+
+		$this->plantKey(['hampelAdminApiOptions', 'option'], $scopes);
+		[$exit, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true, '--strict' => true]);
+
+		$this->assertSame(2, $exit);
+		$this->assertStringContainsString('its user lacks hampelAdminApiValues', $display);
+
+		$this->plantKey(['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], $scopes);
+		[, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true]);
+
+		$this->assertStringContainsString('keys that see values           1', $display);
 	}
 
 	public function test_the_api_being_off_fails_with_or_without_strict()

@@ -68,7 +68,10 @@ is whether it can carry member data.
 - **The values tier shows a setting unless it is a secret, and that is the second exception.** It
   exists because shape alone could not answer "how is this forum configured" for someone
   troubleshooting it — decided by Simon on 2026-10-08, against this file's earlier rule. It is
-  kept apart by its own scope, by core's `option` permission for options, and by trust tiers.
+  kept apart by its own scope, its own admin permission (`hampelAdminApiValues`), core's `option`
+  permission for options, and trust tiers. **An endpoint's own permission never grants values**:
+  its title tells an administrator what they are granting, and for `config.php` there is no core
+  permission to lean on.
 - **`Redaction\Redactor` holds every rule, and they are independent on purpose**: the forum's
   override, the declared list, the name, the untrusted tier, the value's shape, a URL's opaque
   part. A change that makes one of them looser has to assume the others have already failed.

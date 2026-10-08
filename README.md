@@ -69,6 +69,10 @@ Every endpoint needs `hampel_admin_api:read` except the last, which needs
 | `GET /api/admin-api/online/` | Read counts of who is online through the API |
 | `GET /api/admin-api/error-entries/` | Read individual server error log entries through the API, **and** XenForo's own *View logs* |
 
+**The options and configuration permissions cover which settings are set, and no more.** Seeing
+what they are set to is a separate permission, *See what options and config.php settings are set
+to, with secrets removed, through the API* — see *Values and secrets*.
+
 The JSON under each endpoint shows the shape of a response. The figures in it are illustrative.
 
 ## Error log summary
@@ -532,6 +536,9 @@ and, for working out why a forum is misbehaving, close to useless. A key that al
 **What it takes to see values:**
 
 - the key holds `hampel_admin_api:values` as well as `hampel_admin_api:read`;
+- the key's user holds this add-on's values permission, `hampelAdminApiValues`, as well as the
+  permission for the endpoint. The endpoint's permission never includes values, so granting
+  someone the options or configuration endpoint does not show them a setting;
 - for options, the key's user also holds XenForo's own *option* admin permission — the options
   pages in the control panel are where these values are otherwise seen, and the API asks for what
   they ask for.

@@ -15,8 +15,9 @@ class Config extends AbstractController
 
 	/**
 	 * @api-desc Lists the settings in force from src/config.php and XenForo's defaults, by dotted
-	 *   key. A key that also holds the hampel_admin_api:values scope is given each setting's value
-	 *   with the secrets removed - the database password and username among them. Any other key is
+	 *   key. A key that also holds the hampel_admin_api:values scope, whose user also holds the
+	 *   hampelAdminApiValues admin permission, is given each setting's value with the secrets
+	 *   removed - the database password and username among them. Any other key is
 	 *   given its shape: whether it is set and differs from the default, with booleans and small
 	 *   numbers returned and no string.
 	 *   Requires a user API key holding the hampel_admin_api:read scope, whose user has the

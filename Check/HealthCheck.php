@@ -28,6 +28,7 @@ class HealthCheck
 		'hampelAdminApiOptions',
 		'hampelAdminApiConfig',
 		'hampelAdminApiOnline',
+		'hampelAdminApiValues',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -238,6 +239,12 @@ class HealthCheck
 			return 'its user is not an administrator';
 		}
 
+		// it adds to the read scope and does nothing without it, whoever holds the key
+		if ($scopeId === AbstractController::SCOPE_VALUES && !in_array(AbstractController::SCOPE, $key['scopes'], true))
+		{
+			return 'it needs the ' . AbstractController::SCOPE . ' scope as well';
+		}
+
 		// a super administrator holds every permission
 		if ($key['admin_permissions'] === null)
 		{
@@ -246,10 +253,15 @@ class HealthCheck
 
 		if ($scopeId === AbstractController::SCOPE_VALUES)
 		{
-			// it adds to the read scope and does nothing without it
-			return in_array(AbstractController::SCOPE, $key['scopes'], true)
+			if (!in_array(AbstractController::PERMISSION_VALUES, $key['admin_permissions'], true))
+			{
+				return 'its user lacks ' . AbstractController::PERMISSION_VALUES;
+			}
+
+			// values come from the options and config.php endpoints, so one of those as well
+			return array_intersect(['hampelAdminApiOptions', 'hampelAdminApiConfig'], $key['admin_permissions'])
 				? null
-				: 'it needs the ' . AbstractController::SCOPE . ' scope as well';
+				: 'its user lacks hampelAdminApiOptions and hampelAdminApiConfig';
 		}
 
 		if ($scopeId === AbstractController::SCOPE_ERROR_DETAIL)

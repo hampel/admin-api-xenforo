@@ -12,6 +12,8 @@ abstract class AbstractController extends BaseController
 
 	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES];
 
+	const PERMISSION_VALUES = 'hampelAdminApiValues';
+
 	/**
 	 * The admin permission the key's own user must hold to reach this controller.
 	 *
@@ -72,11 +74,12 @@ abstract class AbstractController extends BaseController
 	}
 
 	/**
-	 * Whether this request may be given the values of settings, and not only their shape. It takes
-	 * a scope of its own on top of the endpoint's, so that a key issued for monitoring cannot read
-	 * them, and whatever admin permissions the endpoint says a value needs.
+	 * Whether this request may be given the values of settings, and not only their shape. That is
+	 * a capability of its own, so it has an admin permission of its own: the permission for an
+	 * endpoint says its holder may read which settings are set, and no more. It takes a scope of
+	 * its own as well, so that a key issued for monitoring cannot read values whoever holds it.
 	 *
-	 * @param string[] $permissions Admin permissions the key's user must also hold
+	 * @param string[] $permissions Further admin permissions the key's user must hold
 	 *
 	 * @return string|null Null when values may be returned; otherwise why not
 	 */
@@ -87,7 +90,7 @@ abstract class AbstractController extends BaseController
 			return 'the key does not hold the ' . self::SCOPE_VALUES . ' scope';
 		}
 
-		foreach ($permissions AS $permission)
+		foreach (array_merge([self::PERMISSION_VALUES], $permissions) AS $permission)
 		{
 			if (!\XF::visitor()->hasAdminPermission($permission))
 			{

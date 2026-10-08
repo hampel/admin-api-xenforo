@@ -22,13 +22,14 @@ checked. For whoever changes it next.
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
 | admin permission | `hampelAdminApiOnline` |
+| admin permission | `hampelAdminApiValues` — values on the options and config endpoints |
 | admin permission | `hampelAdminApiErrorLog` |
 | admin permission | `hampelAdminApiAddOns` |
 | admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
 | admin permission | `hampelAdminApiOptions` |
 | admin permission | `hampelAdminApiConfig` |
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
-| phrases | 12 — the three scope descriptions, the seven permission titles, two errors |
+| phrases | 13 — the three scope descriptions, the eight permission titles, two errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |

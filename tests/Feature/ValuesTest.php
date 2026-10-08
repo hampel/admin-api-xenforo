@@ -50,16 +50,16 @@ class ValuesTest extends TestCase
 		]);
 	}
 
-	private function options(array $input = [], array $permissions = ['hampelAdminApiOptions', 'option'], array $key = self::BOTH_SCOPES)
+	private function options(array $input = [], array $permissions = ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], array $key = self::BOTH_SCOPES)
 	{
 		$this->actingAsAdminWithKey($permissions, $key);
 
 		return $this->replyApiResult($this->dispatch('admin-api/options/', 'api', $input));
 	}
 
-	private function config(array $key = self::BOTH_SCOPES)
+	private function config(array $key = self::BOTH_SCOPES, array $permissions = ['hampelAdminApiConfig', 'hampelAdminApiValues'])
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiConfig'], $key);
+		$this->actingAsAdminWithKey($permissions, $key);
 
 		return $this->replyApiResult($this->dispatch('admin-api/config/', 'api'));
 	}
@@ -73,7 +73,7 @@ class ValuesTest extends TestCase
 
 	public function test_a_key_with_only_the_read_scope_gets_shape_and_is_told_why()
 	{
-		$result = $this->options([], ['hampelAdminApiOptions', 'option'], []);
+		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], []);
 
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('hampel_admin_api:values', $result['mode_reason']);
@@ -87,11 +87,46 @@ class ValuesTest extends TestCase
 	 */
 	public function test_the_values_scope_is_not_enough_without_the_option_admin_permission()
 	{
-		$result = $this->options([], ['hampelAdminApiOptions']);
+		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues']);
 
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('option admin permission', $result['mode_reason']);
 		$this->assertStringNotContainsString('Welcome to the forum', json_encode($result));
+	}
+
+	/**
+	 * The permission for an endpoint says its holder may read which settings are set. Seeing what
+	 * they are set to is a permission of its own, on both endpoints - and for config.php it is
+	 * the only one there is, since XenForo has no permission of its own for that file.
+	 */
+	public function test_the_values_scope_is_not_enough_without_the_values_admin_permission()
+	{
+		$options = $this->options([], ['hampelAdminApiOptions', 'option']);
+
+		$this->assertSame('shape', $options['mode']);
+		$this->assertStringContainsString('hampelAdminApiValues admin permission', $options['mode_reason']);
+		$this->assertStringNotContainsString('Welcome to the forum', json_encode($options));
+
+		$db = $this->app()->config('db');
+		$config = $this->config(self::BOTH_SCOPES, ['hampelAdminApiConfig']);
+		$settings = array_column($config['settings'], null, 'key');
+
+		$this->assertSame('shape', $config['mode']);
+		$this->assertStringContainsString('hampelAdminApiValues admin permission', $config['mode_reason']);
+		$this->assertNull($settings['db.host']['value']);
+		$this->assertNull($settings['db.host']['redactions']);
+		$this->assertStringNotContainsString('"' . $db['dbname'] . '"', json_encode($config));
+	}
+
+	/**
+	 * Holding the values permission does not open an endpoint its holder cannot otherwise reach.
+	 */
+	public function test_the_values_admin_permission_alone_does_not_reach_an_endpoint()
+	{
+		$this->actingAsAdminWithKey(['hampelAdminApiValues', 'option'], self::BOTH_SCOPES);
+
+		$this->assertReplyIsError($this->dispatch('admin-api/options/', 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch('admin-api/config/', 'api'), 403, 'do not have permission');
 	}
 
 	public function test_the_values_scope_alone_does_not_reach_the_endpoint()
@@ -187,7 +222,7 @@ class ValuesTest extends TestCase
 
 		foreach ([self::BOTH_SCOPES, []] AS $key)
 		{
-			$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED], ['hampelAdminApiOptions', 'option'], $key));
+			$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], $key));
 
 			$this->assertTrue($options['adminApiTestStoredFlag']['value']);
 			$this->assertFalse($options['adminApiTestStoredOff']['value']);
