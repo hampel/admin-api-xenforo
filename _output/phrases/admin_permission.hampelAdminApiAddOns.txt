@@ -1,1 +1,1 @@
-Read the add-on inventory through the API
+Admin API: View add-ons

@@ -1,1 +1,1 @@
-Read cron and job queue state through the API
+Admin API: View cron and jobs

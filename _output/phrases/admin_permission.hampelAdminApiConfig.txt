@@ -1,1 +1,1 @@
-Read which config.php settings are set, without their values, through the API
+Admin API: View config.php

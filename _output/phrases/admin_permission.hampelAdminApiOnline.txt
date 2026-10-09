@@ -1,1 +1,1 @@
-Read counts of who is online through the API
+Admin API: View who is online

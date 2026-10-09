@@ -1,1 +1,1 @@
-Read the server error log summary through the API
+Admin API: View error log summary

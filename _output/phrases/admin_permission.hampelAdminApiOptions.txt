@@ -1,1 +1,1 @@
-Read which options are set, without their values, through the API
+Admin API: View options

@@ -1,1 +1,1 @@
-Read individual server error log entries through the API
+Admin API: View error log entries

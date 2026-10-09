@@ -49,12 +49,12 @@ access*. The add-on creates one small table, for the commands under
 
    | endpoint | admin permission |
    |---|---|
-   | `error-log/` | Read the server error log summary through the API |
-   | `add-ons/` | Read the add-on inventory through the API |
-   | `cron/`, `jobs/` | Read cron and job queue state through the API |
-   | `online/` | Read counts of who is online through the API |
-   | `options/` | Read which options are set, without their values, through the API |
-   | `config/` | Read which config.php settings are set, without their values, through the API |
+   | `error-log/` | Admin API: View error log summary |
+   | `add-ons/` | Admin API: View add-ons |
+   | `cron/`, `jobs/` | Admin API: View cron and jobs |
+   | `online/` | Admin API: View who is online |
+   | `options/` | Admin API: View options |
+   | `config/` | Admin API: View config.php |
 
 3. **Create the key.** Under *Setup > API keys*, add a key with:
    - *Key type*: **User key**, with that administrator's username
@@ -70,14 +70,12 @@ access*. The add-on creates one small table, for the commands under
 
 **To see what settings are set to**, not only whether they are set:
 
-- give the administrator *See what options and config.php settings are set to, with secrets
-  removed, through the API*, and XenForo's *Manage options*;
+- give the administrator *Admin API: View setting values*, and XenForo's *Manage options*;
 - add the `hampel_admin_api:values` scope to the key.
 
 **To read individual error log entries**, messages included:
 
-- give the administrator *Read individual server error log entries through the API*, and
-  XenForo's *View logs*;
+- give the administrator *Admin API: View error log entries*, and XenForo's *View logs*;
 - create a second key with only the `hampel_admin_api:error_detail` scope.
 
 ## How access is decided
@@ -285,7 +283,7 @@ used for monitoring should not hold either.
 It takes three things to reach it:
 
 - a key holding `hampel_admin_api:error_detail` — `hampel_admin_api:read` is not enough;
-- the *Read individual server error log entries through the API* admin permission;
+- the *Admin API: View error log entries* admin permission;
 - XenForo's own *View logs* admin permission. Everything returned here is in the server error log
   in the admin control panel, and an administrator who cannot open it there cannot read it here.
 
