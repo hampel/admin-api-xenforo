@@ -410,4 +410,23 @@ class CommandsTest extends TestCase
 
 		$this->assertSame($before, $state());
 	}
+
+	/**
+	 * XenForo loads every add-on's command classes to build its list, so one that cannot load
+	 * stops cmd.php on the forum for every add-on. Nothing else in the suite loads the fault
+	 * commands' classes at all.
+	 */
+	public function test_every_command_this_add_on_ships_is_one_xenforo_can_load()
+	{
+		$classes = $this->assertConsoleCommandsLoad();
+		sort($classes);
+
+		$this->assertSame([
+			\Hampel\AdminApi\Cli\Command\Config::class,
+			\Hampel\AdminApi\Cli\Command\FaultArm::class,
+			\Hampel\AdminApi\Cli\Command\FaultClean::class,
+			\Hampel\AdminApi\Cli\Command\FaultList::class,
+			\Hampel\AdminApi\Cli\Command\Validate::class,
+		], $classes);
+	}
 }

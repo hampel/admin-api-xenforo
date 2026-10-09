@@ -294,6 +294,8 @@ vendor/bin/phpunit
   nested members.
 - `tests/Feature/ConfigShapeTest.php` sets config values of each type and checks the same, plus
   the forum's real database credentials by key and by absence.
+- `tests/Feature/CommandsTest.php` also loads every command class the add-on ships the way
+  XenForo's own runner does, since one that cannot load stops `cmd.php` for the whole forum.
 - `tests/Unit/RedactorTest.php` covers every redaction rule with made-up values: names that are
   credentials and names that only resemble them, values that are tokens and long values that are
   not, URLs, arrays, lists, the untrusted tier, and the forum's overrides in both directions.
