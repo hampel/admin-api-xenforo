@@ -41,9 +41,11 @@ access*. The add-on creates one small table, for the commands under
 
 ## Setting up access
 
-1. **Pick an administrator for the key to act as.** Under *Groups & permissions >
-   Administrators*, create or choose one who is not a super administrator.
-2. **Give that administrator the permissions**, on the same page, for the endpoints you want:
+1. **Pick an administrator for the key to act as**, under *Groups & permissions >
+   Administrators*. A super administrator already holds every permission below, so their key
+   reaches every endpoint its scopes allow; for anyone else, the permissions decide.
+2. **Give that administrator the permissions**, on the same page, for the endpoints you want.
+   Skip this for a super administrator.
 
    | endpoint | admin permission |
    |---|---|
