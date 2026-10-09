@@ -403,6 +403,11 @@ What was seen, over HTTP with a non-super administrator's keys unless it says ot
   left no row behind;
 - uninstall removed everything.
 
+**The first upgrade, the same day:** `1.0.0a1` installed from its zip on XenForo 2.3.0 Patch 2,
+then upgraded to `1.0.0a2` from its zip. The upgrade took the real import path, the key kept both
+its scopes and the scopes stayed withheld from OAuth clients, every endpoint answered before and
+after, no error was logged, and `validate --strict` exited 0. No file was dropped between the two.
+
 **Two things 2.2 does that 2.3.0 does not**, both in its favour: it logs an error raised from the
 command line, and `xf:run-jobs` is not needed to see a job fail — requesting `job.php` ran it.
 
@@ -454,9 +459,9 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
 - **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
   probe was run once on a development forum: logged, read back, removed. What an alert on the
   server error log makes of a row that exists for a moment has not been looked at.
-- **The upgrade path.** `1.0.0a1` is the first version built; the first upgrade to test is from it.
-  `Setup` has no upgrade steps, so there is nothing yet that could fail on an upgrade and pass on
-  an install.
+- **An upgrade across a change to `Setup`.** `1.0.0a1` to `1.0.0a2` was run on 2026-10-09 and is
+  recorded above; `Setup` has no upgrade steps yet, so that run could not have failed where an
+  install passes. The first release that adds one needs the run again.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.
