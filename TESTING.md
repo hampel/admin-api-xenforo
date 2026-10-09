@@ -296,6 +296,8 @@ vendor/bin/phpunit
   the forum's real database credentials by key and by absence.
 - `tests/Feature/CommandsTest.php` also loads every command class the add-on ships the way
   XenForo's own runner does, since one that cannot load stops `cmd.php` for the whole forum.
+- `tests/Unit/SecretsDeclarationTest.php` covers what this add-on declares about itself, and fails
+  when it gains an option or a new reader of its `config.php` key, so the declaration is revisited.
 - `tests/Unit/RedactorTest.php` covers every redaction rule with made-up values: names that are
   credentials and names that only resemble them, values that are tokens and long values that are
   not, URLs, arrays, lists, the untrusted tier, and the forum's overrides in both directions.
