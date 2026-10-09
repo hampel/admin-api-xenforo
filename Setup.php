@@ -75,7 +75,8 @@ class Setup extends AbstractSetup
 		foreach (AbstractController::SCOPES AS $scopeId)
 		{
 			$scope = \XF::em()->find('XF:ApiScope', $scopeId);
-			if (!$scope || !$scope->usable_with_oauth_clients)
+			// XenForo 2.2 has no OAuth clients, and so no flag to clear
+			if (!$scope || !$scope->isValidColumn('usable_with_oauth_clients') || !$scope->usable_with_oauth_clients)
 			{
 				continue;
 			}

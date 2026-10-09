@@ -1,6 +1,6 @@
 # Admin API: read-only operational endpoints for XenForo
 
-A XenForo 2.3 add-on that adds read-only REST API endpoints for a forum's operational state — the
+A XenForo add-on that adds read-only REST API endpoints for a forum's operational state — the
 things the core API does not cover, because it is a content API. For an administrator who wants a
 monitoring script, a dashboard or an agent to be able to ask "is anything in the error log?",
 "what is installed, at which version?", "is cron running?" and "how is this forum configured?"
@@ -10,8 +10,22 @@ By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
 ## Requirements
 
-- XenForo 2.3.0 or later
+- XenForo 2.2.0 or later
 - PHP 7.4 or later
+
+### On XenForo 2.2
+
+Everything works, and three things XenForo 2.2 does not have are reported as absent, never as
+zero:
+
+- **It has no table of failed jobs.** The job queue endpoint's `failed` is empty with
+  `recorded: false`. A job that fails on 2.2 shows up in the error log summary, if it logged.
+- **It keeps no count of attempts.** `retrying` and `max_attempts` are `null`.
+- **It has no OAuth**, so there is no access token to refuse and no scope to withhold from OAuth
+  clients. `admin-api:config` and `admin-api:validate` report each scope as defined.
+
+The fault commands plant one job fault on 2.2, not two: the second uses a core job that arrived
+with 2.3.
 
 ## Installation
 
@@ -452,7 +466,7 @@ only for *where* it was raised; its message is never returned.
 | `manual` | jobs that run only when triggered from the admin control panel |
 | `due` | automatic jobs whose trigger date has passed. A few is normal; they run on the next request |
 | `stalled` | automatic jobs more than an hour past their trigger date — the queue is not being run |
-| `retrying` | jobs that have been attempted at least once |
+| `retrying` | jobs that have been attempted at least once; `null` on XenForo 2.2 |
 
 **`failed.signatures` says where each failed job failed** — the exception's class, file and line,
 with the same `location`, `add_on_id` and `origin_add_on_id` as an error log signature — which

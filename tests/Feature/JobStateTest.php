@@ -256,4 +256,46 @@ class JobStateTest extends TestCase
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 	}
+
+	/**
+	 * XenForo 2.2 has no table of failed jobs and keeps no count of attempts. The queue is still
+	 * reported; what that XenForo does not record comes back as not recorded, never as zero.
+	 */
+	public function test_on_a_xenforo_without_them_attempts_and_failed_jobs_are_not_recorded()
+	{
+		$this->insertJob('Tests\Fake\Job\OnAnOlderXenForo', \XF::$time - 10);
+
+		$repo = new class($this->app()->em(), 'Hampel\AdminApi:Job') extends \Hampel\AdminApi\Repository\Job
+		{
+			protected function hasJobAttempts()
+			{
+				return false;
+			}
+
+			protected function hasFailedJobs()
+			{
+				return false;
+			}
+		};
+
+		$state = $repo->getState(\XF::$time);
+		$class = array_column($state['by_class'], null, 'execute_class')['Tests\Fake\Job\OnAnOlderXenForo'];
+
+		$this->assertGreaterThanOrEqual(1, $state['total']);
+		$this->assertSame(1, $class['total']);
+		$this->assertSame(1, $class['due']);
+		$this->assertNull($class['retrying']);
+		$this->assertNull($class['max_attempts']);
+		$this->assertNull($state['retrying']);
+
+		$this->assertSame([
+			'recorded' => false,
+			'total' => 0,
+			'oldest_date' => null,
+			'newest_date' => null,
+			'by_class' => [],
+			'signatures' => [],
+			'examined' => ['rows' => 0, 'complete' => true],
+		], $state['failed']);
+	}
 }

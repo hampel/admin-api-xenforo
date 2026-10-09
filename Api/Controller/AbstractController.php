@@ -49,10 +49,15 @@ abstract class AbstractController extends BaseController
 	 * core's admin assertions entirely. An OAuth access token leaves \XF::apiKey() as core's
 	 * fallback key - never null, and not a super user key - while the visitor becomes the token's
 	 * user, so it has to be refused by name rather than by testing the key alone.
+	 *
+	 * XenForo 2.2 has no OAuth, so no token and no method to ask for one: there the key is all
+	 * there is to test.
 	 */
 	protected function assertUserApiKey()
 	{
-		if (\XF::accessToken() || \XF::apiKey()->key_type !== 'user')
+		$token = method_exists('XF', 'accessToken') ? \XF::accessToken() : null;
+
+		if ($token || \XF::apiKey()->key_type !== 'user')
 		{
 			throw $this->exception(
 				$this->error(\XF::phrase('hampel_adminapi_user_api_key_required'), 403)

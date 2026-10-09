@@ -54,7 +54,9 @@ class Config extends Command
 		foreach (AbstractController::SCOPES AS $scopeId)
 		{
 			$scope = $app->em()->find('XF:ApiScope', $scopeId);
-			$this->detail($scopeId, !$scope ? '' : ($scope->usable_with_oauth_clients ? 'offered to OAuth clients' : 'withheld from OAuth clients'));
+			$this->detail($scopeId, !$scope ? '' : (!$scope->isValidColumn('usable_with_oauth_clients')
+				? 'defined'
+				: ($scope->usable_with_oauth_clients ? 'offered to OAuth clients' : 'withheld from OAuth clients')));
 		}
 
 		$this->heading('Admin permissions, and how many administrators hold each');

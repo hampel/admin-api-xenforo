@@ -32,14 +32,19 @@ class Job extends Repository
 		$db = $this->db();
 		$stalledBefore = $now - self::STALLED_AFTER;
 
+		// XenForo 2.2 runs a job until it completes or throws; it keeps no count of attempts
+		$attempts = $this->hasJobAttempts();
+		$retrying = $attempts ? 'SUM(attempts > 0)' : 'NULL';
+		$maxAttempts = $attempts ? 'MAX(attempts)' : 'NULL';
+
 		$rows = $db->fetchAll('
 			SELECT execute_class,
 				COUNT(*) AS job_count,
 				SUM(manual_execute = 1) AS manual_count,
 				SUM(manual_execute = 0 AND trigger_date <= ?) AS due_count,
 				SUM(manual_execute = 0 AND trigger_date <= ?) AS stalled_count,
-				SUM(attempts > 0) AS retrying_count,
-				MAX(attempts) AS max_attempts,
+				' . $retrying . ' AS retrying_count,
+				' . $maxAttempts . ' AS max_attempts,
 				MIN(trigger_date) AS oldest_trigger_date,
 				MIN(CASE WHEN manual_execute = 0 AND trigger_date <= ? THEN trigger_date END) AS oldest_due_date
 			FROM xf_job
@@ -47,7 +52,7 @@ class Job extends Repository
 			ORDER BY job_count DESC, execute_class
 		', [$now, $stalledBefore, $now]);
 
-		$totals = ['total' => 0, 'manual' => 0, 'due' => 0, 'stalled' => 0, 'retrying' => 0];
+		$totals = ['total' => 0, 'manual' => 0, 'due' => 0, 'stalled' => 0, 'retrying' => $attempts ? 0 : null];
 		$oldestDue = null;
 		$byClass = [];
 
@@ -59,15 +64,18 @@ class Job extends Repository
 				'manual' => (int) $row['manual_count'],
 				'due' => (int) $row['due_count'],
 				'stalled' => (int) $row['stalled_count'],
-				'retrying' => (int) $row['retrying_count'],
-				'max_attempts' => (int) $row['max_attempts'],
+				'retrying' => $attempts ? (int) $row['retrying_count'] : null,
+				'max_attempts' => $attempts ? (int) $row['max_attempts'] : null,
 				'oldest_trigger_date' => (int) $row['oldest_trigger_date'],
 			];
 			$byClass[] = $class;
 
 			foreach ($totals AS $key => $value)
 			{
-				$totals[$key] += $class[$key];
+				if ($value !== null)
+				{
+					$totals[$key] += $class[$key];
+				}
 			}
 
 			if ($row['oldest_due_date'] !== null)
@@ -92,6 +100,21 @@ class Job extends Repository
 	 */
 	protected function getFailedState()
 	{
+		// the failed job table arrived with XenForo 2.3; before it, a job that failed left only
+		// whatever it wrote to the error log
+		if (!$this->hasFailedJobs())
+		{
+			return [
+				'recorded' => false,
+				'total' => 0,
+				'oldest_date' => null,
+				'newest_date' => null,
+				'by_class' => [],
+				'signatures' => [],
+				'examined' => ['rows' => 0, 'complete' => true],
+			];
+		}
+
 		$rows = $this->db()->fetchAll('
 			SELECT execute_class,
 				COUNT(*) AS fail_count,
@@ -281,5 +304,21 @@ class Job extends Repository
 		$raised['trace'] = $next === false ? $trace : substr($trace, 0, $next);
 
 		return $raised;
+	}
+
+	/**
+	 * @return bool Whether this XenForo counts how many times a job has been attempted
+	 */
+	protected function hasJobAttempts()
+	{
+		return \XF::$versionId >= 2030000;
+	}
+
+	/**
+	 * @return bool Whether this XenForo has a table of failed jobs at all
+	 */
+	protected function hasFailedJobs()
+	{
+		return \XF::$versionId >= 2030000;
 	}
 }

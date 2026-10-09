@@ -158,10 +158,15 @@ TEMPLATE;
 
 		if (in_array('jobs', $kinds, true))
 		{
-			$armed['jobs'] = [
-				$this->createJob($batch, 'orphan', self::MISSING_JOB, []),
-				$this->createJob($batch, 'rejected', 'XF\\Job\\IconUsage', ['content_type' => $this->getMarker($batch)]),
-			];
+			$armed['jobs'] = [$this->createJob($batch, 'orphan', self::MISSING_JOB, [])];
+
+			// a core job handed data it rejects. The one used arrived with XenForo 2.3, and a job
+			// that fails is only recorded as failed from 2.3 as well, so before it there is
+			// neither the job nor anything for it to show
+			if (class_exists('XF\\Job\\IconUsage'))
+			{
+				$armed['jobs'][] = $this->createJob($batch, 'rejected', 'XF\\Job\\IconUsage', ['content_type' => $this->getMarker($batch)]);
+			}
 		}
 
 		if (in_array('cron', $kinds, true))
@@ -371,7 +376,10 @@ TEMPLATE;
 						[(int) $id, $db->escapeLike($this->getMarker($record['batch']), '?%')]
 					);
 					$removed['error_log'] += $this->deleteMarked('xf_error_log', 'message', $record['batch']);
-					$removed['failed_job'] += $this->deleteMarked('xf_failed_job', 'exception', $record['batch']);
+					if ($db->getSchemaManager()->tableExists('xf_failed_job'))
+					{
+						$removed['failed_job'] += $this->deleteMarked('xf_failed_job', 'exception', $record['batch']);
+					}
 					break;
 
 				case 'cron':

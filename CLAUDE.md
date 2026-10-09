@@ -157,6 +157,16 @@ is whether it can carry member data.
   value comes from `_output/`.
 - **`preDispatchController($action, ParameterBag $params)` is untyped**, as it is in core. A
   `string` on `$action` is a fatal at class load.
+- **The XenForo floor is 2.2.0, so core is named the way 2.2 names it.** Short names
+  (`XF:ApiKey`) and the pre-2.3 class names work on both lines; a 2.3 class name
+  (`...Repository`, `...Finder`, `...Service`) is a fatal on 2.2. Five things here exist only from
+  2.3 and each is guarded where it is used: `\XF::accessToken()`, a scope's
+  `usable_with_oauth_clients`, the `xf_failed_job` table, `attempts` on `xf_job`, and
+  `XF\Job\IconUsage`. **A new use of anything from core gets checked against 2.2's source before
+  it is written**, and what 2.2 lacks is reported as absent, not as zero.
+- **The suite runs on 2.3 only** — the test framework needs it — so 2.2 is proved by installing
+  the release in a sandbox and asking over HTTP. A change that touches a guarded path needs that
+  run again.
 - **The PHP floor is 7.4 because that is the oldest PHP the add-on has been run on**, not because
   the code needs it: XenForo 2.3 itself asks for 7.2, and nothing here uses syntax newer than
   that. Lowering the floor means running it there first; do not lower it on a reading of the

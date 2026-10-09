@@ -73,6 +73,11 @@ class HealthCheck
 			{
 				$rows[] = [self::FAIL, $scopeId, 'not defined - no key can be given it'];
 			}
+			else if (!$scope->isValidColumn('usable_with_oauth_clients'))
+			{
+				// XenForo 2.2 has no OAuth clients to offer a scope to
+				$rows[] = [self::OK, $scopeId, 'defined'];
+			}
 			else if ($scope->usable_with_oauth_clients)
 			{
 				$rows[] = [self::WARN, $scopeId, 'offered to OAuth clients; the endpoints refuse a token regardless'];
