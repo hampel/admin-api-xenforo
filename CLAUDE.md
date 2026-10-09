@@ -155,8 +155,12 @@ is whether it can carry member data.
   value comes from `_output/`.
 - **`preDispatchController($action, ParameterBag $params)` is untyped**, as it is in core. A
   `string` on `$action` is a fatal at class load.
-- **The PHP floor is 7.4 and the dev dependencies need far newer**, so the suite cannot tell you
-  that a newer syntax has crept in. Keep to 7.4 by hand.
+- **The PHP floor is 7.4 because that is the oldest PHP the add-on has been run on**, not because
+  the code needs it: XenForo 2.3 itself asks for 7.2, and nothing here uses syntax newer than
+  that. Lowering the floor means running it there first; do not lower it on a reading of the
+  code. Decided 2026-10-09.
+- **The dev dependencies need far newer PHP**, so the suite cannot tell you that a newer syntax
+  has crept in. Keep to 7.4 by hand, and lint the release under 7.4 in a sandbox.
 - **A test only adds rows.** The suite runs on the forum's real tables inside a transaction, and
   `emptyTable()` is a `TRUNCATE` that commits it. `TESTING.md` has the incident.
 - **`composer.json` holds dev dependencies only.** `addon.json` has no `composer_autoload`, and
