@@ -67,7 +67,7 @@ is whether it can carry member data.
   tier shows, by type: a boolean, a null, a number up to 999999.
 - **The values tier shows a setting unless it is a secret, and that is the second exception.** It
   exists because shape alone could not answer "how is this forum configured" for someone
-  troubleshooting it — decided by Simon on 2026-10-08, against this file's earlier rule. It is
+  troubleshooting it — decided on 2026-10-08, against this file's earlier rule. It is
   kept apart by its own scope, its own admin permission (`hampelAdminApiValues`), core's `option`
   permission for options, and trust tiers. **An endpoint's own permission never grants values**:
   its title tells an administrator what they are granting, and for `config.php` there is no core
@@ -80,7 +80,7 @@ is whether it can carry member data.
 - **An add-on is trusted only by declaring for itself**, by answering the
   `hampel_admin_api_redaction` event. `Redaction\Registry` lists XenForo and its official add-ons
   and nothing else, because those are the only ones that cannot answer. **Do not add any other
-  add-on to that list, ours included** — decided by Simon on 2026-10-08. A list here would have to
+  add-on to that list, whoever wrote it** — decided on 2026-10-08. A list here would have to
   know which add-ons may be named in a public file, and would go stale without their authors
   knowing. This add-on declares in `Listener`, which is also the reference for anyone else's.
 - **`Setup` restores other add-ons' listeners for the event**, because uninstalling this add-on
