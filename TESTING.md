@@ -370,6 +370,12 @@ and the four older endpoints. `admin-api:config` and `admin-api:validate` ran fr
   registers and that is missing. Seen in the sandbox: listeners gone after the uninstall, both
   back after the reinstall.
 
+**The values permission was proved over HTTP on 2026-10-09**, on the same floors, from the zip
+tagged `1.0.0a1`: an administrator holding it got values from both endpoints; one with the values
+scope and without the permission got shape from both, and was told which permission was missing;
+a super user key was refused with and without the bypass parameter. Every boolean option arrived
+as a boolean. Install, uninstall and the error log were clean.
+
 **An add-on that listens for the event installs cleanly where nothing defines it**, on 2.3.0 and
 on 2.2.19 Patch 2: the listener row is written, the forum and its control panel render, the error
 log stays empty, and it uninstalls. That is what lets an add-on declare without requiring this one.
@@ -418,7 +424,9 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
 - **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
   probe was run once on a development forum: logged, read back, removed. What an alert on the
   server error log makes of a row that exists for a moment has not been looked at.
-- **The upgrade path.** There is none to test until a version has been released.
+- **The upgrade path.** `1.0.0a1` is the first version built; the first upgrade to test is from it.
+  `Setup` has no upgrade steps, so there is nothing yet that could fail on an upgrade and pass on
+  an install.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.
