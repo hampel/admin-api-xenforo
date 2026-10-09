@@ -34,6 +34,7 @@ checked. For whoever changes it next.
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
 | table | `xf_hampel_admin_api_fault` — what the fault commands planted |
+| XenForo | 2.2.0 or later; five 2.3-only features are guarded where they are used |
 | config key | `hampelAdminApi.faults`, `hampelAdminApi.redact` and `hampelAdminApi.show` in `config.php` |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
@@ -375,6 +376,35 @@ tagged `1.0.0a1`: an administrator holding it got values from both endpoints; on
 scope and without the permission got shape from both, and was told which permission was missing;
 a super user key was refused with and without the bypass parameter. Every boolean option arrived
 as a boolean. Install, uninstall and the error log were clean.
+
+### XenForo 2.2, 2026-10-09
+
+The floor was lowered to 2.2.0 after reading the add-on against 2.2.19's source, and then proved
+by installing the release zip on XenForo 2.2.19 Patch 2 with PHP 7.4.33, development off. **The
+suite cannot run there** — the test framework needs 2.3 — so this run is the whole of the proof
+for 2.2, and a change to any guarded path needs it again.
+
+What was seen, over HTTP with a non-super administrator's keys unless it says otherwise:
+
+- the install imported 3 scopes, 8 permissions, 13 phrases, 8 routes, the event and the listener,
+  the forum and its control panel rendered, and all five commands listed;
+- every endpoint answered, with values mode on options and `config.php`, each boolean option a
+  boolean, the mail login and the database login withheld;
+- **every refusal held on the key alone**, which is all 2.2 offers: a super user key with and
+  without the bypass parameter, a member's key allowing every scope, an administrator with no
+  permissions, the read key on the entries endpoint, the detail key on the summary, the values
+  scope without the values permission, and no key at all;
+- the job queue reported `retrying: null` and `failed.recorded: false`;
+- `admin-api:config` and `admin-api:validate` reported each scope as defined, and `validate` ran
+  its probe: logged, read back, removed;
+- the fault commands planted a page, three members, one job, a cron entry and an add-on record;
+  the driver's eight views were served; the summary showed eight web errors across three members
+  under the planted page's template, one job error and the overdue cron entry; `fault-clean`
+  left no row behind;
+- uninstall removed everything.
+
+**Two things 2.2 does that 2.3.0 does not**, both in its favour: it logs an error raised from the
+command line, and `xf:run-jobs` is not needed to see a job fail — requesting `job.php` ran it.
 
 **An add-on that listens for the event installs cleanly where nothing defines it**, on 2.3.0 and
 on 2.2.19 Patch 2: the listener row is written, the forum and its control panel render, the error
