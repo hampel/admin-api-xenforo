@@ -13,7 +13,7 @@ By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 - XenForo 2.2.0 or later
 - PHP 7.4 or later
 
-### On XenForo 2.2
+### XenForo 2.2 limitations
 
 Everything works, and three things XenForo 2.2 does not have are reported as absent, never as
 zero:
@@ -35,89 +35,48 @@ Install the release zip through the admin control panel, or unpack it and run:
 php cmd.php xf:addon-install Hampel/AdminApi
 ```
 
-Nothing is reachable until an administrator has been given a permission and an API key has been
-created — see *Setting up access*. The add-on creates one small table, for the commands under
+Nothing is reachable until an administrator has a permission and an API key — see *Setting up
+access*. The add-on creates one small table, for the commands under
 *Testing with faults*, and removes it when uninstalled.
 
 ## Setting up access
 
-**The endpoints are part of XenForo's own REST API, and are reached the way the rest of it is:
-with an API key.** An API key is a credential created in the admin control panel and sent with
-each request in an `XF-Api-Key` header. This add-on adds no credential of its own. What it adds
-is a rule about *which* keys it accepts: one that belongs to a single administrator, who has been
-given permission for the endpoint being asked for.
+1. **Pick an administrator for the key to act as.** Under *Groups & permissions >
+   Administrators*, create or choose one who is not a super administrator.
+2. **Give that administrator the permissions**, on the same page, for the endpoints you want:
 
-XenForo's API is on unless `config.php` sets `enableApi` to `false`.
+   | endpoint | admin permission |
+   |---|---|
+   | `error-log/` | Read the server error log summary through the API |
+   | `add-ons/` | Read the add-on inventory through the API |
+   | `cron/`, `jobs/` | Read cron and job queue state through the API |
+   | `online/` | Read counts of who is online through the API |
+   | `options/` | Read which options are set, without their values, through the API |
+   | `config/` | Read which config.php settings are set, without their values, through the API |
 
-### 1. Choose the administrator the key will act as
+3. **Create the key.** Under *Setup > API keys*, add a key with:
+   - *Key type*: **User key**, with that administrator's username
+   - *Allowed scopes*: **Selected scopes only**, with `hampel_admin_api:read` ticked
+4. **Test it.**
 
-Every request is held to one administrator's permissions, so decide whose. **An account made for
-the purpose is best**: an administrator who is not a super administrator, holds only the
-permissions below, and whom nobody logs in as. Then the key can read what you chose and nothing
-else, and revoking it is deleting that account.
+   ```bash
+   curl -H "XF-Api-Key: <key>" https://forum.example.com/api/admin-api/add-ons/
+   ```
 
-Create or edit the administrator under *Groups & permissions > Administrators*.
+   A 403 names what is missing; see *Errors*. `php cmd.php admin-api:validate` checks every key
+   on the forum.
 
-### 2. Give that administrator a permission for each endpoint
+**To see what settings are set to**, not only whether they are set:
 
-On the same page, tick the permission for each endpoint the key should reach:
+- give the administrator *See what options and config.php settings are set to, with secrets
+  removed, through the API*, and XenForo's *Manage options*;
+- add the `hampel_admin_api:values` scope to the key.
 
-| to read | endpoint | admin permission |
-|---|---|---|
-| a summary of the server error log | `error-log/` | Read the server error log summary through the API |
-| installed add-ons and their versions | `add-ons/` | Read the add-on inventory through the API |
-| cron entries and the job queue | `cron/`, `jobs/` | Read cron and job queue state through the API |
-| who is online, in counts | `online/` | Read counts of who is online through the API |
-| which options are set | `options/` | Read which options are set, without their values, through the API |
-| which `config.php` settings are set | `config/` | Read which config.php settings are set, without their values, through the API |
+**To read individual error log entries**, messages included:
 
-A super administrator already holds every one of these, which is the reason not to use one.
-
-### 3. Create the API key
-
-Under *Setup > API keys*, add a key:
-
-- **Key type: *User key*,** with the username of the administrator from step 1. A *Super user
-  key* or a *Guest key* is refused by every endpoint here.
-- **Allowed scopes: *Selected scopes only*,** with `hampel_admin_api:read` ticked and nothing
-  else.
-
-Keep the key as you would a password: anyone holding it can read whatever that administrator
-has been given above.
-
-### 4. Check it works
-
-```bash
-curl -H "XF-Api-Key: <the key>" https://forum.example.com/api/admin-api/add-ons/
-```
-
-A JSON list of add-ons means the key, the scope and the permission all line up. A 403 says which
-of them did not; *Errors* lists the messages. From the server itself,
-`php cmd.php admin-api:validate` checks the same things for every key on the forum — see
-*Checking a forum is set up*.
-
-### 5. Optional: let a key see what settings are set to
-
-Out of the box the options and configuration endpoints say *whether* a setting is set, not what
-to. To get values, with secrets removed:
-
-1. give the administrator *See what options and config.php settings are set to, with secrets
-   removed, through the API* — and, for options, XenForo's own *Manage options* permission;
-2. add the `hampel_admin_api:values` scope to the key, alongside `hampel_admin_api:read`.
-
-*Values and secrets* explains what is shown and what is withheld.
-
-### 6. Optional: a second key that can read individual errors
-
-The summary returns counts and never an error's message. Reading one entry, message and stack
-trace included, is kept apart on purpose:
-
-1. give the administrator *Read individual server error log entries through the API* and
-   XenForo's own *View logs* permission;
-2. create a **separate** key for the same administrator with the `hampel_admin_api:error_detail`
-   scope and nothing else.
-
-Keeping it a second key means the one a monitoring script holds cannot read a message at all.
+- give the administrator *Read individual server error log entries through the API*, and
+  XenForo's *View logs*;
+- create a second key with only the `hampel_admin_api:error_detail` scope.
 
 ## How access is decided
 
@@ -142,7 +101,7 @@ A super administrator holds every admin permission, so the per-endpoint permissi
 ordinary administrators only.
 
 **The options and configuration permissions cover which settings are set, and no more.** Seeing
-what they are set to takes the separate permission in step 5 above, as well as its scope.
+what they are set to takes its own permission as well as its own scope, as above.
 
 ## Endpoints
 
