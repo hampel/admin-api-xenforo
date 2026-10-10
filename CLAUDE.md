@@ -65,8 +65,8 @@ is whether it can carry member data.
   asked. **Every gate runs before `error_id` is read**, so a request with no `error_id` is
   refused exactly as a real one would be, and answers 400 only when it would have been allowed.
   That is how a client finds out whether a key can read entries without reading one. It is
-  pinned by a test; keep the order. **Do not add a list, a search or a date range to it** — the summary is how an entry is
-  found, and that is what keeps this endpoint a deliberate act.
+  pinned by a test; keep the order. **Do not add a list, a search or a date range to it** — the
+  summary is how an entry is found, and that is what keeps this endpoint a deliberate act.
 - **Settings are reported as shape unless the key holds the values scope.** `src/config.php` holds
   the database password, and an option can hold an API key. `ValueShape` decides what the shape
   tier shows, by type: a boolean, a null, a number up to 999999.

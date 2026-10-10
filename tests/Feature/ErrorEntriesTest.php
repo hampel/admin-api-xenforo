@@ -181,6 +181,22 @@ class ErrorEntriesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'error_id');
 	}
 
+	/**
+	 * The same for the other gates. A request that names no entry is refused for the reason a real
+	 * one would be, so the answer to it says what the key can do without an entry being read.
+	 */
+	public function test_every_other_gate_is_checked_before_the_parameter_too()
+	{
+		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs'], self::KEY);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+
+		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+
+		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
+	}
+
 	public function test_the_detail_scope_does_not_reach_the_summaries()
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiErrorDetail', 'viewLogs'], self::KEY);
