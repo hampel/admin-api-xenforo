@@ -719,6 +719,17 @@ empty array), whether it `is_default`, and for an array how many members it has.
 |---|---|
 | `add_on_id` | only options belonging to this add-on |
 | `changed` | `1` to list only options that differ from their default |
+| `option_id` | one option id, several separated by commas, or an array |
+
+**To ask what one option is set to, ask for it by id.** `option_id` returns exactly the options
+named, whether they were changed or not, and overrides the other two filters — so an option still
+at its default is read, not inferred from its absence. `not_found` lists any id this forum has no
+option by, which is not the same as one at its default: the set of options differs between
+XenForo versions and between forums. The same permissions and redaction apply as to the list.
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/options/?option_id=useFriendlyUrls"
+```
 
 ```json
 {
@@ -802,11 +813,17 @@ add-on claims it in its declaration. What follows is what a key without the scop
 
 The settings in force from `src/config.php` merged over XenForo's defaults, one entry per dotted
 key. A boolean, a null and a small number are returned, and a string never is — configuration has
-no definitions listing choices, so the exception options have does not apply here. `db.password` is reported as a string that is set, and that is all.
+no definitions listing choices, so the exception options have does not apply here. `db.password`
+is reported as a string that is set, and that is all.
 
 | parameter | meaning |
 |---|---|
 | `changed` | `1` to list only settings that differ from XenForo's default, or have none |
+| `key` | one dotted key, several separated by commas, or an array |
+
+**`key` asks for particular settings, changed or not.** A key matches itself and everything
+beneath it, so `key=db` is every database setting and `key=debug` is one. `not_found` lists any
+key that matched nothing, and `total` counts what matched.
 
 ```json
 {

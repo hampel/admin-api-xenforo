@@ -105,4 +105,35 @@ abstract class AbstractController extends BaseController
 
 		return null;
 	}
+
+	/**
+	 * A parameter that names one thing or several: given once, as a comma-separated list, or as
+	 * an array. Anything that is not a short string is dropped, and so is everything past the
+	 * limit - a caller asking for more than that wants the whole list.
+	 *
+	 * @param string $name
+	 * @param int $limit
+	 *
+	 * @return string[]
+	 */
+	protected function filterNames($name, $limit = 100)
+	{
+		$raw = $this->request->get($name);
+		if (is_string($raw))
+		{
+			$raw = explode(',', $raw);
+		}
+
+		$names = [];
+		foreach (is_array($raw) ? $raw : [] AS $value)
+		{
+			$value = is_string($value) ? trim($value) : '';
+			if ($value !== '' && strlen($value) <= 100)
+			{
+				$names[$value] = true;
+			}
+		}
+
+		return array_slice(array_keys($names), 0, $limit);
+	}
 }

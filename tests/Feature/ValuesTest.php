@@ -356,6 +356,93 @@ class ValuesTest extends TestCase
 		}
 	}
 
+	// one option, or one setting, by name
+
+	/**
+	 * "Is this switched on?" is one value. Without a way to ask for it, the answer for an option
+	 * still at its default is an inference from its absence, which only works for a boolean.
+	 */
+	public function test_an_option_asked_for_by_id_is_returned_whether_or_not_it_was_changed()
+	{
+		$this->insertOption('adminApiTestDefaulted', self::TRUSTED, 'string', '');
+
+		$result = $this->options(['option_id' => 'adminApiTestDefaulted,adminApiTestGreeting', 'changed' => 1, 'add_on_id' => 'XF']);
+
+		$this->assertSame(['adminApiTestDefaulted', 'adminApiTestGreeting'], array_column($result['options'], 'option_id'));
+		$this->assertSame([true, false], array_column($result['options'], 'is_default'));
+		$this->assertSame('Welcome to the forum', $this->byId($result)['adminApiTestGreeting']['value']);
+		$this->assertSame(2, $result['total']);
+		$this->assertSame([], $result['not_found']);
+	}
+
+	public function test_an_option_id_this_forum_does_not_have_is_said_to_be_missing()
+	{
+		$asArray = $this->options(['option_id' => ['adminApiTestGreeting', 'adminApiTestNoSuchOption']]);
+
+		$this->assertSame(['adminApiTestGreeting'], array_column($asArray['options'], 'option_id'));
+		$this->assertSame(['adminApiTestNoSuchOption'], $asArray['not_found']);
+
+		$none = $this->options(['option_id' => 'adminApiTestNoSuchOption']);
+		$this->assertSame([], $none['options']);
+		$this->assertSame(['adminApiTestNoSuchOption'], $none['not_found']);
+	}
+
+	/**
+	 * Asking by id is not a way round anything: the same gates and the same redaction apply.
+	 */
+	public function test_asking_by_id_shows_no_more_than_the_list_would()
+	{
+		$values = $this->byId($this->options(['option_id' => 'adminApiTestApiKey,adminApiTestForeign']));
+		$this->assertNull($values['adminApiTestApiKey']['value']);
+		$this->assertNull($values['adminApiTestForeign']['value']);
+
+		$shape = $this->options(['option_id' => 'adminApiTestGreeting'], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], []);
+		$this->assertSame('shape', $shape['mode']);
+		$this->assertNull($this->byId($shape)['adminApiTestGreeting']['value']);
+	}
+
+	public function test_without_an_id_the_list_is_as_it_was_and_reports_nothing_missing()
+	{
+		$result = $this->options(['add_on_id' => self::TRUSTED]);
+
+		$this->assertSame([], $result['not_found']);
+		$this->assertGreaterThan(3, count($result['options']));
+	}
+
+	/**
+	 * A key names itself and everything beneath it.
+	 */
+	public function test_config_settings_can_be_asked_for_by_key()
+	{
+		$this->actingAsAdminWithKey(['hampelAdminApiConfig', 'hampelAdminApiValues'], self::BOTH_SCOPES);
+		$get = function (array $input)
+		{
+			return $this->replyApiResult($this->dispatch('admin-api/config/', 'api', $input));
+		};
+
+		$db = $get(['key' => 'db', 'changed' => 1]);
+		$keys = array_column($db['settings'], 'key');
+		$this->assertContains('db.host', $keys);
+		$this->assertContains('db.password', $keys);
+		foreach ($keys AS $key)
+		{
+			$this->assertStringStartsWith('db.', $key);
+		}
+		$this->assertSame(count($keys), $db['total']);
+		$this->assertSame([], $db['not_found']);
+		$this->assertNull(array_column($db['settings'], null, 'key')['db.password']['value']);
+
+		$mixed = $get(['key' => 'debug,db.host,noSuchSetting']);
+		$this->assertSame(['db.host', 'debug'], array_column($mixed['settings'], 'key'));
+		$this->assertSame(['noSuchSetting'], $mixed['not_found']);
+
+		// "db" is not a prefix of some other key that merely begins with those letters
+		$this->setConfig('dbExtra', ['thing' => true]);
+		$this->assertNotContains('dbExtra.thing', array_column($get(['key' => 'db'])['settings'], 'key'));
+
+		$this->assertSame([], $get([])['not_found']);
+	}
+
 	// config.php
 
 	public function test_config_is_shape_without_the_scope_and_values_with_it()

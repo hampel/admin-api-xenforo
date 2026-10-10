@@ -27,13 +27,25 @@ class Config extends AbstractController
 	 *
 	 * @api-out str $mode values, or shape
 	 * @api-out str $mode_reason Why values were not returned, when they were not
-	 * @api-out int $total Settings in force
+	 * @api-in str $key One dotted key, several separated by commas, or an array. A key matches itself and everything beneath it. Returns those whether changed or not
+	 *
+	 * @api-out int $total Settings in force, or matching key when it is given
 	 * @api-out int $changed How many differ from XenForo's default or have none
 	 * @api-out array $settings One entry per setting, ordered by key
 	 */
 	public function actionGet()
 	{
 		$changedOnly = $this->filter('changed', 'bool');
+
+		// a key names itself and everything beneath it: "db" is every database setting. Asking
+		// by key overrides the changed filter, as asking for an option by id does.
+		$keys = $this->filterNames('key');
+		$matched = [];
+		$total = 0;
+		if ($keys)
+		{
+			$changedOnly = false;
+		}
 
 		$shape = new ValueShape();
 		$app = $this->app();
@@ -75,6 +87,26 @@ class Config extends AbstractController
 
 		foreach ($config AS $key => $value)
 		{
+			if ($keys)
+			{
+				$wanted = false;
+				foreach ($keys AS $asked)
+				{
+					if ($key === $asked || strpos($key, rtrim($asked, '.') . '.') === 0)
+					{
+						$matched[$asked] = true;
+						$wanted = true;
+					}
+				}
+
+				if (!$wanted)
+				{
+					continue;
+				}
+			}
+
+			$total++;
+
 			$hasDefault = array_key_exists($key, $defaults);
 			$isDefault = $hasDefault && $shape->isSame($value, $defaults[$key]);
 
@@ -143,8 +175,9 @@ class Config extends AbstractController
 		return $this->apiResult([
 			'mode' => $refusal === null ? 'values' : 'shape',
 			'mode_reason' => $refusal,
-			'total' => count($config),
+			'total' => $total,
 			'changed' => $changed,
+			'not_found' => array_values(array_diff($keys, array_keys($matched))),
 			'settings' => $settings,
 		]);
 	}

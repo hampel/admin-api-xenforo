@@ -33,12 +33,14 @@ class Options extends AbstractController
 	 *
 	 * @api-in str $add_on_id Only options belonging to this add-on
 	 * @api-in bool $changed Only options that differ from their default
+	 * @api-in str $option_id One option id, several separated by commas, or an array. Returns exactly those, changed or not, and ignores the other two filters
 	 *
 	 * @api-out str $mode values, or shape
 	 * @api-out str $mode_reason Why values were not returned, when they were not
 	 * @api-out int $total Options matching add_on_id, before the changed filter
 	 * @api-out int $changed Of those, how many differ from their default
 	 * @api-out array $by_add_on The same two counts for each add-on
+	 * @api-out array $not_found Of the option ids asked for, those this forum has no option by
 	 * @api-out array $options One entry per option, ordered by option id, with the declared members of an array option
 	 */
 	public function actionGet()
@@ -46,8 +48,17 @@ class Options extends AbstractController
 		$addOnId = $this->filter('add_on_id', 'str');
 		$changedOnly = $this->filter('changed', 'bool');
 
+		// asking by id is asking what an option is set to, which the default answers as well as
+		// a change does - so it overrides both filters
+		$optionIds = $this->filterNames('option_id');
+
 		$finder = $this->finder('XF:Option')->order('option_id');
-		if ($addOnId !== '')
+		if ($optionIds)
+		{
+			$finder->where('option_id', $optionIds);
+			$changedOnly = false;
+		}
+		else if ($addOnId !== '')
 		{
 			$finder->where('addon_id', $addOnId);
 		}
@@ -128,12 +139,17 @@ class Options extends AbstractController
 
 		ksort($byAddOn);
 
+		// an option set differs between XenForo versions and between forums, so "this forum has
+		// no such option" has to be told apart from "it is at its default"
+		$notFound = array_values(array_diff($optionIds, array_column($options, 'option_id')));
+
 		return $this->apiResult([
 			'mode' => $redactor ? 'values' : 'shape',
 			'mode_reason' => $refusal,
 			'total' => $total,
 			'changed' => $changed,
 			'by_add_on' => array_values($byAddOn),
+			'not_found' => $notFound,
 			'options' => $options,
 		]);
 	}
