@@ -62,7 +62,10 @@ is whether it can carry member data.
   monitoring key cannot reach it; its own permission; and it asks for core's `viewLogs` as well,
   because the API must not be a way round the control panel. It can only be entered through one
   named entry, it caps what comes back, and it leaves out the request, user and IP address unless
-  asked. **Do not add a list, a search or a date range to it** — the summary is how an entry is
+  asked. **Every gate runs before `error_id` is read**, so a request with no `error_id` is
+  refused exactly as a real one would be, and answers 400 only when it would have been allowed.
+  That is how a client finds out whether a key can read entries without reading one. It is
+  pinned by a test; keep the order. **Do not add a list, a search or a date range to it** — the summary is how an entry is
   found, and that is what keeps this endpoint a deliberate act.
 - **Settings are reported as shape unless the key holds the values scope.** `src/config.php` holds
   the database password, and an option can hold an API key. `ValueShape` decides what the shape

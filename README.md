@@ -68,6 +68,10 @@ access*. The add-on creates one small table, for the commands under
    A 403 names what is missing; see *Errors*. `php cmd.php admin-api:validate` checks every key
    on the forum.
 
+**Recommendation**: create a new user with no other permissions, make them an administrator and give them just the
+"Admin API: ..." permissions you want them to have. This then restricts the api user to these specific roles and
+they can't do anything else.
+
 **To see what settings are set to**, not only whether they are set:
 
 - give the administrator *Admin API: View setting values*, and XenForo's *Manage options*;
