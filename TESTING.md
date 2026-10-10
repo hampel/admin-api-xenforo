@@ -487,7 +487,11 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
   characters only. Done on a development forum on 2026-10-08, where it found three names the
   rules hid needlessly and nothing they let through; a production forum has more secrets set and
   is the review that matters.
-- **Who is online, on a forum under real load.** The figures are tested with planted sessions.
+- **Who is online, on a forum under real load.** Run at volume on 2026-10-11 with generated
+  sessions on a development forum: 75,000 rows, 80% of 60,000 robots in one /16, answered in
+  about 400 ms with counts that agreed with XenForo's own, and 40,000 guests spread evenly over
+  128 networks in about 220 ms. Generated rows prove the arithmetic and the cost; what real
+  traffic looks like through it has still not been seen.
 - **`admin-api:validate` with its probe on a forum that logs it and has alerting attached.** The
   probe was run once on a development forum: logged, read back, removed. What an alert on the
   server error log makes of a row that exists for a moment has not been looked at.
