@@ -328,7 +328,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
             "origin_add_on_id": "Vendor/AddOn",
             "origin_basis": "trace",
             "template": {"template": "public:thread_view", "add_on_id": "XF"},
-            "trace": "#0 [internal function]: XF\\Template\\Templater->handleTemplateError(512, ...)\n#1 ..."
+            "trace": "#0 [internal function]: XF\\Template\\Templater->handleTemplateError(512, ...)\n#1 ...",
+            "scrubbed": 0
         }
     ]
 }
@@ -342,6 +343,15 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   the most sensitive part. With `request=1` each entry gains `user_id`, `ip_address` and
   `request` — the URL, referrer and submitted data of a web request, or the command line.
   XenForo removes passwords from the submitted data before logging it, and nothing else.
+- **Secrets quoted in an entry are taken out before it is returned**, from the message, the trace
+  and the request alike, and replaced with `[withheld]`. An HTTP client's exception quotes the
+  URL it called, and a webhook's URL is its credential. Three things are removed: any value this
+  forum's own options or `config.php` hold as a secret, wherever it appears; a URL carrying a
+  login, a webhook path or an opaque part, which keeps its scheme and host; and anything shaped
+  like a token, or given as a parameter named like one. `scrubbed` counts what was removed from
+  the entry, so a reader can tell that something was. It is a best effort on free text: a
+  secret with no recognisable shape that the forum does not itself hold will get through, which
+  is why this endpoint stays behind its own scope and permission.
 - `origin_basis` says what `origin_add_on_id` rests on: `trace`, or `message` when the trace named
   no add-on and the message did. It is `null` when there is no originating add-on.
 - Paths in `filename` and at the start of each trace line are relative to the forum's root, and a

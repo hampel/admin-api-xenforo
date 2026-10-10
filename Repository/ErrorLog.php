@@ -1,5 +1,7 @@
 <?php namespace Hampel\AdminApi\Repository;
 
+use Hampel\AdminApi\Redaction\Registry;
+use Hampel\AdminApi\Redaction\TextScrubber;
 use XF\Mvc\Entity\Repository;
 
 class ErrorLog extends Repository
@@ -258,7 +260,8 @@ class ErrorLog extends Repository
 			->where('line', $entry->line);
 
 		$addOnIds = $this->getInstalledAddOnIds();
-		$entries = [$this->describeEntry($entry, $addOnIds, $withRequest)];
+		$scrubber = $this->getTextScrubber();
+		$entries = [$this->describeEntry($entry, $addOnIds, $withRequest, $scrubber)];
 
 		// a finder asked for none returns them all
 		if ($limit > 1)
@@ -271,7 +274,7 @@ class ErrorLog extends Repository
 
 			foreach ($others AS $other)
 			{
-				$entries[] = $this->describeEntry($other, $addOnIds, $withRequest);
+				$entries[] = $this->describeEntry($other, $addOnIds, $withRequest, $scrubber);
 			}
 		}
 
@@ -281,8 +284,23 @@ class ErrorLog extends Repository
 		];
 	}
 
-	protected function describeEntry(\XF\Entity\ErrorLog $entry, array $addOnIds, $withRequest)
+	/**
+	 * Being allowed to read an error is not being allowed to read a secret that happens to be
+	 * quoted in it, so every piece of free text an entry returns goes through this first.
+	 *
+	 * @return TextScrubber
+	 */
+	protected function getTextScrubber()
 	{
+		return (new Registry($this->app()))->getTextScrubber();
+	}
+
+	protected function describeEntry(\XF\Entity\ErrorLog $entry, array $addOnIds, $withRequest, TextScrubber $scrubber)
+	{
+		// counted across the message, the trace and the request, so a reader can see that
+		// something was taken out without being told what
+		$scrubbed = 0;
+
 		$inInstall = $this->isInInstall($entry->filename);
 		$filename = $this->getRelativeFilename($entry->filename);
 		$trace = str_replace('\\', '/', $entry->trace_string);
@@ -298,7 +316,7 @@ class ErrorLog extends Repository
 			'error_id' => $entry->error_id,
 			'exception_date' => $entry->exception_date,
 			'exception_type' => $entry->exception_type,
-			'message' => $entry->message,
+			'message' => $scrubber->scrub($entry->message, $scrubbed),
 			'filename' => $filename,
 			'line' => $entry->line,
 			'in_install' => $inInstall,
@@ -315,7 +333,7 @@ class ErrorLog extends Repository
 			'origin_add_on_id' => $attribution[0],
 			'origin_basis' => $attribution[1],
 			'template' => $this->getTemplateFromTrace($inInstall ? $filename : '', $trace),
-			'trace' => $this->getRelativeTrace($entry->trace_string),
+			'trace' => $scrubber->scrub($this->getRelativeTrace($entry->trace_string), $scrubbed),
 		];
 
 		if ($withRequest)
@@ -324,8 +342,10 @@ class ErrorLog extends Repository
 			$described['ip_address'] = $entry->ip_address === ''
 				? null
 				: \XF\Util\Ip::convertIpBinaryToString($entry->ip_address);
-			$described['request'] = $request;
+			$described['request'] = $scrubber->scrubAll($request, $scrubbed);
 		}
+
+		$described['scrubbed'] = $scrubbed;
 
 		return $described;
 	}

@@ -124,6 +124,18 @@ with the two shapes and a third naming nothing installed planted in the log: bef
 all three had no originating add-on; after it the two were attributed from the message, the
 third was not, and the summary still carried no message text.
 
+**An error entry returned a Slack webhook URL whole.** Found on a real forum on 2026-10-10: an HTTP
+client's exception quotes the URL it called, the add-on returned the message verbatim, and the
+same forum's options endpoint withholds that kind of value as a known secret. The webhook was a
+dead one. Entries are now scrubbed - the forum's own secret values by exact match, URLs that carry
+a credential, and token shapes - and say how much was removed. Run over the development forum's 89
+real errors the scrubber changed none, which is the false-positive check available; a forum with
+secrets in its log is the check that it removes them, and only the planted cases have shown that.
+
+**The URL rule had to learn what a page address looks like.** Its first version cut
+`/threads/a-long-thread-title.1234/` down to the host, because a long slug is as varied as a
+token. Lower-case words joined by hyphens are now left alone.
+
 **The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
 values mode and fails if any declared secret came back, if anything returned is named or shaped
 like a credential, or if an untrusted add-on's text was returned. It runs against whatever the
@@ -311,6 +323,9 @@ vendor/bin/phpunit
   XenForo's own runner does, since one that cannot load stops `cmd.php` for the whole forum.
 - `tests/Unit/SecretsDeclarationTest.php` covers what this add-on declares about itself, and fails
   when it gains an option or a new reader of its `config.php` key, so the declaration is revisited.
+- `tests/Unit/TextScrubberTest.php` covers secrets quoted in free text: a webhook URL, a URL with a
+  login or a secret parameter, the forum's own secret values, token shapes, a request array - and
+  ordinary messages, traces and page URLs that must come through untouched.
 - `tests/Unit/RedactorTest.php` covers every redaction rule with made-up values: names that are
   credentials and names that only resemble them, values that are tokens and long values that are
   not, URLs, arrays, lists, the untrusted tier, and the forum's overrides in both directions.

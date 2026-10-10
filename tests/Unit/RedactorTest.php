@@ -267,7 +267,10 @@ class RedactorTest extends TestCase
 
 	public function test_an_ordinary_url_is_returned_whole()
 	{
-		foreach (['https://forum.example.com/community/', 'http://localhost:8025', 'https://example.com/help/terms?lang=en'] AS $url)
+		foreach ([
+			'https://forum.example.com/community/', 'http://localhost:8025', 'https://example.com/help/terms?lang=en',
+			'https://forum.example.com/threads/a-long-thread-title-about-nothing.1234/',
+		] AS $url)
 		{
 			$this->assertSame(['value' => $url, 'redactions' => []], $this->redact('homePageUrl', $url));
 		}

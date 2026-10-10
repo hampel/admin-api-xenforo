@@ -87,7 +87,47 @@ class ErrorEntriesTest extends TestCase
 			'origin_basis' => 'trace',
 			'template' => null,
 			'trace' => "#0 src/XF/Mvc/Dispatcher.php(20): go('x')\n#1 src/addons/Hampel/AdminApi/Setup.php(7): run()\n#2 {main}",
+			'scrubbed' => 0,
 		]], $result['entries']);
+	}
+
+	/**
+	 * Being allowed to read an error is not being allowed to read a secret quoted in it. Found on
+	 * a real forum: an HTTP client's exception carrying a webhook URL whole, which the options
+	 * endpoint withholds as a known secret.
+	 */
+	public function test_a_secret_quoted_in_an_entry_is_taken_out_of_everything_it_returns()
+	{
+		$this->setOption('akismetKey', 'forum-held-SECRET-value');
+
+		$db = $this->app()->db();
+		$db->insert('xf_error_log', [
+			'exception_date' => 1500,
+			'user_id' => self::USER,
+			'ip_address' => inet_pton(self::IP),
+			'exception_type' => 'GuzzleHttp\\Exception\\ClientException',
+			'message' => 'Client error: `POST https://hooks.slack.com/services/T0SECRET01/B0SECRET02/SECRETabcdefghijklmnopqrs` resulted in a `404 Not Found` response: no_service (key forum-held-SECRET-value)',
+			'filename' => self::FILE,
+			'line' => 999,
+			'trace_string' => "#0 src/XF/Http.php(20): post('https://u:SECRETpw@api.example.com/x')\n#1 {main}",
+			'request_state' => '{"url":"/hook/?token=SECRETtokenvalue","referrer":"","_GET":[],"_POST":{"note":"forum-held-SECRET-value"}}',
+		]);
+		$id = (int) $db->lastInsertId();
+
+		$entry = $this->entries(['error_id' => $id, 'limit' => 1, 'request' => 1])['entries'][0];
+
+		$this->assertSame(
+			'Client error: `POST https://hooks.slack.com/[withheld]` resulted in a `404 Not Found` response: no_service (key [withheld])',
+			$entry['message']
+		);
+		$this->assertStringNotContainsString('SECRET', json_encode($entry));
+		$this->assertStringContainsString('https://api.example.com/[withheld]', $entry['trace']);
+		$this->assertSame('[withheld]', $entry['request']['_POST']['note']);
+		$this->assertSame(5, $entry['scrubbed']);
+
+		// what is left is still the error: who raised it, where, and what came back
+		$this->assertSame('GuzzleHttp\\Exception\\ClientException', $entry['exception_type']);
+		$this->assertStringContainsString('404 Not Found', $entry['message']);
 	}
 
 	/**

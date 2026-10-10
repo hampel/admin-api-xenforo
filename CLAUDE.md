@@ -69,6 +69,11 @@ is whether it can carry member data.
   That is how a client finds out whether a key can read entries without reading one. It is
   pinned by a test; keep the order. **Do not add a list, a search or a date range to it** — the
   summary is how an entry is found, and that is what keeps this endpoint a deliberate act.
+- **Free text that leaves the forum goes through `Redaction\TextScrubber`.** The entries endpoint
+  returns a message, a trace and a request, and each can quote a credential the options endpoint
+  would withhold. Permission to read an error is not permission to read a secret inside it. Any
+  new field that returns text from the log - or from anywhere else a third party wrote it - is
+  scrubbed the same way and counted in `scrubbed`.
 - **Settings are reported as shape unless the key holds the values scope.** `src/config.php` holds
   the database password, and an option can hold an API key. `ValueShape` decides what the shape
   tier shows, by type: a boolean, a null, a number up to 999999.

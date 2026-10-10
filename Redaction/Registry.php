@@ -190,6 +190,76 @@ class Registry
 	}
 
 	/**
+	 * For free text that leaves the forum - an error's message, trace and request. It knows the
+	 * values this forum's own settings hold as secrets, so one that turns up inside a message is
+	 * removed whatever it looks like.
+	 *
+	 * @return TextScrubber
+	 */
+	public function getTextScrubber()
+	{
+		return new TextScrubber(new Redactor(), $this->getSecretValues());
+	}
+
+	/**
+	 * Every string the redaction rules would withhold from the options and from config.php, as
+	 * the forum holds them now. Never returned by anything: they are what to look for.
+	 *
+	 * Every add-on is treated as trusted here. An undeclared add-on's text is withheld from the
+	 * options endpoint as a precaution, not because it is a secret, and taking every such string
+	 * out of every error message would remove ordinary words.
+	 *
+	 * @return string[]
+	 */
+	public function getSecretValues()
+	{
+		$values = [];
+
+		$redactor = $this->getOptionRedactor();
+		foreach ($this->app->options() AS $optionId => $value)
+		{
+			$this->collectWithheld($value, $redactor->redact((string) $optionId, $value, true), $values);
+		}
+
+		$config = $this->app->config();
+		unset($config['exists'], $config['legacyExists']);
+
+		$redactor = $this->getConfigRedactor();
+		foreach ($config AS $key => $value)
+		{
+			$this->collectWithheld($value, $redactor->redact((string) $key, $value, true), $values);
+		}
+
+		return array_values(array_unique($values));
+	}
+
+	/**
+	 * @param mixed $original
+	 * @param array $result What Redactor::redact() returned for it
+	 * @param string[] $values Added to
+	 */
+	protected function collectWithheld($original, array $result, array &$values)
+	{
+		foreach ($result['redactions'] AS $redaction)
+		{
+			$value = $original;
+			foreach ($redaction['segments'] AS $segment)
+			{
+				$value = is_array($value) && array_key_exists($segment, $value) ? $value[$segment] : null;
+			}
+
+			$wrapped = [$value];
+			array_walk_recursive($wrapped, function ($leaf) use (&$values)
+			{
+				if (is_string($leaf) && $leaf !== '')
+				{
+					$values[] = $leaf;
+				}
+			});
+		}
+	}
+
+	/**
 	 * $config['hampelAdminApi']['redact'] and ['show'], each with 'options' and 'config' lists of
 	 * paths. The forum's own word, for a secret the rules miss or a value they hide needlessly.
 	 */

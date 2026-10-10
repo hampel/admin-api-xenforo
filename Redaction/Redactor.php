@@ -285,8 +285,20 @@ class Redactor
 
 		$opaque = isset($parts['user']) || isset($parts['pass']);
 
+		// a webhook's URL is its credential, whatever its path happens to look like
+		if (preg_match('#^hooks\.#i', $parts['host']) || preg_match('#/webhooks?/.#i', $parts['path'] ?? ''))
+		{
+			$opaque = true;
+		}
+
 		foreach (preg_split('#[/?&=;]#', ($parts['path'] ?? '') . '?' . ($parts['query'] ?? '')) AS $segment)
 		{
+			// lower-case words joined by hyphens are a page's address, however long and varied
+			if (preg_match('/^[a-z]+([-_.][a-z0-9]+)*$/', $segment))
+			{
+				continue;
+			}
+
 			if (strlen($segment) >= 16 && ($this->looksLikeSecret($segment) || $this->entropy($segment) >= 3.8))
 			{
 				$opaque = true;
