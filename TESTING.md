@@ -112,6 +112,14 @@ came out the same day: it put add-on names in a public file, and each entry was 
 reading of somebody else's options. A test fails if any id that is not an official add-on's is
 added to `Registry::OPTIONS`.
 
+**An add-on named only in an error's message is attributed from it, as a fallback.** Reported
+from a forum whose whole log was a missing class extension and a missing autoload file, both
+attributed to nobody: XenForo fails on those inside the core, before the add-on runs, so the trace
+cannot name it. The fallback applies only to an error raised in the core whose trace names no
+add-on, reads the first 500 characters of the message, and keeps the result only if it is an
+installed add-on's id. `from_message` and `origin_basis` say when an answer rests on it. On the
+development forum's 87 errors it changed nothing, which is the false-positive check available.
+
 **The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
 values mode and fails if any declared secret came back, if anything returned is named or shaped
 like a credential, or if an untrusted add-on's text was returned. It runs against whatever the

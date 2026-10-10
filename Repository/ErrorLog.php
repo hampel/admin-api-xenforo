@@ -13,6 +13,15 @@ class ErrorLog extends Repository
 	const MAX_DAYS = 366;
 
 	const MESSAGE_START = 40;
+
+	/**
+	 * How much of a message is searched for the add-on it names, when the trace names none. It
+	 * is searched and never returned: what comes out is an installed add-on's id or nothing.
+	 */
+	const MESSAGE_ORIGIN = 500;
+
+	const BASIS_TRACE = 'trace';
+	const BASIS_MESSAGE = 'message';
 	const TRACE_START = 8000;
 	const STATE_START = 7;
 
@@ -278,6 +287,12 @@ class ErrorLog extends Repository
 		$filename = $this->getRelativeFilename($entry->filename);
 		$trace = str_replace('\\', '/', $entry->trace_string);
 		$request = $entry->request_state;
+		$attribution = $this->getOriginAttribution(
+			$inInstall ? $filename : '',
+			$trace,
+			substr($entry->message, 0, self::MESSAGE_ORIGIN),
+			$addOnIds
+		);
 
 		$described = [
 			'error_id' => $entry->error_id,
@@ -297,7 +312,8 @@ class ErrorLog extends Repository
 				isset($request['url']) ? '{"url":' : (isset($request['cli']) ? '{"cli":' : ''),
 				strpos($trace, 'XF/Job/Manager.php(') !== false
 			),
-			'origin_add_on_id' => $this->getOriginAddOnId($inInstall ? $filename : '', $trace, $addOnIds),
+			'origin_add_on_id' => $attribution[0],
+			'origin_basis' => $attribution[1],
 			'template' => $this->getTemplateFromTrace($inInstall ? $filename : '', $trace),
 			'trace' => $this->getRelativeTrace($entry->trace_string),
 		];
@@ -354,7 +370,7 @@ class ErrorLog extends Repository
 
 		$statement = $this->db()->query('
 			SELECT exception_type, filename, line, exception_date,
-				LEFT(message, ' . self::MESSAGE_START . ') AS message_start,
+				LEFT(message, ' . self::MESSAGE_ORIGIN . ') AS message_start,
 				LEFT(trace_string, ' . self::TRACE_START . ') AS trace_start,
 				LEFT(request_state, ' . self::STATE_START . ') AS state_start,
 				(trace_string LIKE ?) AS in_job
@@ -375,9 +391,10 @@ class ErrorLog extends Repository
 
 			$severity = $this->getSeverityFromMessage($row['message_start']);
 			$origin = $this->getOrigin($row['state_start'], (bool) $row['in_job']);
-			$originAddOnId = $this->getOriginAddOnId(
+			[$originAddOnId, $basis] = $this->getOriginAttribution(
 				$inInstall ? $filename : '',
 				$row['trace_start'],
+				$row['message_start'],
 				$addOnIds
 			);
 
@@ -385,7 +402,7 @@ class ErrorLog extends Repository
 
 			$this->addToGroup($bySeverity, 'severity', $severity, 1, $date);
 			$this->addTemplateToGroup($byTemplate, $template, $date);
-			$this->addToGroup($byOriginAddOn, 'add_on_id', $originAddOnId, 1, $date);
+			$this->addOriginToGroup($byOriginAddOn, $originAddOnId, $basis, $date);
 			$byOrigin[$origin]++;
 
 			if (!isset($signatures[$key]))
@@ -395,7 +412,7 @@ class ErrorLog extends Repository
 			}
 
 			$signatures[$key]['origins'][$origin]++;
-			$this->addToGroup($signatures[$key]['origin_add_ons'], 'add_on_id', $originAddOnId, 1, $date);
+			$this->addOriginToGroup($signatures[$key]['origin_add_ons'], $originAddOnId, $basis, $date);
 			$this->addTemplateToGroup($signatures[$key]['templates'], $template, $date);
 			$severities[$key][$severity === null ? '' : $severity] = true;
 		}
@@ -579,6 +596,89 @@ class ErrorLog extends Repository
 	 *
 	 * @return array|null template, add_on_id
 	 */
+	/**
+	 * The originating add-on, and what the answer rests on.
+	 *
+	 * The trace is the better witness and is asked first. But the two commonest ways an add-on
+	 * takes a forum down can never have an add-on frame in the trace, because XenForo fails before
+	 * any of the add-on's code runs: a class extension whose class is missing, and a Composer
+	 * autoload file that is not there. Both name the add-on in the message. So an error raised in
+	 * the core, whose trace names no add-on, is attributed from the start of its message - and the
+	 * answer is labelled, since a message can quote whatever was being handled.
+	 *
+	 * @param string $filename Relative, or empty for a file outside the install
+	 * @param string $traceStart
+	 * @param string $messageStart
+	 * @param string[] $addOnIds
+	 *
+	 * @return array [add-on id or null, BASIS_TRACE, BASIS_MESSAGE or null]
+	 */
+	public function getOriginAttribution($filename, $traceStart, $messageStart, array $addOnIds)
+	{
+		$addOnId = $this->getOriginAddOnId($filename, $traceStart, $addOnIds);
+		if ($addOnId !== null)
+		{
+			return [$addOnId, self::BASIS_TRACE];
+		}
+
+		if ($this->getAddOnIdFromFilename($filename, $addOnIds) !== 'XF')
+		{
+			return [null, null];
+		}
+
+		$addOnId = $this->getAddOnIdFromMessage($messageStart, $addOnIds);
+
+		return [$addOnId, $addOnId === null ? null : self::BASIS_MESSAGE];
+	}
+
+	/**
+	 * An installed add-on named in a message, by a path under src/addons or by the namespace a
+	 * class name begins with. Whatever is found is looked up in the list of installed add-ons, so
+	 * the result is one of their ids or null - never text from the message.
+	 *
+	 * @param string $messageStart
+	 * @param string[] $addOnIds
+	 *
+	 * @return string|null
+	 */
+	public function getAddOnIdFromMessage($messageStart, array $addOnIds)
+	{
+		$candidates = [];
+
+		if (preg_match_all('~src[/\\\\]addons[/\\\\]([A-Za-z0-9_]+)(?:[/\\\\]([A-Za-z0-9_]+))?[/\\\\]~', $messageStart, $matches, PREG_SET_ORDER))
+		{
+			foreach ($matches AS $match)
+			{
+				$candidates[] = [$match[1], $match[2] ?? ''];
+			}
+		}
+
+		if (preg_match_all('~(?<![A-Za-z0-9_\\\\])([A-Z][A-Za-z0-9_]*)\\\\(?:([A-Z][A-Za-z0-9_]*)\\\\)?~', $messageStart, $matches, PREG_SET_ORDER))
+		{
+			foreach ($matches AS $match)
+			{
+				$candidates[] = [$match[1], $match[2] ?? ''];
+			}
+		}
+
+		foreach ($candidates AS $candidate)
+		{
+			[$first, $second] = $candidate;
+
+			if ($second !== '' && in_array("$first/$second", $addOnIds, true))
+			{
+				return "$first/$second";
+			}
+
+			if ($first !== 'XF' && in_array($first, $addOnIds, true))
+			{
+				return $first;
+			}
+		}
+
+		return null;
+	}
+
 	public function getTemplateFromTrace($filename, $traceStart, ?array $templates = null)
 	{
 		$paths = [$filename];
@@ -807,6 +907,28 @@ class ErrorLog extends Repository
 
 		$group[$index]['count'] += $count;
 		$group[$index]['newest_date'] = max($group[$index]['newest_date'], $last);
+	}
+
+	/**
+	 * Counts an error against its originating add-on, and separately how many of those rest on
+	 * the message alone.
+	 */
+	protected function addOriginToGroup(array &$group, $addOnId, $basis, $date)
+	{
+		$index = $addOnId === null ? '' : $addOnId;
+
+		if (!isset($group[$index]))
+		{
+			$group[$index] = ['add_on_id' => $addOnId, 'count' => 0, 'from_message' => 0, 'newest_date' => 0];
+		}
+
+		$group[$index]['count']++;
+		$group[$index]['newest_date'] = max($group[$index]['newest_date'], $date);
+
+		if ($basis === self::BASIS_MESSAGE)
+		{
+			$group[$index]['from_message']++;
+		}
 	}
 
 	protected function sortGroup(array $group)

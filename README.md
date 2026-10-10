@@ -171,7 +171,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
         {"add_on_id": "XF", "count": 12, "newest_date": 1790771401}
     ],
     "by_origin_add_on": [
-        {"add_on_id": "Vendor/AddOn", "count": 6, "newest_date": 1790771401}
+        {"add_on_id": "Vendor/AddOn", "count": 6, "from_message": 0, "newest_date": 1790771401}
     ],
     "by_template": [
         {"template": "public:thread_view", "add_on_id": "XF", "count": 4, "newest_date": 1790771401}
@@ -194,7 +194,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "severity": "E_USER_WARNING",
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
             "origin_add_ons": [
-                {"add_on_id": "Vendor/AddOn", "count": 4, "newest_date": 1790771401}
+                {"add_on_id": "Vendor/AddOn", "count": 4, "from_message": 0, "newest_date": 1790771401}
             ],
             "templates": [
                 {"template": "public:thread_view", "add_on_id": "XF", "count": 4, "newest_date": 1790771401}
@@ -238,6 +238,15 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   is usually the cause and occasionally one that only wraps a core class every request passes
   through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
   `origin_add_ons` the same for one signature, since one line of core is reached from many places.
+- **`from_message` counts the errors attributed from the message, because the trace named
+  nobody.** The two commonest ways an add-on takes a forum down fail inside the core before any
+  of the add-on's code runs — a class extension whose class is missing, and a Composer autoload
+  file that is not there — so their traces are all core, and only the message names the add-on.
+  For an error raised in the core whose trace names no add-on, the start of the message is
+  searched for a path under `src/addons/` or a class namespace, and the result is kept only if it
+  is an installed add-on's id. No part of the message is returned. It is the weaker lead: a
+  message can quote whatever was being handled. `location` still says where the error was
+  raised, which for these is `core`.
 - **`members` is how many different logged-in members an error happened to**, for the whole window
   and for each signature, and `member_errors` is how many of the errors those were. A guest, the
   command line and a job count as nobody, so `members: 0` beside a non-zero `web` origin means
@@ -317,6 +326,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
             "severity": "E_USER_WARNING",
             "origin": "web",
             "origin_add_on_id": "Vendor/AddOn",
+            "origin_basis": "trace",
             "template": {"template": "public:thread_view", "add_on_id": "XF"},
             "trace": "#0 [internal function]: XF\\Template\\Templater->handleTemplateError(512, ...)\n#1 ..."
         }
@@ -332,6 +342,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   the most sensitive part. With `request=1` each entry gains `user_id`, `ip_address` and
   `request` — the URL, referrer and submitted data of a web request, or the command line.
   XenForo removes passwords from the submitted data before logging it, and nothing else.
+- `origin_basis` says what `origin_add_on_id` rests on: `trace`, or `message` when the trace named
+  no add-on and the message did. It is `null` when there is no originating add-on.
 - Paths in `filename` and at the start of each trace line are relative to the forum's root, and a
   file outside it is given by name only, as in the summary. **The message, and the arguments
   inside a trace, are returned as logged** — a database error's message carries the SQL and the

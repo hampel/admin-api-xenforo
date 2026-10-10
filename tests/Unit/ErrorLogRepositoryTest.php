@@ -280,4 +280,47 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertNull($repo->getTemplateFromTrace('', $notCompiled, self::TEMPLATES));
 		$this->assertNull($repo->getTemplateFromTrace('src/XF/Mvc/Dispatcher.php', '', self::TEMPLATES));
 	}
+
+	public function test_an_add_on_named_in_a_message_is_found_by_its_path_or_its_namespace()
+	{
+		$repo = $this->repo();
+		$ids = ['XF', 'XFRM', 'Vendor/First', 'Solo'];
+
+		foreach ([
+			'require(/srv/forum/src/addons/Vendor/First/vendor/composer/autoload_files.php): Failed to open stream' => 'Vendor/First',
+			'Could not find class Vendor\\First\\XF\\Entity\\Forum when attempting to extend XF\\Entity\\Forum' => 'Vendor/First',
+			'Class "Solo\\Service\\Thing" not found' => 'Solo',
+			'include(src\\addons\\Solo\\Listener.php): failed' => 'Solo',
+			'Could not find class XFRM\\Entity\\ResourceItem when attempting to extend' => 'XFRM',
+			'Call to undefined method XF\\Entity\\User::nope()' => null,
+			'Could not find class Vendor\\Second\\Thing' => null,
+			'Class "Symfony\\Component\\Mailer\\Mailer" not found' => null,
+			'the member wrote about vendor/first and Solo without a namespace' => null,
+			'' => null,
+		] AS $message => $expected)
+		{
+			$this->assertSame($expected, $repo->getAddOnIdFromMessage($message, $ids), $message);
+		}
+	}
+
+	/**
+	 * The trace is asked first and wins. The message is only asked about an error raised in the
+	 * core, and its answer is labelled.
+	 */
+	public function test_the_message_is_a_fallback_for_core_errors_and_says_so()
+	{
+		$repo = $this->repo();
+		$ids = ['XF', 'Vendor/First', 'Vendor/Second'];
+		$message = 'Could not find class Vendor\\Second\\Thing';
+		$coreTrace = "#0 src/XF/App.php(10): x()";
+		$addOnTrace = "#0 src/addons/Vendor/First/Thing.php(4): x()";
+
+		$this->assertSame(['Vendor/First', 'trace'], $repo->getOriginAttribution('src/XF/Extension.php', $addOnTrace, $message, $ids));
+		$this->assertSame(['Vendor/Second', 'message'], $repo->getOriginAttribution('src/XF/Extension.php', $coreTrace, $message, $ids));
+		$this->assertSame([null, null], $repo->getOriginAttribution('src/XF/Extension.php', $coreTrace, 'nothing named', $ids));
+
+		// not raised in the core: a file outside the install, or one nobody can place
+		$this->assertSame([null, null], $repo->getOriginAttribution('', $coreTrace, $message, $ids));
+		$this->assertSame([null, null], $repo->getOriginAttribution('library/Other.php', $coreTrace, $message, $ids));
+	}
 }

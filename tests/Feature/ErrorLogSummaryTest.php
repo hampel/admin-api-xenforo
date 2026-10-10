@@ -146,7 +146,7 @@ class ErrorLogSummaryTest extends TestCase
 			'severity' => 'E_WARNING',
 			'origins' => ['web' => 3, 'cli' => 0, 'job' => 0, 'unknown' => 0],
 			'origin_add_ons' => [
-				['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
+				['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'from_message' => 0, 'newest_date' => 1300],
 			],
 			'templates' => [],
 		], $summary['signatures'][0]);
@@ -170,14 +170,54 @@ class ErrorLogSummaryTest extends TestCase
 		$summary = $this->summary();
 
 		$this->assertSame([
-			['add_on_id' => 'Hampel/AdminApi', 'count' => 4, 'newest_date' => 1400],
-			['add_on_id' => null, 'count' => 3, 'newest_date' => 1700],
+			['add_on_id' => 'Hampel/AdminApi', 'count' => 4, 'from_message' => 0, 'newest_date' => 1400],
+			['add_on_id' => null, 'count' => 3, 'from_message' => 0, 'newest_date' => 1700],
 		], $summary['by_origin_add_on']);
 
 		$this->assertSame([
-			['add_on_id' => null, 'count' => 1, 'newest_date' => 1500],
-			['add_on_id' => 'Hampel/AdminApi', 'count' => 1, 'newest_date' => 1400],
+			['add_on_id' => null, 'count' => 1, 'from_message' => 0, 'newest_date' => 1500],
+			['add_on_id' => 'Hampel/AdminApi', 'count' => 1, 'from_message' => 0, 'newest_date' => 1400],
 		], $this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['origin_add_ons']);
+	}
+
+	/**
+	 * The two commonest ways an add-on takes a forum down fail inside the core before any of the
+	 * add-on's code has run, so their traces never name it. Their messages do.
+	 */
+	public function test_a_core_error_whose_trace_names_no_add_on_is_attributed_from_its_message()
+	{
+		$coreTrace = "#0 src/XF/Extension.php(190): XF\\Extension->extendClass()\n#1 index.php(20): XF\\App->run()";
+
+		$this->insertError(1900, 'Exception', 'src/XF/Extension.php', 217,
+			'Could not find class Hampel\\AdminApi\\XF\\Entity\\Forum when attempting to extend XF\\Entity\\Forum',
+			$coreTrace, self::WEB);
+		$this->insertError(1910, 'ErrorException', 'src/XF/ComposerAutoload.php', 49,
+			'[E_WARNING] require(/var/www/forum/src/addons/Hampel/AdminApi/vendor/composer/autoload_namespaces.php): Failed to open stream',
+			$coreTrace, self::WEB);
+		// names nothing installed, and a core class is not an add-on
+		$this->insertError(1920, 'Exception', 'src/XF/Extension.php', 217,
+			'Could not find class Some\\Stranger\\Thing when attempting to extend XF\\Entity\\Forum',
+			$coreTrace, self::WEB);
+
+		$summary = $this->summary(['until' => 2000]);
+		$groups = array_column($summary['by_origin_add_on'], null, 'add_on_id');
+
+		$this->assertSame(2, $groups['Hampel/AdminApi']['from_message']);
+		$this->assertSame(6, $groups['Hampel/AdminApi']['count']);
+		$this->assertSame(0, $groups['']['from_message']);
+
+		$this->assertSame([
+			['add_on_id' => 'Hampel/AdminApi', 'count' => 1, 'from_message' => 1, 'newest_date' => 1910],
+		], $this->signature($summary, 'src/XF/ComposerAutoload.php')['origin_add_ons']);
+
+		$extension = array_column($this->signature($summary, 'src/XF/Extension.php')['origin_add_ons'], null, 'add_on_id');
+		$this->assertSame(1, $extension['Hampel/AdminApi']['from_message']);
+		$this->assertSame(1, $extension['']['count']);
+
+		// where it was raised is still the core, and no part of a message is returned
+		$this->assertSame('core', $this->signature($summary, 'src/XF/ComposerAutoload.php')['location']);
+		$this->assertStringNotContainsString('autoload_namespaces', json_encode($summary));
+		$this->assertStringNotContainsString('Stranger', json_encode($summary));
 	}
 
 	/**
