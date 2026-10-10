@@ -119,6 +119,10 @@ cannot name it. The fallback applies only to an error raised in the core whose t
 add-on, reads the first 500 characters of the message, and keeps the result only if it is an
 installed add-on's id. `from_message` and `origin_basis` say when an answer rests on it. On the
 development forum's 87 errors it changed nothing, which is the false-positive check available.
+Proved from the `1.0.0a4` zip on XenForo 2.2.19 Patch 2 with PHP 7.4, upgrading from `1.0.0a3`
+with the two shapes and a third naming nothing installed planted in the log: before the upgrade
+all three had no originating add-on; after it the two were attributed from the message, the
+third was not, and the summary still carried no message text.
 
 **The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
 values mode and fails if any declared secret came back, if anything returned is named or shaped
