@@ -1,5 +1,6 @@
 <?php namespace Tests\Feature;
 
+use Hampel\AdminApi\Repository\Online;
 use Hampel\Testing\Concerns\UsesDatabaseTransactions;
 use Tests\TestCase;
 
@@ -87,6 +88,39 @@ class OnlineTest extends TestCase
 		$this->assertGreaterThanOrEqual(1, $state['errors']);
 		$this->assertSame($state['total'], $state['members'] + $state['guests'] + $state['robots']);
 		$this->assertSame((int) $this->app()->options()->onlineStatusTimeout, $state['window_minutes']);
+	}
+
+	/**
+	 * Only the busiest actions are named. The rest are one entry with no name, so that the list
+	 * adds up to the total and a reader can see how much it leaves out.
+	 */
+	public function test_it_counts_the_actions_past_the_busiest_together()
+	{
+		$now = \XF::$time;
+		for ($i = 1; $i <= Online::MAX_ACTIONS + 5; $i++)
+		{
+			$this->app()->db()->insert('xf_session_activity', [
+				'user_id' => 0,
+				'unique_key' => inet_pton("192.0.2.$i"),
+				'ip' => inet_pton("192.0.2.$i"),
+				'controller_name' => self::CONTROLLER,
+				'controller_action' => "Rare$i",
+				'view_state' => 'valid',
+				'params' => '',
+				'view_date' => $now - 30,
+				'robot_key' => '',
+			]);
+		}
+
+		$state = $this->state();
+		$last = end($state['by_action']);
+
+		$this->assertCount(Online::MAX_ACTIONS + 1, $state['by_action']);
+		$this->assertNull($last['controller']);
+		$this->assertNull($last['action']);
+		$this->assertGreaterThanOrEqual(5, $last['count']);
+		$this->assertSame($last['count'], $last['members'] + $last['guests'] + $last['robots']);
+		$this->assertSame($state['total'], array_sum(array_column($state['by_action'], 'count')));
 	}
 
 	public function test_it_names_each_robot()

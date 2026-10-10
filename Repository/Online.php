@@ -25,7 +25,7 @@ class Online extends Repository
 		$minutes = max(1, (int) $this->options()->onlineStatusTimeout);
 		$since = $now - $minutes * 60;
 
-		$counts = $db->fetchRow('
+		$totals = $db->fetchRow('
 			SELECT COUNT(*) AS total,
 				SUM(user_id > 0) AS members,
 				SUM(user_id = 0 AND robot_key = \'\') AS guests,
@@ -74,29 +74,44 @@ class Online extends Repository
 			WHERE view_date >= ?
 			GROUP BY controller_name, controller_action
 			ORDER BY session_count DESC, controller_name, controller_action
-			LIMIT ' . self::MAX_ACTIONS . '
 		', $since);
+		$other = null;
 		foreach ($rows AS $row)
 		{
-			$byAction[] = [
-				'controller' => $row['controller_name'],
-				'action' => $row['controller_action'],
+			$counts = [
 				'count' => (int) $row['session_count'],
 				'members' => (int) $row['members'],
 				'guests' => (int) $row['guests'],
 				'robots' => (int) $row['robots'],
 			];
+
+			if (count($byAction) < self::MAX_ACTIONS)
+			{
+				$byAction[] = ['controller' => $row['controller_name'], 'action' => $row['controller_action']] + $counts;
+				continue;
+			}
+
+			// past the busiest so many, counted together so the list still adds up to the total
+			$other = $other ?: ['controller' => null, 'action' => null, 'count' => 0, 'members' => 0, 'guests' => 0, 'robots' => 0];
+			foreach ($counts AS $key => $value)
+			{
+				$other[$key] += $value;
+			}
+		}
+		if ($other)
+		{
+			$byAction[] = $other;
 		}
 
 		return [
 			'now' => $now,
 			'window_minutes' => $minutes,
-			'total' => (int) $counts['total'],
-			'members' => (int) $counts['members'],
-			'guests' => (int) $counts['guests'],
-			'robots' => (int) $counts['robots'],
-			'errors' => (int) $counts['errors'],
-			'newest_date' => $counts['newest_date'] === null ? null : (int) $counts['newest_date'],
+			'total' => (int) $totals['total'],
+			'members' => (int) $totals['members'],
+			'guests' => (int) $totals['guests'],
+			'robots' => (int) $totals['robots'],
+			'errors' => (int) $totals['errors'],
+			'newest_date' => $totals['newest_date'] === null ? null : (int) $totals['newest_date'],
 			'guest_networks' => $this->getNetworks($since, 'robot_key = \'\''),
 			'robot_networks' => $this->getNetworks($since, 'robot_key <> \'\''),
 			'by_robot' => $byRobot,

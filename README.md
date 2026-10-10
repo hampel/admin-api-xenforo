@@ -582,7 +582,8 @@ that do not identify themselves end up. No member is named and no address is ret
 - `by_robot` names the robots, most numerous first, up to fifty; any beyond that, or with a key
   that is not shaped like one, are counted together under a `null` key.
 - `by_action` is what sessions were last doing — the controller and action, never the thread or
-  page — for the 25 busiest.
+  page — for the 25 busiest; the rest are counted together in a last entry whose `controller`
+  and `action` are `null`.
 - `errors` is how many sessions' last request ended in an error.
 
 For alerting, the numbers to watch are `guests`, `robots` and `guest_networks.largest_24`. This
