@@ -131,6 +131,11 @@ dead one. Entries are now scrubbed - the forum's own secret values by exact matc
 a credential, and token shapes - and say how much was removed. Run over the development forum's 89
 real errors the scrubber changed none, which is the false-positive check available; a forum with
 secrets in its log is the check that it removes them, and only the planted cases have shown that.
+Proved from the `1.0.0a5` zip on XenForo 2.2.19 Patch 2 with PHP 7.4, upgrading from `1.0.0a4`: an
+entry quoting a made-up webhook URL, a URL with a login, a token parameter and a value the forum
+held as its Akismet key came back whole before the upgrade and with all of them removed after it,
+from the message, the trace and the request; an ordinary entry with a thread URL in its message
+came back unchanged.
 
 **The URL rule had to learn what a page address looks like.** Its first version cut
 `/threads/a-long-thread-title.1234/` down to the host, because a long slug is as varied as a
