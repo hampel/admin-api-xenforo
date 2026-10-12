@@ -450,6 +450,14 @@ log stays empty, and it uninstalls. That is what lets an add-on declare without 
 To repeat it: build the release, and install the zip by path on a fresh instance with
 `$config['development']['enabled'] = false`.
 
+Proved from the `1.0.0a6` zip on XenForo 2.2.19 Patch 2 with PHP 7.4.33, upgrading from `1.0.0a5`,
+on 2026-10-12: the upgrade imported the release's own data, every PHP file linted, the job queue
+ran empty and no error was logged. Over HTTP all seven endpoints answered; `option_id` and `key`
+each returned exactly what was asked for and listed the made-up name under `not_found`, with the
+database password still withheld; a super user key was refused; and the entries endpoint answered
+400 with no `error_id`. The remainder entry in `by_action` was not seen there, since a fresh forum
+has one action; the suite and the generated-session run cover it.
+
 ### The fault commands, the same day and the same way
 
 On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
