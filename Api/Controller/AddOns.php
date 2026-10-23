@@ -10,6 +10,8 @@ class AddOns extends AbstractController
 		return 'hampelAdminApiAddOns';
 	}
 
+	const PENDING_ACTIONS = ['install', 'upgrade', 'uninstall'];
+
 	/**
 	 * @api-desc Lists every add-on the forum knows about - installed, or present on disk and not
 	 *   installed - with the installed version beside the version of the files on disk, and the
@@ -19,9 +21,9 @@ class AddOns extends AbstractController
 	 * @api-out array $xf XenForo's own version_id and version_string
 	 * @api-out str $php_version
 	 * @api-out array $add_ons One entry per add-on, ordered by title, with its versions and whether an install, upgrade or uninstall is under way or was left unfinished
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
-	const PENDING_ACTIONS = ['install', 'upgrade', 'uninstall'];
-
 	public function actionGet()
 	{
 		$addOns = [];

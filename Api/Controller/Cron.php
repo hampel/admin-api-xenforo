@@ -24,6 +24,8 @@ class Cron extends AbstractController
 	 * @api-out int $oldest_overdue_date The earliest next run among overdue entries, or null
 	 * @api-out array $runner The job that runs cron entries: queued, next_run and last_run_date
 	 * @api-out array $entries One entry per cron entry, ordered by next run
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{

@@ -46,6 +46,8 @@ class ErrorLog extends AbstractController
 	 * @api-out array $signatures Count, first and last date for each type, file and line
 	 * @api-out int $signature_count Distinct signatures in the window, before the limit
 	 * @api-out array $log Total, oldest and newest date for the whole log, whatever the window
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{

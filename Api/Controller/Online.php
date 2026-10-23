@@ -30,6 +30,8 @@ class Online extends AbstractController
 	 * @api-out array $robot_networks The same for robot sessions
 	 * @api-out array $by_robot Count for each robot
 	 * @api-out array $by_action Counts for what sessions were last doing, by controller and action
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{

@@ -27,6 +27,10 @@ class ErrorEntries extends AbstractController
 	/**
 	 * Everything here is in the server error log in the admin control panel, so the key's user
 	 * must be allowed to read that log there as well. The API is not a way round it.
+	 *
+	 * @param string $action
+	 *
+	 * @return void
 	 */
 	protected function preDispatchController($action, ParameterBag $params)
 	{
@@ -48,6 +52,8 @@ class ErrorEntries extends AbstractController
 	 *
 	 * @api-out int $signature_total How many entries the log holds for this type, file and line
 	 * @api-out array $entries The entry asked for, then the others, newest first
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{

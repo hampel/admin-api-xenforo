@@ -32,6 +32,8 @@ class Config extends AbstractController
 	 * @api-out int $total Settings in force, or matching key when it is given
 	 * @api-out int $changed How many differ from XenForo's default or have none
 	 * @api-out array $settings One entry per setting, ordered by key
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{

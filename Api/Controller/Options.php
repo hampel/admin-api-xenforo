@@ -42,6 +42,8 @@ class Options extends AbstractController
 	 * @api-out array $by_add_on The same two counts for each add-on
 	 * @api-out array $not_found Of the option ids asked for, those this forum has no option by
 	 * @api-out array $options One entry per option, ordered by option id, with the declared members of an array option
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{
@@ -157,6 +159,10 @@ class Options extends AbstractController
 	/**
 	 * A radio or select option lists its choices in its definition, which ships with the add-on
 	 * and is public. Its value is returned when it is one of them.
+	 *
+	 * @param mixed $value
+	 *
+	 * @return array<string, mixed> As ValueShape describes it
 	 */
 	protected function describeOption(\XF\Entity\Option $option, $value, ValueShape $shape)
 	{
@@ -173,7 +179,10 @@ class Options extends AbstractController
 	 * allow any key at all; members present only on that allowance are not listed, since such a
 	 * key is data and not a setting. Nothing is followed past the first level.
 	 *
-	 * @return array|null Null for an option that is not an array or declares no members
+	 * @param mixed $value
+	 *
+	 * @return array<string, array<string, mixed>>|null Null for an option that is not an array or
+	 *                                                   declares no members
 	 */
 	protected function describeMembers(\XF\Entity\Option $option, $value, ValueShape $shape)
 	{

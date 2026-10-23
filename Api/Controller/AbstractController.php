@@ -34,6 +34,10 @@ abstract class AbstractController extends BaseController
 	/**
 	 * Three gates, and the order matters: the first is the one core cannot supply, the second only
 	 * narrows, and the third is the boundary.
+	 *
+	 * @param string $action
+	 *
+	 * @return void
 	 */
 	protected function preDispatchController($action, ParameterBag $params)
 	{
@@ -52,6 +56,8 @@ abstract class AbstractController extends BaseController
 	 *
 	 * XenForo 2.2 has no OAuth, so no token and no method to ask for one: there the key is all
 	 * there is to test.
+	 *
+	 * @return void
 	 */
 	protected function assertUserApiKey()
 	{
@@ -69,6 +75,10 @@ abstract class AbstractController extends BaseController
 	 * Deliberately not core's assertAdminPermission(), which returns early when the request is
 	 * bypassing permissions. assertUserApiKey() already makes that impossible; this does not
 	 * depend on it having run.
+	 *
+	 * @param string $permissionId
+	 *
+	 * @return void
 	 */
 	protected function assertKeyUserAdminPermission($permissionId)
 	{

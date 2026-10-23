@@ -27,6 +27,8 @@ class Jobs extends AbstractController
 	 * @api-out int $oldest_due_date The earliest trigger date among due jobs, or null
 	 * @api-out array $by_class The same counts for each job class
 	 * @api-out array $failed Failed jobs: whether they are recorded, total, oldest_date, newest_date, by_class, and signatures by exception class, file and line
+	 *
+	 * @return \XF\Mvc\Reply\AbstractReply
 	 */
 	public function actionGet()
 	{
