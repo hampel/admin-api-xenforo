@@ -64,16 +64,16 @@
         },
         {
             "name": "hampel/xenforo-phpstan",
-            "version": "0.8.0",
+            "version": "0.8.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hampel/xenforo-phpstan.git",
-                "reference": "94985b80cd4bd626adf215f3af7ad3e97a5daac8"
+                "reference": "318a9f42f6a7caecbff19b4e37abfae2b8d4ebcd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hampel/xenforo-phpstan/zipball/94985b80cd4bd626adf215f3af7ad3e97a5daac8",
-                "reference": "94985b80cd4bd626adf215f3af7ad3e97a5daac8",
+                "url": "https://api.github.com/repos/hampel/xenforo-phpstan/zipball/318a9f42f6a7caecbff19b4e37abfae2b8d4ebcd",
+                "reference": "318a9f42f6a7caecbff19b4e37abfae2b8d4ebcd",
                 "shasum": ""
             },
             "require": {
@@ -124,7 +124,7 @@
                 "issues": "https://github.com/hampel/xenforo-phpstan/issues",
                 "source": "https://github.com/hampel/xenforo-phpstan"
             },
-            "time": "2026-10-23T07:44:51+00:00"
+            "time": "2026-10-23T07:52:08+00:00"
         },
         {
             "name": "hampel/xenforo-test-framework",
