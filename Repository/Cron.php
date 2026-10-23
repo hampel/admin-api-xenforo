@@ -17,7 +17,7 @@ class Cron extends Repository
 	 *
 	 * @param int $now
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public function getState($now)
 	{

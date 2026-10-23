@@ -25,7 +25,7 @@ class Job extends Repository
 	 *
 	 * @param int $now
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public function getState($now)
 	{
@@ -96,7 +96,7 @@ class Job extends Repository
 	 * XenForo only records a failed job when debug mode is on, so an empty result on a production
 	 * forum means nothing was recorded, not that nothing failed.
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	protected function getFailedState()
 	{
@@ -167,7 +167,7 @@ class Job extends Repository
 	 *
 	 * @param int $total
 	 *
-	 * @return array signatures, examined
+	 * @return array<string, mixed> signatures, examined
 	 */
 	protected function getFailedSignatures($total)
 	{
@@ -252,7 +252,7 @@ class Job extends Repository
 	 * @param string $exceptionStart
 	 * @param ErrorLog $errorLog
 	 *
-	 * @return array exception_type, filename, line, in_install, trace
+	 * @return array<string, mixed> exception_type, filename, line, in_install, trace
 	 */
 	public function getRaisedAt($exceptionStart, ErrorLog $errorLog)
 	{

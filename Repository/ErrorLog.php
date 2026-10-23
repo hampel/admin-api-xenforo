@@ -31,7 +31,11 @@ class ErrorLog extends Repository
 
 	const TEMPLATE_TYPES = ['public', 'admin', 'email'];
 
-	/** @var array|null "type:title" => add-on id, for every template the forum has */
+	/**
+	 * "type:title" => add-on id, for every template the forum has
+	 *
+	 * @var array<string, string|null>|null
+	 */
 	protected $templates;
 
 	const LOCATIONS = ['core', 'add_on', 'add_on_vendor', 'add_on_tests', 'vendor', 'other', 'outside'];
@@ -59,7 +63,7 @@ class ErrorLog extends Repository
 	 * @param int $until
 	 * @param int $limit
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public function getSummary($since, $until, $limit)
 	{
@@ -209,7 +213,7 @@ class ErrorLog extends Repository
 	 * @param int $since
 	 * @param int $until
 	 * @param string $extraWhere
-	 * @param array $extraParams
+	 * @param array<mixed> $extraParams
 	 *
 	 * @return int
 	 */
@@ -236,7 +240,7 @@ class ErrorLog extends Repository
 	 * @param int $limit
 	 * @param bool $withRequest
 	 *
-	 * @return array|null Null when there is no such entry
+	 * @return array<string, mixed>|null Null when there is no such entry
 	 */
 	public function getEntries($errorId, $limit, $withRequest)
 	{
@@ -295,6 +299,12 @@ class ErrorLog extends Repository
 		return (new Registry($this->app()))->getTextScrubber();
 	}
 
+	/**
+	 * @param string[] $addOnIds
+	 * @param bool $withRequest Include the request, user id and IP address
+	 *
+	 * @return array<string, mixed>
+	 */
 	protected function describeEntry(\XF\Entity\ErrorLog $entry, array $addOnIds, $withRequest, TextScrubber $scrubber)
 	{
 		// counted across the message, the trace and the request, so a reader can see that
@@ -375,9 +385,9 @@ class ErrorLog extends Repository
 	 * @param int $since
 	 * @param int $until
 	 * @param string[] $addOnIds
-	 * @param array $signatures Updated in place
+	 * @param array<array<string, mixed>> $signatures Updated in place
 	 *
-	 * @return array rows, by_severity, by_origin, by_origin_add_on, by_template
+	 * @return array<string, mixed> rows, by_severity, by_origin, by_origin_add_on, by_template
 	 */
 	protected function examineRows($since, $until, array $addOnIds, array &$signatures)
 	{
@@ -471,7 +481,7 @@ class ErrorLog extends Repository
 	 * @param int $until
 	 * @param int|null $logOldest
 	 *
-	 * @return array
+	 * @return list<array<string, mixed>>
 	 */
 	protected function getDays($since, $until, $logOldest)
 	{
@@ -602,21 +612,6 @@ class ErrorLog extends Repository
 	}
 
 	/**
-	 * The template being rendered when the error happened: the innermost one, taken from the path
-	 * of its compiled file - .../templates/l1/s0/public/thread_view.php - in the error's own file
-	 * or the first trace frame that has one. Null when no template was being rendered.
-	 *
-	 * The name is only returned if the forum has a template of that type and title, so what comes
-	 * back is always a template's name and never whatever a path happened to spell.
-	 *
-	 * @param string $filename Relative to the install root, or empty when outside it
-	 * @param string $traceStart
-	 * @param array|null $templates "type:title" => add-on id. The forum's own when not given, and
-	 *                              only loaded once a path looks like a compiled template
-	 *
-	 * @return array|null template, add_on_id
-	 */
-	/**
 	 * The originating add-on, and what the answer rests on.
 	 *
 	 * The trace is the better witness and is asked first. But the two commonest ways an add-on
@@ -631,7 +626,7 @@ class ErrorLog extends Repository
 	 * @param string $messageStart
 	 * @param string[] $addOnIds
 	 *
-	 * @return array [add-on id or null, BASIS_TRACE, BASIS_MESSAGE or null]
+	 * @return array{string|null, string|null} [add-on id or null, BASIS_TRACE, BASIS_MESSAGE or null]
 	 */
 	public function getOriginAttribution($filename, $traceStart, $messageStart, array $addOnIds)
 	{
@@ -699,6 +694,22 @@ class ErrorLog extends Repository
 		return null;
 	}
 
+	/**
+	 * The template being rendered when the error happened: the innermost one, taken from the path
+	 * of its compiled file - .../templates/l1/s0/public/thread_view.php - in the error's own file
+	 * or the first trace frame that has one. Null when no template was being rendered.
+	 *
+	 * The name is only returned if the forum has a template of that type and title, so what comes
+	 * back is always a template's name and never whatever a path happened to spell.
+	 *
+	 * @param string $filename Relative to the install root, or empty when outside it
+	 * @param string $traceStart
+	 * @param array<string, string|null>|null $templates "type:title" => add-on id. The forum's own
+	 *                                                  when not given, and only loaded once a path
+	 *                                                  looks like a compiled template
+	 *
+	 * @return array{template: string, add_on_id: string|null}|null
+	 */
 	public function getTemplateFromTrace($filename, $traceStart, ?array $templates = null)
 	{
 		$paths = [$filename];
@@ -736,7 +747,8 @@ class ErrorLog extends Repository
 	/**
 	 * Every template in every style. A master template's add-on wins over a style's own copy.
 	 *
-	 * @return array "type:title" => add-on id, which is an empty string for one made in a style
+	 * @return array<string, string|null> "type:title" => add-on id, which is null for one made in a
+	 *                                     style
 	 */
 	protected function getTemplates()
 	{
@@ -758,6 +770,13 @@ class ErrorLog extends Repository
 		return $this->templates;
 	}
 
+	/**
+	 * @param array<string, array<string, mixed>> $group
+	 * @param array{template: string, add_on_id: string|null}|null $template
+	 * @param int $date
+	 *
+	 * @return void
+	 */
 	protected function addTemplateToGroup(array &$group, $template, $date)
 	{
 		if ($template === null)
@@ -824,11 +843,19 @@ class ErrorLog extends Repository
 		return strpos($filename, '/') !== false;
 	}
 
+	/**
+	 * @param string $filename
+	 *
+	 * @return bool
+	 */
 	protected function isAbsolute($filename)
 	{
 		return $filename !== '' && ($filename[0] === '/' || preg_match('#^[A-Za-z]:/#', $filename));
 	}
 
+	/**
+	 * @return string The install root, with a trailing slash
+	 */
 	protected function getRootPrefix()
 	{
 		return rtrim(str_replace('\\', '/', \XF::getRootDirectory()), '/') . '/';
@@ -911,11 +938,28 @@ class ErrorLog extends Repository
 		return $this->db()->fetchAllColumn('SELECT addon_id FROM xf_addon');
 	}
 
+	/**
+	 * @param string $type
+	 * @param string $filename
+	 * @param int|string $line
+	 * @param bool $inInstall
+	 *
+	 * @return string
+	 */
 	protected function getSignatureKey($type, $filename, $line, $inInstall)
 	{
 		return $type . "\0" . $filename . "\0" . (int) $line . "\0" . (int) $inInstall;
 	}
 
+	/**
+	 * @param array<string, array<string, mixed>> $group
+	 * @param string $keyName
+	 * @param string|null $key
+	 * @param int $count
+	 * @param int $last
+	 *
+	 * @return void
+	 */
 	protected function addToGroup(array &$group, $keyName, $key, $count, $last)
 	{
 		$index = $key === null ? '' : $key;
@@ -932,6 +976,13 @@ class ErrorLog extends Repository
 	/**
 	 * Counts an error against its originating add-on, and separately how many of those rest on
 	 * the message alone.
+	 *
+	 * @param array<string, array<string, mixed>> $group
+	 * @param string|null $addOnId
+	 * @param string|null $basis
+	 * @param int $date
+	 *
+	 * @return void
 	 */
 	protected function addOriginToGroup(array &$group, $addOnId, $basis, $date)
 	{
@@ -951,6 +1002,11 @@ class ErrorLog extends Repository
 		}
 	}
 
+	/**
+	 * @param array<array<string, mixed>> $group
+	 *
+	 * @return list<array<string, mixed>> Busiest first, then newest
+	 */
 	protected function sortGroup(array $group)
 	{
 		$group = array_values($group);
@@ -968,6 +1024,12 @@ class ErrorLog extends Repository
 		return $group;
 	}
 
+	/**
+	 * @param array<string, mixed> $a
+	 * @param array<string, mixed> $b
+	 *
+	 * @return int
+	 */
 	protected function compareByCount(array $a, array $b)
 	{
 		if ($a['count'] === $b['count'])

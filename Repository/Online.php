@@ -17,7 +17,7 @@ class Online extends Repository
 	 *
 	 * @param int $now
 	 *
-	 * @return array
+	 * @return array<string, mixed>
 	 */
 	public function getState($now)
 	{
@@ -129,7 +129,7 @@ class Online extends Repository
 	 * @param int $since
 	 * @param string $condition A fixed fragment, never input
 	 *
-	 * @return array sessions, ipv4, largest_24, largest_16, distinct_24, distinct_16
+	 * @return array<string, int> sessions, ipv4, largest_24, largest_16, distinct_24, distinct_16
 	 */
 	protected function getNetworks($since, $condition)
 	{
