@@ -24,6 +24,9 @@ class Validate extends Command
 {
 	use RendersReport;
 
+	/**
+	 * @return void
+	 */
 	protected function configure()
 	{
 		$this
@@ -93,6 +96,11 @@ class Validate extends Command
 	/**
 	 * Renders what one check returned. Named for what it does: a helper called run() would
 	 * collide with the command's own.
+	 *
+	 * @param string $label
+	 * @param callable $check
+	 *
+	 * @return void
 	 */
 	protected function rows($label, callable $check)
 	{

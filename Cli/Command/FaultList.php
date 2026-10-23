@@ -7,6 +7,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class FaultList extends Command
 {
+	/**
+	 * @return void
+	 */
 	protected function configure()
 	{
 		$this

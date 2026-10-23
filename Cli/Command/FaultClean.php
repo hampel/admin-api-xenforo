@@ -12,6 +12,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class FaultClean extends Command
 {
+	/**
+	 * @return void
+	 */
 	protected function configure()
 	{
 		$this

@@ -18,6 +18,9 @@ class Config extends Command
 {
 	use RendersReport;
 
+	/**
+	 * @return void
+	 */
 	protected function configure()
 	{
 		$this

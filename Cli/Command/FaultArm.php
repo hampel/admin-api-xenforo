@@ -9,6 +9,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class FaultArm extends Command
 {
+	/**
+	 * @return void
+	 */
 	protected function configure()
 	{
 		$this
