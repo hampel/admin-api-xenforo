@@ -165,12 +165,13 @@ class ErrorLog extends Repository
 		$signatures = array_values($signatures);
 		usort($signatures, [$this, 'compareByCount']);
 
+		// an aggregate always returns a row; the defaults satisfy the type and are never used
 		$log = $db->fetchRow('
 			SELECT COUNT(*) AS total,
 				MIN(exception_date) AS oldest_date,
 				MAX(exception_date) AS newest_date
 			FROM xf_error_log
-		');
+		') ?: ['total' => 0, 'oldest_date' => null, 'newest_date' => null];
 		$logOldest = $log['oldest_date'] === null ? null : (int) $log['oldest_date'];
 
 		return [

@@ -25,6 +25,7 @@ class Online extends Repository
 		$minutes = max(1, (int) $this->options()->onlineStatusTimeout);
 		$since = $now - $minutes * 60;
 
+		// an aggregate always returns a row; the defaults satisfy the type and are never used
 		$totals = $db->fetchRow('
 			SELECT COUNT(*) AS total,
 				SUM(user_id > 0) AS members,
@@ -34,7 +35,8 @@ class Online extends Repository
 				MAX(view_date) AS newest_date
 			FROM xf_session_activity
 			WHERE view_date >= ?
-		', $since);
+		', $since) ?: ['total' => 0, 'members' => 0, 'guests' => 0, 'robots' => 0, 'errors' => 0,
+			'newest_date' => null];
 
 		$byRobot = [];
 		$rows = $db->fetchAll('
@@ -142,6 +144,7 @@ class Online extends Repository
 
 		foreach ([24 => 3, 16 => 2] AS $bits => $bytes)
 		{
+			// an aggregate always returns a row; the defaults satisfy the type and are never used
 			$row = $db->fetchRow("
 				SELECT COUNT(*) AS distinct_networks, COALESCE(MAX(network_count), 0) AS largest, COALESCE(SUM(network_count), 0) AS ipv4
 				FROM (
@@ -150,7 +153,7 @@ class Online extends Repository
 					WHERE $where AND LENGTH(ip) = 4
 					GROUP BY LEFT(ip, $bytes)
 				) AS networks
-			", $since);
+			", $since) ?: ['distinct_networks' => 0, 'largest' => 0, 'ipv4' => 0];
 
 			$networks['ipv4'] = (int) $row['ipv4'];
 			$networks["largest_$bits"] = (int) $row['largest'];

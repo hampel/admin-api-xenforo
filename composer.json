@@ -3,7 +3,7 @@
     "require-dev": {
         "hampel/xenforo-test-framework": "^5.34",
         "phpunit/phpunit": "^12.0",
-        "hampel/xenforo-phpstan": "^0.7"
+        "hampel/xenforo-phpstan": "^0.8"
     },
     "autoload-dev": {
         "psr-4": {

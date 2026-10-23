@@ -322,7 +322,9 @@ TEMPLATE;
 		$user->username = "fault_{$batch}_{$number}";
 		$user->email = "fault-{$batch}-{$number}@example.invalid";
 		$user->user_state = 'valid';
-		$user->getRelationOrDefault('Auth')->setPassword($password);
+		/** @var \XF\Entity\UserAuth $auth made here if the user has none */
+		$auth = $user->getRelationOrDefault('Auth');
+		$auth->setPassword($password);
 		$user->save();
 		$userId = (int) $user->user_id;
 
