@@ -19,6 +19,10 @@
  * In a request, a value is also withheld whole when its own key is named like a credential:
  * core records a query string's and a form's fields by name, and masks only a password.
  *
+ * A forum's secret that is itself a credential's name - a database password of "password" - is
+ * looked for last instead of first. Taken out first, it would take the name out of every
+ * "password: value" and leave the value with nothing to be recognised by.
+ *
  * Has no dependency on XenForo. What it removes is replaced by a marker, and counted.
  */
 class TextScrubber
@@ -51,6 +55,9 @@ class TextScrubber
 	/** @var string[] longest first, so a secret that contains another is taken whole */
 	protected $known = [];
 
+	/** @var string[] the forum's secrets that read as a credential's name, looked for last */
+	protected $knownNames = [];
+
 	/**
 	 * @param mixed[] $knownSecrets Values to remove wherever they appear; only strings long enough
 	 *                              to be told apart from ordinary text are used
@@ -68,11 +75,23 @@ class TextScrubber
 			}
 		}
 
-		$this->known = array_map('strval', array_keys($known));
-		usort($this->known, function ($a, $b)
+		$known = array_map('strval', array_keys($known));
+		usort($known, function ($a, $b)
 		{
 			return strlen($b) <=> strlen($a);
 		});
+
+		foreach ($known AS $secret)
+		{
+			if ($redactor->isSecretName($secret))
+			{
+				$this->knownNames[] = $secret;
+			}
+			else
+			{
+				$this->known[] = $secret;
+			}
+		}
 	}
 
 	/**
@@ -148,6 +167,12 @@ class TextScrubber
 			}
 
 			$text = preg_replace($format, self::MARKER, $text, -1, $n);
+			$count += $n;
+		}
+
+		if ($text !== null && $this->knownNames)
+		{
+			$text = str_replace($this->knownNames, self::MARKER, $text, $n);
 			$count += $n;
 		}
 

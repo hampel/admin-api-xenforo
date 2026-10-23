@@ -171,6 +171,17 @@ entry in four forums' logs on this box, 563 in all: none of the new rules matche
 That is weaker than it sounds for the request rule, since none of those entries had any query
 or form fields.
 
+**The sandbox run found a ninth, which the probe could not.** On 2026-10-24 the seeder ran
+through `seeder:run` on XenForo 2.3.13 with PHP 8.3, the working copy mounted, and the same 26
+rows were saved on 2.2.19 Patch 2 with PHP 7.4 from the release zip; each signature was then
+asked for over HTTP with `request=1`. Twelve kinds came back clean on both. `password: <value>`
+came back as `[withheld]: <value>`: a sandbox's database password is `password`, the forum's own
+secrets are looked for first, and that took the name out before the name rule could see it. The
+development forum's password is not a word, which is why the probe passed. A forum secret that
+reads as a credential's name is now looked for last; after that, 0 of 42 entries returned leaked
+on either line, with 48 values scrubbed. The scrubber's patterns were exercised on PHP 7.4 by the
+same run, and every file in the zip lints there.
+
 **The URL rule had to learn what a page address looks like.** Its first version cut
 `/threads/a-long-thread-title.1234/` down to the host, because a long slug is as varied as a
 token. Lower-case words joined by hyphens are now left alone.

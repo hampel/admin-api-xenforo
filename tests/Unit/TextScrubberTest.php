@@ -88,6 +88,19 @@ class TextScrubberTest extends TestCase
 		$this->assertSame(2, $removed);
 	}
 
+	public function test_a_secret_that_is_a_credentials_name_does_not_hide_the_value_after_it()
+	{
+		// a sandbox's database password is "password", which took the name out of every
+		// "password: value" before the name rule could see it
+		$removed = 0;
+		$text = $this->scrubber(['password'])->scrub('Could not log in with username: importer, password: SEEDx9Kq2mP7vL4n', $removed);
+
+		$this->assertSame('Could not log in with username: importer, [withheld]: [withheld]', $text);
+		$this->assertSame(2, $removed);
+
+		$this->assertSame('the [withheld] was [withheld]', $this->scrubber(['password'])->scrub('the password was password'));
+	}
+
 	public function test_a_secret_that_contains_another_is_removed_whole()
 	{
 		$text = $this->scrubber(['SECRET-inner', 'outer-SECRET-inner-outer'])->scrub('saw outer-SECRET-inner-outer here');
