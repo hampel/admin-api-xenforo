@@ -25,18 +25,6 @@ parameters:
             - _data (?)
 
     ignoreErrors:
-        # XF\AddOn\AddOn answers any property through __get(), from the installed record or from
-        # addon.json. Nothing declares them, and crates.neon does not list the class.
-        -
-            identifier: property.notFound
-            message: '#^Access to an undefined property XF\\AddOn\\AddOn::\$(title|json_version_id|json_version_string)\.$#'
-            path: Api/Controller/AddOns.php
-            count: 3
-        -
-            identifier: property.notFound
-            message: '#^Access to an undefined property XF\\AddOn\\AddOn::\$version_string\.$#'
-            path: Cli/Command/Config.php
-            count: 1
         # An option is a magic property. One read of one core option does not justify making every
         # XF\Options property a crate.
         -
