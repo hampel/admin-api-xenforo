@@ -32,29 +32,14 @@ class CommandsTest extends TestCase
 		return $tester->getDisplay();
 	}
 
-	/** A new administrator who is not a super administrator, with the given permissions, and a key. */
+	/** A new administrator with the given permissions, or a plain member, and a key bound to them. */
 	private function plantKey(array $permissions, array $keyValues = [], $isAdmin = true, $isSuperAdmin = false)
 	{
 		// a user of its own: an existing member is never altered, even inside the transaction
-		$user = $this->app()->repository('XF:User')->setupBaseUser();
-		$user->username = 'adminapi_test_' . bin2hex(random_bytes(4));
-		$user->email = $user->username . '@example.invalid';
-		$user->user_state = 'valid';
-		$user->is_admin = $isAdmin;
-		$user->getRelationOrDefault('Auth')->setPassword(bin2hex(random_bytes(12)));
-		$user->save();
+		$user = $isAdmin
+			? $this->createAdministratorFixture($permissions, ['is_super_admin' => $isSuperAdmin])
+			: $this->createUserAccount();
 		$userId = $user->user_id;
-
-		if ($isAdmin)
-		{
-			$this->app()->db()->insert('xf_admin', [
-				'user_id' => $userId,
-				'extra_user_group_ids' => '',
-				'last_login' => 0,
-				'permission_cache' => json_encode(array_fill_keys($permissions, true)),
-				'is_super_admin' => $isSuperAdmin ? 1 : 0,
-			]);
-		}
 
 		$key = $this->app()->em()->create('XF:ApiKey');
 		$key->bulkSet($keyValues + [
