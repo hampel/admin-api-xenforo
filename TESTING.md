@@ -505,6 +505,15 @@ suite plants a handful of rows; this is what showed the caps and the cost.
   pairs, it found that `by_action` dropped everything past the busiest 25 without saying so -
   2,075 of 20,692 sessions. It now ends with an entry whose controller and action are null, as
   `by_robot` does, and the suite pins it.
+- **Failed jobs at 2,000, on 2026-10-23**, with 30 queue rows dated years ahead. The 2,000 spread
+  over three weeks and fourteen job classes, raised in core, `src/vendor`, an add-on's own code, an
+  add-on's `vendor/`, outside the install, and with no file and line at all; one in ten quoted a
+  made-up credential in its message - a URL with a login, a hostless `redis://` URL with one, a
+  webhook, an `api_key=` parameter, a Slack token, a JWT, a long hex key. The endpoint's state came
+  back in 76 ms: 417 signatures whose counts added up to every failure, each location present, the
+  49 with no file given a null location, `examined.complete` true, and **none of the credentials,
+  nor `example.com`, nor the path outside the install, anywhere in the answer**. The queue rows
+  counted as 5 manual and 5 retrying, with nothing due or stalled.
 
 ## Needs a human
 
