@@ -324,10 +324,11 @@ TEMPLATE;
 		$user->user_state = 'valid';
 		$user->getRelationOrDefault('Auth')->setPassword($password);
 		$user->save();
+		$userId = (int) $user->user_id;
 
-		$this->record($batch, 'user', $user->user_id);
+		$this->record($batch, 'user', $userId);
 
-		return ['user_id' => $user->user_id, 'username' => $user->username, 'password' => $password];
+		return ['user_id' => $userId, 'username' => $user->username, 'password' => $password];
 	}
 
 	/**
@@ -354,16 +355,17 @@ TEMPLATE;
 		$page->modified_date = \XF::$time;
 		$node->addCascadedSave($page);
 		$node->save();
+		$nodeId = (int) $node->node_id;
 
 		// recorded before the template, so a failure there still leaves the node findable
-		$this->record($batch, 'node', $node->node_id);
+		$this->record($batch, 'node', $nodeId);
 
 		$template = $page->getMasterTemplate();
 		$template->template = self::PAGE_TEMPLATE;
 		$template->save();
 
 		return [
-			'node_id' => $node->node_id,
+			'node_id' => $nodeId,
 			'route' => 'pages/' . $node->node_name . '/',
 			'template' => 'public:' . $page->getTemplateName(),
 		];

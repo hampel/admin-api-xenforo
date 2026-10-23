@@ -20,18 +20,33 @@
  * Prints one line per visitor and never a password. Exits 0 if every view was served.
  */
 
-$options = getopt('', ['url:', 'armed:', 'host::', 'views::']);
+$options = getopt('', ['url:', 'armed:', 'host::', 'views::']) ?: [];
 
-if (empty($options['url']) || empty($options['armed']))
+// an option given twice comes back as a list; only the last is meant
+$option = function ($name) use ($options)
+{
+	$value = $options[$name] ?? null;
+	if (is_array($value))
+	{
+		$value = end($value);
+	}
+
+	return is_string($value) && $value !== '' ? $value : null;
+};
+
+$url = $option('url');
+$armedFile = $option('armed');
+
+if ($url === null || $armedFile === null)
 {
 	fwrite(STDERR, "usage: drive-faults.php --url=<forum url> --armed=<file> [--host=<name>] [--views=<n>]\n");
 	exit(2);
 }
 
-$armed = firstJsonObject((string) @file_get_contents($options['armed']));
+$armed = firstJsonObject((string) @file_get_contents($armedFile));
 if (!is_array($armed) || empty($armed['page']['route']))
 {
-	fwrite(STDERR, "{$options['armed']} is not the output of admin-api:fault-arm.\n");
+	fwrite(STDERR, "$armedFile is not the output of admin-api:fault-arm.\n");
 	exit(2);
 }
 
@@ -87,9 +102,9 @@ function firstJsonObject($text)
 	return null;
 }
 
-$base = rtrim($options['url'], '/');
-$host = isset($options['host']) && $options['host'] !== false ? $options['host'] : null;
-$views = max(1, (int) ($options['views'] ?? 2));
+$base = rtrim($url, '/');
+$host = $option('host');
+$views = max(1, (int) ($option('views') ?? 2));
 $route = $armed['page']['route'];
 
 /**
@@ -103,7 +118,7 @@ final class Visitor
 	/** @var string|null */
 	private $host;
 
-	/** @var string */
+	/** @var non-empty-string */
 	private $jar;
 
 	/**
@@ -114,7 +129,12 @@ final class Visitor
 	{
 		$this->base = $base;
 		$this->host = $host;
-		$this->jar = tempnam(sys_get_temp_dir(), 'fault-driver-');
+		$jar = tempnam(sys_get_temp_dir(), 'fault-driver-');
+		if (!$jar)
+		{
+			throw new \RuntimeException('Could not create a cookie jar in ' . sys_get_temp_dir());
+		}
+		$this->jar = $jar;
 	}
 
 	public function __destruct()

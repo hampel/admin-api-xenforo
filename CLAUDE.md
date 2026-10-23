@@ -185,7 +185,7 @@ is whether it can carry member data.
   has crept in. `vendor/bin/phpstan analyse` reads the add-on as 7.4 and reports newer syntax,
   but not a function newer than 7.4 (`str_contains()` passes). Keep to 7.4 by hand, and lint the
   release under 7.4 in a sandbox.
-- **PHPStan runs at level 6 and must stay clean**; `phpstan.neon` gives the reason for each
+- **PHPStan runs at level 8 and must stay clean**; `phpstan.neon` gives the reason for each
   ignored error, and a count that stops matching fails the run. It is analysed against the
   development forum's XenForo 2.3, so a guard for 2.2 reads as always true: ignore it there with
   the reason, as the `accessToken()` guard is, rather than removing the guard. Types are

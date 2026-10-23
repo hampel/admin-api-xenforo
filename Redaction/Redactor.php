@@ -323,7 +323,7 @@ class Redactor
 		if ($parts && !empty($parts['host']))
 		{
 			$opaque = isset($parts['user']) || isset($parts['pass']);
-			$address = $parts['scheme'] . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+			$address = $match[1] . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
 		}
 		else
 		{
@@ -338,7 +338,7 @@ class Redactor
 			$opaque = true;
 		}
 
-		foreach (preg_split('#[/?&=;]#', ($parts['path'] ?? '') . '?' . ($parts['query'] ?? '')) AS $segment)
+		foreach (preg_split('#[/?&=;]#', ($parts['path'] ?? '') . '?' . ($parts['query'] ?? '')) ?: [] AS $segment)
 		{
 			// lower-case words joined by hyphens are a page's address, however long and varied
 			if (preg_match('/^[a-z]+([-_.][a-z0-9]+)*$/', $segment))
