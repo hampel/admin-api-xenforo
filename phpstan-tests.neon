@@ -22,11 +22,3 @@ parameters:
             message: '#^Access to an undefined property XF\\Options::\$onlineStatusTimeout\.$#'
             path: tests/Feature/OnlineTest.php
             count: 1
-        # The second of two identical dispatch() calls is taken for the first, which the assertion
-        # has already narrowed to an error. The framework's dispatch() is not marked impure;
-        # reported to it on 2026-10-23. Remove this when the count stops matching.
-        -
-            identifier: method.alreadyNarrowedType
-            message: '#^Call to method Hampel\\Testing\\TestCase::assertReplyIsError\(\) with arguments XF\\Mvc\\Reply\\Error, 403 and #'
-            path: tests/Feature/ErrorEntriesTest.php
-            count: 1
