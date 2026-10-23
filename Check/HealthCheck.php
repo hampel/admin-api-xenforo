@@ -51,6 +51,9 @@ class HealthCheck
 		$this->app = $app;
 	}
 
+	/**
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
+	 */
 	public function api()
 	{
 		if (!$this->app->config('enableApi'))
@@ -61,6 +64,9 @@ class HealthCheck
 		return [[self::OK, 'REST API', 'enabled']];
 	}
 
+	/**
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
+	 */
 	public function scopes()
 	{
 		$rows = [];
@@ -91,6 +97,9 @@ class HealthCheck
 		return $rows;
 	}
 
+	/**
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
+	 */
 	public function permissions()
 	{
 		$defined = $this->app->db()->fetchAllColumn(
@@ -107,6 +116,9 @@ class HealthCheck
 		return [[self::OK, 'admin permissions', count(self::PERMISSIONS) . ' defined']];
 	}
 
+	/**
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
+	 */
 	public function routes()
 	{
 		$routes = $this->app->db()->fetchPairs(
@@ -137,6 +149,8 @@ class HealthCheck
 	/**
 	 * Whether anybody can actually use it. With no key that can read, nothing is broken and the
 	 * add-on does nothing, which is a warning: it works now and is no use until someone acts.
+	 *
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
 	 */
 	public function access()
 	{
@@ -190,8 +204,9 @@ class HealthCheck
 	 * Every API key that names one of this add-on's scopes. A key that merely allows all scopes
 	 * was not made for this, and is left out.
 	 *
-	 * @return array api_key_id, title, key_type, active, user_id, username, scopes, last_use_date,
-	 *               is_admin, admin_permissions (null for a super administrator, who has them all)
+	 * @return list<array<string, mixed>> api_key_id, title, key_type, active, user_id, username,
+	 *                                    scopes, last_use_date, is_admin, admin_permissions (null
+	 *                                    for a super administrator, who has them all)
 	 */
 	public function getKeys()
 	{
@@ -227,6 +242,12 @@ class HealthCheck
 		return $keys;
 	}
 
+	/**
+	 * @param array<string, mixed> $key As getKeys() returns it
+	 * @param string $scopeId
+	 *
+	 * @return string|null Null when it can
+	 */
 	protected function whyKeyCannotUse(array $key, $scopeId)
 	{
 		if (!$key['active'])
@@ -283,6 +304,8 @@ class HealthCheck
 
 	/**
 	 * Runs what each endpoint runs, without a request. Anything thrown is the caller's to catch.
+	 *
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
 	 */
 	public function readers()
 	{
@@ -308,6 +331,8 @@ class HealthCheck
 	/**
 	 * Faults belong on a test forum. Enabled, or planted, is a warning wherever it is found, so
 	 * that a production forum which has either says so every time this runs.
+	 *
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
 	 */
 	public function faults()
 	{
@@ -331,6 +356,8 @@ class HealthCheck
 	 * what the forum logs is what the endpoints read.
 	 *
 	 * @param string $prefix What every error log row this add-on writes begins with
+	 *
+	 * @return list<array{string, string, string}> Rows of outcome, label and detail
 	 */
 	public function probe($prefix)
 	{
