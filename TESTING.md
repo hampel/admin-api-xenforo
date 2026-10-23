@@ -491,6 +491,21 @@ On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33
 | the `add-on` fault | `pending_action: upgrade`, not processing, and errors still being logged |
 | `fault-clean` after all four | every planted row and all eight errors gone; the forum's 19 cron entries and 2 add-ons untouched |
 
+### At volume, with generated rows, 2026-10-11
+
+On the development forum, with rows written by a generator and every one removed afterwards. The
+suite plants a handful of rows; this is what showed the caps and the cost.
+
+- **The error log summary at 2,000 and at 21,000 entries.** Every derived field came out as the
+  generator had made it: origin, severity, the originating add-on from the trace and from the
+  message, the template and the member counts. At 2,000 it answered in 185 ms. At 21,000 the cap
+  held - 20,000 rows examined, `complete: false`, and the totals still counting every row - in
+  about a second.
+- **Who is online**, recorded under *Needs a human* below. Run with 45 controller and action
+  pairs, it found that `by_action` dropped everything past the busiest 25 without saying so -
+  2,075 of 20,692 sessions. It now ends with an entry whose controller and action are null, as
+  `by_robot` does, and the suite pins it.
+
 ## Needs a human
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
