@@ -501,7 +501,7 @@ suite plants a handful of rows; this is what showed the caps and the cost.
   message, the template and the member counts. At 2,000 it answered in 185 ms. At 21,000 the cap
   held - 20,000 rows examined, `complete: false`, and the totals still counting every row - in
   about a second.
-- **Who is online**, recorded under *Needs a human* below. Run with 45 controller and action
+- **Who is online**, recorded under *Needs a human* below. Run with 40 controller and action
   pairs, it found that `by_action` dropped everything past the busiest 25 without saying so -
   2,075 of 20,692 sessions. It now ends with an entry whose controller and action are null, as
   `by_robot` does, and the suite pins it.
