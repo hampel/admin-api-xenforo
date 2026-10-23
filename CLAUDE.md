@@ -191,6 +191,9 @@ is whether it can carry member data.
   the reason, as the `accessToken()` guard is, rather than removing the guard. Types are
   declared in docblocks, not in signatures: a native type on a method XenForo or Symfony
   declares untyped is a fatal on load, and 7.4 has no `mixed` or union types.
+- **The suite is analysed apart, at level 5**: `vendor/bin/phpstan analyse -c phpstan-tests.neon`.
+  Read as 7.4, PHPUnit 12 cannot be parsed, so `tests/` has a config without the floor, and with
+  the test framework's fragment, which types the entities a test builds.
 - **A test only adds rows.** The suite runs on the forum's real tables inside a transaction, and
   `emptyTable()` is a `TRUNCATE` that commits it. `TESTING.md` has the incident.
 - **`composer.json` holds dev dependencies only.** `addon.json` has no `composer_autoload`, and

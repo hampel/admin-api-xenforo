@@ -1,0 +1,32 @@
+# The suite, analysed apart from the add-on. phpstan.neon reads the add-on as PHP 7.4, its floor,
+# and read that way PHPUnit 12 cannot be parsed; the tests only ever run on far newer PHP, so they
+# are analysed as what they run on.
+#
+#     vendor/bin/phpstan analyse -c phpstan-tests.neon
+
+includes:
+    - vendor/hampel/xenforo-phpstan/extension.neon
+    # types an entity built with makeEntity() or createEntity() from the name it is given
+    - vendor/hampel/xenforo-test-framework/extension.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - tests
+
+    ignoreErrors:
+        # An option is a magic property, as in phpstan.neon.
+        -
+            identifier: property.notFound
+            message: '#^Access to an undefined property XF\\Options::\$onlineStatusTimeout\.$#'
+            path: tests/Feature/OnlineTest.php
+            count: 1
+        # The second of two identical dispatch() calls is taken for the first, which the assertion
+        # has already narrowed to an error. The framework's dispatch() is not marked impure;
+        # reported to it on 2026-10-23. Remove this when the count stops matching.
+        -
+            identifier: method.alreadyNarrowedType
+            message: '#^Call to method Hampel\\Testing\\TestCase::assertReplyIsError\(\) with arguments XF\\Mvc\\Reply\\Error, 403 and #'
+            path: tests/Feature/ErrorEntriesTest.php
+            count: 1
