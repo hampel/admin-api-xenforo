@@ -131,6 +131,39 @@ class OnlineTest extends TestCase
 	}
 
 	/**
+	 * A robot key is chosen by code from a fixed list, so one that is not shaped like a key did not
+	 * come from that list. It is counted with the remainder and never named.
+	 */
+	public function test_a_robot_key_not_shaped_like_one_is_counted_and_not_named()
+	{
+		$this->insertSession(0, '203.0.113.50', 'SECRET bot/1.0 <x>', \XF::$time - 30);
+
+		$state = $this->state();
+		$last = end($state['by_robot']);
+
+		$this->assertNull($last['robot_key']);
+		$this->assertGreaterThanOrEqual(1, $last['count']);
+		$this->assertSame($state['robots'], array_sum(array_column($state['by_robot'], 'count')));
+		$this->assertStringNotContainsString('SECRET', json_encode($state));
+	}
+
+	public function test_the_robots_past_the_busiest_are_counted_together()
+	{
+		for ($i = 1; $i <= Online::MAX_ROBOTS + 5; $i++)
+		{
+			$this->insertSession(0, "198.18.0.$i", "adminapitestbot$i", \XF::$time - 30);
+		}
+
+		$state = $this->state();
+		$last = end($state['by_robot']);
+
+		$this->assertCount(Online::MAX_ROBOTS + 1, $state['by_robot']);
+		$this->assertNull($last['robot_key']);
+		$this->assertGreaterThanOrEqual(5, $last['count']);
+		$this->assertSame($state['robots'], array_sum(array_column($state['by_robot'], 'count')));
+	}
+
+	/**
 	 * Forty guests in one /24 is one visitor with forty addresses. The figure that says so is the
 	 * size of the largest network, and it is given without the network.
 	 */

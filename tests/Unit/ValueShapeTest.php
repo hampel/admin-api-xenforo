@@ -33,6 +33,7 @@ class ValueShapeTest extends TestCase
 			'a map' => [['key' => 'SECRET'], 'array'],
 			'a closure' => [null, 'closure'],
 			'an object' => [null, 'object'],
+			'a resource' => [null, 'other'],
 		];
 	}
 
@@ -56,6 +57,10 @@ class ValueShapeTest extends TestCase
 		else if ($type === 'object')
 		{
 			$value = (object) ['key' => 'SECRET'];
+		}
+		else if ($type === 'other')
+		{
+			$value = fopen('php://memory', 'r');
 		}
 
 		$shape = (new ValueShape())->describe($value);

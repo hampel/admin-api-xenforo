@@ -33,7 +33,7 @@ class CommandsTest extends TestCase
 	}
 
 	/** A new administrator who is not a super administrator, with the given permissions, and a key. */
-	private function plantKey(array $permissions, array $keyValues = [], $isAdmin = true)
+	private function plantKey(array $permissions, array $keyValues = [], $isAdmin = true, $isSuperAdmin = false)
 	{
 		// a user of its own: an existing member is never altered, even inside the transaction
 		$user = $this->app()->repository('XF:User')->setupBaseUser();
@@ -52,7 +52,7 @@ class CommandsTest extends TestCase
 				'extra_user_group_ids' => '',
 				'last_login' => 0,
 				'permission_cache' => json_encode(array_fill_keys($permissions, true)),
-				'is_super_admin' => 0,
+				'is_super_admin' => $isSuperAdmin ? 1 : 0,
 			]);
 		}
 
@@ -312,6 +312,53 @@ class CommandsTest extends TestCase
 		$this->assertStringContainsString('its user is not an administrator', $display);
 	}
 
+	/**
+	 * Each reason a key holding a scope can still never use it, on the key's own line.
+	 */
+	public function test_every_reason_a_key_cannot_work_is_given()
+	{
+		$reasons = [
+			'the key is inactive' => $this->plantKey(['hampelAdminApiErrorLog'], ['active' => false]),
+			'it is a super key, and only a user key is accepted' => $this->plantKey(
+				['hampelAdminApiErrorLog'],
+				['user_id' => 0, 'is_super_user' => true]
+			),
+			'it needs the hampel_admin_api:read scope as well' => $this->plantKey(
+				['hampelAdminApiValues', 'hampelAdminApiOptions'],
+				['scopes' => ['hampel_admin_api:values']]
+			),
+			'its user lacks hampelAdminApiOptions and hampelAdminApiConfig' => $this->plantKey(
+				['hampelAdminApiErrorLog', 'hampelAdminApiValues'],
+				['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values']]
+			),
+		];
+
+		[$exit, $display] = $this->validate();
+
+		$this->assertSame(0, $exit, $display);
+		foreach ($reasons AS $reason => $key)
+		{
+			$this->assertMatchesRegularExpression(
+				'/\[warn\] key #' . $key->api_key_id . '\b.*' . preg_quote($reason, '/') . '/',
+				$display
+			);
+		}
+	}
+
+	/**
+	 * A super administrator holds every admin permission without any being listed, so a key of
+	 * theirs is not reported as lacking one.
+	 */
+	public function test_a_super_administrators_key_can_use_every_scope_it_holds()
+	{
+		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail']], true, true);
+
+		[$exit, $display] = $this->validate();
+
+		$this->assertSame(0, $exit, $display);
+		$this->assertStringNotContainsString("key #{$key->api_key_id}", $display);
+	}
+
 	public function test_a_detail_key_needs_view_logs_as_well()
 	{
 		$this->plantKey(['hampelAdminApiErrorDetail'], ['scopes' => ['hampel_admin_api:error_detail']]);
@@ -328,6 +375,27 @@ class CommandsTest extends TestCase
 		[, $display] = $this->validate();
 
 		$this->assertStringContainsString('[warn] fault commands', $display);
+	}
+
+	/**
+	 * Planted faults left on a forum are reported by batch, every run, whether or not faults are
+	 * still enabled there.
+	 */
+	public function test_a_planted_batch_is_a_warning_and_is_named()
+	{
+		$this->setConfig('hampelAdminApi', null);
+		$this->app()->db()->insert(\Hampel\AdminApi\Fault\Manager::TABLE, [
+			'batch' => 'leftbehind',
+			'content_type' => 'node',
+			'content_id' => 987650003,
+			'created_date' => \XF::$time,
+		]);
+
+		[$exit, $display] = $this->validate();
+
+		$this->assertSame(0, $exit, $display);
+		$this->assertMatchesRegularExpression('/\[warn\] planted faults\b.*leftbehind/', $display);
+		$this->assertStringContainsString('[ ok ] fault commands', $display);
 	}
 
 	public function test_unattended_writes_nothing_to_the_error_log()

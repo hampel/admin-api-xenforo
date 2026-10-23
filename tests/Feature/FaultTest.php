@@ -369,6 +369,30 @@ class FaultTest extends TestCase
 		}
 	}
 
+	/**
+	 * The command's own paths, apart from the manager's: a refusal plants nothing and exits 1, and
+	 * a run says what it planted and how to remove it on one stream and prints what was planted,
+	 * passwords included, on the other - which is the only place they are ever written.
+	 */
+	public function test_the_arm_command_refuses_an_unknown_fault_and_reports_a_planted_one()
+	{
+		$this->setConfig('hampelAdminApi', ['faults' => true]);
+
+		$tester = new CommandTester(new FaultArm());
+		$this->assertSame(1, $tester->execute(['--batch' => 'unknown', '--faults' => 'cron,nonsense']));
+		$this->assertStringContainsString('A fault is one of', $tester->getDisplay());
+		$this->assertSame(0, $this->recordCount());
+
+		$tester = new CommandTester(new FaultArm());
+		$exit = $tester->execute(['--batch' => 'viacommand', '--faults' => 'cron'], ['capture_stderr_separately' => true]);
+
+		$this->assertSame(0, $exit, $tester->getErrorOutput());
+		$this->assertStringContainsString('Batch viacommand planted: cron', $tester->getErrorOutput());
+		$this->assertStringContainsString('admin-api:fault-clean viacommand', $tester->getErrorOutput());
+		$this->assertSame(['batch', 'cron'], array_keys(json_decode($tester->getDisplay(), true)));
+		$this->assertSame(['cron' => 1], $this->manager()->getBatches()['viacommand']['records']);
+	}
+
 	public function test_cleaning_a_batch_that_does_not_exist_says_so()
 	{
 		$tester = new CommandTester(new FaultClean());

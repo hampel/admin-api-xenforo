@@ -126,4 +126,24 @@ class TextScrubberTest extends TestCase
 		], $request);
 		$this->assertSame(3, $removed);
 	}
+
+	/**
+	 * A marker is not itself taken for a credential, so text scrubbed twice comes out the same and
+	 * the second pass counts nothing - a caller adding up `scrubbed` would otherwise over-count.
+	 */
+	public function test_scrubbing_what_was_already_scrubbed_changes_and_counts_nothing()
+	{
+		$scrubber = $this->scrubber(['plain-SECRET-words']);
+		$first = 0;
+		$once = $scrubber->scrub(
+			'GET https://user:SECRETpass@api.example.com/v1?key=SECRET9f86d081884c7d65 then /account/?token=SECRETtokenvalue said plain-SECRET-words',
+			$first
+		);
+
+		$second = 0;
+		$this->assertSame($once, $scrubber->scrub($once, $second));
+		$this->assertStringNotContainsString('SECRET', $once);
+		$this->assertGreaterThan(0, $first);
+		$this->assertSame(0, $second);
+	}
 }

@@ -183,6 +183,31 @@ class ErrorEntriesTest extends TestCase
 	}
 
 	/**
+	 * An error raised from the command line has no address. It comes back as null, not as an
+	 * empty string or as whatever converting nothing to an address would give.
+	 */
+	public function test_an_entry_with_no_address_says_so()
+	{
+		$db = $this->app()->db();
+		$db->insert('xf_error_log', [
+			'exception_date' => 1700,
+			'user_id' => 0,
+			'ip_address' => '',
+			'exception_type' => 'RuntimeException',
+			'message' => 'From the command line',
+			'filename' => self::FILE,
+			'line' => self::LINE + 2,
+			'trace_string' => "#0 {main}",
+			'request_state' => '{"cli":"cmd.php"}',
+		]);
+
+		$entry = $this->entries(['error_id' => (int) $db->lastInsertId(), 'request' => 1])['entries'][0];
+
+		$this->assertNull($entry['ip_address']);
+		$this->assertSame(0, $entry['user_id']);
+	}
+
+	/**
 	 * Without an entry to start from there is nothing to return: the log cannot be paged through.
 	 */
 	public function test_an_entry_has_to_be_named()

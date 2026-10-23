@@ -302,6 +302,26 @@ class RedactorTest extends TestCase
 		$this->assertSame(['fn' => Redactor::UNREPRESENTABLE], $this->reasons($result));
 	}
 
+	/**
+	 * Nesting is not followed for ever: past the limit the rest is withheld whole, where it starts,
+	 * rather than walked or returned unexamined.
+	 */
+	public function test_what_is_nested_past_the_limit_is_withheld_where_the_limit_is()
+	{
+		$value = 'SECRET';
+		// eight levels, two past the limit of six
+		for ($i = 0; $i < 8; $i++)
+		{
+			$value = ['l' . $i => $value];
+		}
+
+		$result = $this->redact('nested', $value);
+
+		$this->assertStringNotContainsString('SECRET', json_encode($result['value']));
+		$this->assertSame(['l7.l6.l5.l4.l3.l2' => Redactor::UNREPRESENTABLE], $this->reasons($result));
+		$this->assertNull($result['value']['l7']['l6']['l5']['l4']['l3']['l2']);
+	}
+
 	public function test_one_batch_of_paths_does_not_match_another_that_starts_the_same()
 	{
 		$result = $this->redact('service', ['pin' => 1234, 'pinned' => 5678], true, ['service.pin']);

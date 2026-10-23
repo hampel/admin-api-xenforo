@@ -192,6 +192,7 @@ class JobStateTest extends TestCase
 			"RuntimeException: bad in ../../SECRET/etc/passwd.php:5\nStack trace:\n#0 {main}",
 			"RuntimeException: SECRET with no location at all",
 			"SECRET member@example.com wrote this: and more in /a/b.php:1\nStack trace:\n#0 {main}",
+			"RuntimeException: SECRET with a trace and no location\nStack trace:\n#0 {main}",
 		];
 
 		foreach ($forged AS $i => $exception)
@@ -199,7 +200,7 @@ class JobStateTest extends TestCase
 			$this->insertFailed('Tests\Fake\Forged' . $i, $this->now - 300, $exception);
 		}
 
-		foreach ([0, 1, 2, 3] AS $i)
+		foreach ([0, 1, 2, 3, 5] AS $i)
 		{
 			$signature = $this->failedSignatures('Tests\Fake\Forged' . $i)[0];
 
