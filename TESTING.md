@@ -137,6 +137,30 @@ held as its Akismet key came back whole before the upgrade and with all of them 
 from the message, the trace and the request; an ordinary entry with a thread URL in its message
 came back unchanged.
 
+**`Seed/ErrorSecretsSeeder` plants those cases on demand**, thirteen kinds of them, each credential
+made at run time and beginning `zSEED` and its kind. It needs `Hampel/Seeder`, so it runs in a
+2.3 sandbox with the working copy mounted (mode 1), never on a forum where another add-on
+forwards the error log:
+
+```bash
+php cmd.php seeder:run Hampel/AdminApi:ErrorSecrets --batch=adminapi-secrets -p each=2
+php cmd.php seeder:clean adminapi-secrets --force
+```
+
+Ask the entries endpoint for each entry and look for `zSEED` in the answer; the class's docblock
+lists the kinds and the one that is checked differently. **Its first run, on 2026-10-23, found
+eight of the thirteen getting through.** Each kind was built as an unsaved entry and passed
+through the endpoint's own `describeEntry()`, so nothing was written. Five kinds were removed
+completely: a webhook in a message, a URL with a login, a hostless URL with one, a Slack token
+in a trace, and a webhook among the posted fields. Eight got through:
+
+- a token in the query string, which core also records under `_GET`, where its name is not read;
+- a client secret posted under a name that says so, for the same reason;
+- `Authorization: Bearer` and `Basic` headers quoted in a message;
+- `"api_key":"…"` in a JSON body, and `password: …`;
+- a private key, of which only the `BEGIN` line was removed;
+- a JWT, whose signature segment was left behind.
+
 **The URL rule had to learn what a page address looks like.** Its first version cut
 `/threads/a-long-thread-title.1234/` down to the host, because a long slug is as varied as a
 token. Lower-case words joined by hyphens are now left alone.
