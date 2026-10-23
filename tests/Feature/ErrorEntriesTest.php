@@ -110,7 +110,7 @@ class ErrorEntriesTest extends TestCase
 			'filename' => self::FILE,
 			'line' => 999,
 			'trace_string' => "#0 src/XF/Http.php(20): post('https://u:SECRETpw@api.example.com/x')\n#1 src/XF/Cache.php(9): connect('redis://:SECRETpassw0rd1234@/0')\n#2 {main}",
-			'request_state' => '{"url":"/hook/?token=SECRETtokenvalue","referrer":"","_GET":[],"_POST":{"note":"forum-held-SECRET-value"}}',
+			'request_state' => '{"url":"/hook/?token=SECRETtokenvalue","referrer":"","_GET":{"token":"SECRETtokenvalue"},"_POST":{"note":"forum-held-SECRET-value","client_secret":"SECRETshapeless","password":"********"}}',
 		]);
 		$id = (int) $db->lastInsertId();
 
@@ -124,7 +124,11 @@ class ErrorEntriesTest extends TestCase
 		$this->assertStringContainsString('https://api.example.com/[withheld]', $entry['trace']);
 		$this->assertStringContainsString("connect('redis:///[withheld]')", $entry['trace']);
 		$this->assertSame('[withheld]', $entry['request']['_POST']['note']);
-		$this->assertSame(6, $entry['scrubbed']);
+		// core records a query string's and a form's fields by name, and masks only a password
+		$this->assertSame('[withheld]', $entry['request']['_GET']['token']);
+		$this->assertSame('[withheld]', $entry['request']['_POST']['client_secret']);
+		$this->assertSame('********', $entry['request']['_POST']['password']);
+		$this->assertSame(8, $entry['scrubbed']);
 
 		// what is left is still the error: who raised it, where, and what came back
 		$this->assertSame('GuzzleHttp\\Exception\\ClientException', $entry['exception_type']);

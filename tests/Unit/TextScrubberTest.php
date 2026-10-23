@@ -61,6 +61,9 @@ class TextScrubberTest extends TestCase
 			"#0 src/XF/Mvc/Dispatcher.php(20): go('x')\n#1 {main}",
 			'MySQL query error [1054]: Unknown column \'thread_id\' in \'where clause\'',
 			'The key to this is patience; the token gesture was noted.',
+			"Access denied for user 'forum'@'localhost' (using password: YES)",
+			'Basic authentication is not configured; the Bearer token expired',
+			'-----BEGIN' . ' is how a key starts',
 		] AS $text)
 		{
 			$this->assertSame($text, $this->scrubber()->scrub($text, $removed), $text);
@@ -113,6 +116,74 @@ class TextScrubberTest extends TestCase
 		}
 
 		$this->assertSame('posted body: user=someone&password=[withheld]&remember=1', $scrubber->scrub('posted body: user=someone&password=SECRETpw&remember=1'));
+	}
+
+	/**
+	 * Credentials a message quotes by name rather than in a URL: a request's body or headers as an
+	 * HTTP client reports them, and a login written out.
+	 */
+	public function test_a_credential_written_as_a_name_and_a_value_or_a_header()
+	{
+		$scrubber = $this->scrubber();
+
+		foreach ([
+			'Request body: {"api_key":"SECRETk3yvalue","event":"signup"}'
+				=> 'Request body: {"api_key":"[withheld]","event":"signup"}',
+			"payload {'client_secret': 'SECRETshapeless'}"
+				=> "payload {'client_secret': '[withheld]'}",
+			'Could not log in with username: importer, password: SECRETpw1'
+				=> 'Could not log in with username: importer, password: [withheld]',
+			'Sent headers: Accept: application/json; Authorization: Bearer SECRETt0kenvalue'
+				=> 'Sent headers: Accept: application/json; Authorization: Bearer [withheld]',
+			'Sent headers: Authorization: Basic ' . base64_encode('sync:SECRETpw')
+				=> 'Sent headers: Authorization: Basic [withheld]',
+			'retried with Bearer SECRETt0kenvalue'
+				=> 'retried with Bearer [withheld]',
+			"The key could not be read:\n-----BEGIN " . "PRIVATE KEY-----\nSECRETline1\nSECRETline2\n-----END PRIVATE KEY-----\nGiving up."
+				=> "The key could not be read:\n[withheld]\nGiving up.",
+			"cut short: -----BEGIN " . "PRIVATE KEY-----\nSECRETline1\nSECRETli"
+				=> 'cut short: [withheld]',
+			'Expired token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJTRUNSRVQifQ.SECRETsignature now'
+				=> 'Expired token [withheld] now',
+		] AS $text => $expected)
+		{
+			$removed = 0;
+
+			$this->assertSame($expected, $scrubber->scrub($text, $removed), $text);
+			$this->assertSame(1, $removed, $text);
+		}
+	}
+
+	/**
+	 * Core records a query string's and a form's fields by name and masks only a password, so a
+	 * field named like a credential is withheld whatever its value looks like.
+	 */
+	public function test_a_request_field_named_like_a_credential_is_withheld_whole()
+	{
+		$removed = 0;
+		$request = $this->scrubber()->scrubAll([
+			'url' => '/misc/callback?state=8f3a&token=SECRETshapeless',
+			'_GET' => ['state' => '8f3a', 'token' => 'SECRETshapeless'],
+			'_POST' => [
+				'options' => ['acmeClientId' => 'forum-example', 'acmeClientSecret' => 'SECRETshapeless', 'acmeWebhookUrl' => 'https://example.com/SECRET'],
+				'password' => '********',
+				'api_key' => '[withheld]',
+				'token_count' => 3,
+			],
+		], $removed);
+
+		$this->assertSame([
+			'url' => '/misc/callback?state=8f3a&token=[withheld]',
+			'_GET' => ['state' => '8f3a', 'token' => '[withheld]'],
+			'_POST' => [
+				'options' => ['acmeClientId' => 'forum-example', 'acmeClientSecret' => '[withheld]', 'acmeWebhookUrl' => '[withheld]'],
+				// masked by core already, and scrubbed already: neither is counted again
+				'password' => '********',
+				'api_key' => '[withheld]',
+				'token_count' => 3,
+			],
+		], $request);
+		$this->assertSame(4, $removed);
 	}
 
 	public function test_every_string_in_a_request_is_scrubbed_and_its_keys_are_not()

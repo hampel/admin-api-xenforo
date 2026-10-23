@@ -53,7 +53,8 @@ class Redactor
 		'/\bgh[pousr]_[A-Za-z0-9]{20,}/',
 		'/\bAKIA[0-9A-Z]{16}\b/',
 		'/\bAIza[0-9A-Za-z_-]{30,}/',
-		'/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\./',
+		// a JSON web token, its signature included
+		'/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/',
 		'/\b[0-9a-f]{32,}\b/i',
 	];
 

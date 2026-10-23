@@ -161,6 +161,16 @@ in a trace, and a webhook among the posted fields. Eight got through:
 - a private key, of which only the `BEGIN` line was removed;
 - a JWT, whose signature segment was left behind.
 
+**All eight were fixed the same day**, each by a narrow rule, and each is pinned in
+`TextScrubberTest` or `ErrorEntriesTest`; the new tests fail on the old scrubber. A field in a
+request named like a credential is withheld whole, as `Redactor::isSecretName()` judges a name;
+`name: value` and `"name": "value"` are read for the names that cannot be ordinary words, with
+MySQL's `using password: YES` left alone; an authorisation header's credential, a private key from
+its first line to its last, and a JWT's signature all go. The false-positive check was every
+entry in four forums' logs on this box, 563 in all: none of the new rules matched any of them.
+That is weaker than it sounds for the request rule, since none of those entries had any query
+or form fields.
+
 **The URL rule had to learn what a page address looks like.** Its first version cut
 `/threads/a-long-thread-title.1234/` down to the host, because a long slug is as varied as a
 token. Lower-case words joined by hyphens are now left alone.
@@ -353,7 +363,9 @@ vendor/bin/phpunit
 - `tests/Unit/SecretsDeclarationTest.php` covers what this add-on declares about itself, and fails
   when it gains an option or a new reader of its `config.php` key, so the declaration is revisited.
 - `tests/Unit/TextScrubberTest.php` covers secrets quoted in free text: a webhook URL, a URL with a
-  login or a secret parameter, the forum's own secret values, token shapes, a request array - and
+  login or a secret parameter, the forum's own secret values, token shapes, a name and its value
+  however written, authorisation headers, a private key, a request array and the fields in it
+  named like credentials - and
   ordinary messages, traces and page URLs that must come through untouched.
 - `tests/Unit/RedactorTest.php` covers every redaction rule with made-up values: names that are
   credentials and names that only resemble them, values that are tokens and long values that are

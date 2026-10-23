@@ -348,7 +348,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   URL it called, and a webhook's URL is its credential. Three things are removed: any value this
   forum's own options or `config.php` hold as a secret, wherever it appears; a URL carrying a
   login, a webhook path or an opaque part, which keeps its scheme and host; and anything shaped
-  like a token, or given as a parameter named like one. `scrubbed` counts what was removed from
+  like a token or a private key, an authorisation header's credential, or a value given under a
+  name like one - `token=`, `"api_key": "…"`, `password: …`. In the request, a field named like a
+  credential is withheld whole, whatever its value. `scrubbed` counts what was removed from
   the entry, so a reader can tell that something was. It is a best effort on free text: a
   secret with no recognisable shape that the forum does not itself hold will get through, which
   is why this endpoint stays behind its own scope and permission.
