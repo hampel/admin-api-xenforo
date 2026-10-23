@@ -2,7 +2,7 @@ includes:
     - vendor/hampel/xenforo-phpstan/extension.neon
 
 parameters:
-    level: 2
+    level: 5
 
     # The add-on's PHP floor. PHPStan reports syntax newer than this, which the suite, running
     # on far newer PHP, cannot. It is why tests/ is not analysed: read as 7.4, PHPUnit 12 is
@@ -25,6 +25,13 @@ parameters:
             - _data (?)
 
     ignoreErrors:
+        # The guard is for XenForo 2.2, which has no \XF::accessToken(); analysed against 2.3 it
+        # always holds.
+        -
+            identifier: function.alreadyNarrowedType
+            message: '#^Call to function method_exists\(\) with ''XF'' and ''accessToken'' will always evaluate to true\.$#'
+            path: Api/Controller/AbstractController.php
+            count: 1
         # An option is a magic property. One read of one core option does not justify making every
         # XF\Options property a crate.
         -

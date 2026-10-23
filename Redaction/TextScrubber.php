@@ -35,7 +35,8 @@ class TextScrubber
 	protected $known = [];
 
 	/**
-	 * @param string[] $knownSecrets Values to remove wherever they appear
+	 * @param mixed[] $knownSecrets Values to remove wherever they appear; only strings long enough
+	 *                              to be told apart from ordinary text are used
 	 */
 	public function __construct(Redactor $redactor, array $knownSecrets = [])
 	{
@@ -57,10 +58,10 @@ class TextScrubber
 	}
 
 	/**
-	 * @param string $text
+	 * @param string|null $text
 	 * @param int $removed Added to for each thing taken out
 	 *
-	 * @return string
+	 * @return string|null
 	 */
 	public function scrub($text, &$removed = 0)
 	{

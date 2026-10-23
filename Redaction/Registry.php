@@ -161,6 +161,8 @@ class Registry
 		{
 			$declarations[$addOnId] = ['options' => $options, 'config' => []];
 		}
+		// filled in by each listener through the reference, so nothing about its shape is known
+		/** @var mixed[] $declared */
 		$declared = [];
 		$this->app->fire(self::EVENT, [&$declared]);
 
