@@ -370,10 +370,13 @@ class ErrorLog extends Repository
 	 */
 	public function getRelativeTrace($trace)
 	{
-		return preg_replace_callback('~^(#\d+ )(.+?)(\(\d+\): )~m', function (array $match)
+		$relative = preg_replace_callback('~^(#\d+ )(.+?)(\(\d+\): )~m', function (array $match)
 		{
 			return $match[1] . $this->getRelativeFilename($match[2]) . $match[3];
 		}, $trace);
+
+		// a trace past PCRE's limits cannot have its paths cut down, so none of it is returned
+		return $relative === null ? '' : $relative;
 	}
 
 	/**

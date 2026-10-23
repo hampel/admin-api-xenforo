@@ -62,7 +62,7 @@ class FaultArm extends Command
 		$errors->writeln("Batch $batch planted: " . implode(', ', $kinds) . ". Remove with admin-api:fault-clean $batch");
 
 		// the passwords exist nowhere else, so this is the only time they can be read
-		$output->writeln(json_encode($armed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		$output->writeln(json_encode($armed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
 		return 0;
 	}

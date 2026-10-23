@@ -42,15 +42,16 @@ class TextScrubber
 	{
 		$this->redactor = $redactor;
 
+		$known = [];
 		foreach ($knownSecrets AS $secret)
 		{
 			if (is_string($secret) && strlen($secret) >= self::MIN_KNOWN_LENGTH)
 			{
-				$this->known[$secret] = true;
+				$known[$secret] = true;
 			}
 		}
 
-		$this->known = array_keys($this->known);
+		$this->known = array_map('strval', array_keys($known));
 		usort($this->known, function ($a, $b)
 		{
 			return strlen($b) <=> strlen($a);
@@ -95,22 +96,39 @@ class TextScrubber
 			return $address . '/' . self::MARKER . $rest;
 		}, $text);
 
-		$text = preg_replace_callback(self::PARAMETER, function (array $match) use (&$count)
+		if ($text !== null)
 		{
-			if ($match[2] === self::MARKER)
+			$text = preg_replace_callback(self::PARAMETER, function (array $match) use (&$count)
 			{
-				return $match[0];
-			}
+				if ($match[2] === self::MARKER)
+				{
+					return $match[0];
+				}
 
-			$count++;
+				$count++;
 
-			return $match[1] . self::MARKER;
-		}, $text);
+				return $match[1] . self::MARKER;
+			}, $text);
+		}
 
 		foreach (Redactor::SECRET_FORMATS AS $format)
 		{
+			if ($text === null)
+			{
+				break;
+			}
+
 			$text = preg_replace($format, self::MARKER, $text, -1, $n);
 			$count += $n;
+		}
+
+		// a pattern that failed - a text past PCRE's limits - cannot say what it would have taken
+		// out, so none of the text is returned, and that counts as one thing taken out
+		if ($text === null)
+		{
+			$removed++;
+
+			return self::MARKER;
 		}
 
 		$removed += $count;

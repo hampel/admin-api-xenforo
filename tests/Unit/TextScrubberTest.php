@@ -133,6 +133,35 @@ class TextScrubberTest extends TestCase
 	}
 
 	/**
+	 * A pattern that cannot get through the text cannot say what it would have taken out, so none
+	 * of the text is returned - the URL's password included.
+	 */
+	public function test_text_past_pcres_limits_is_withheld_whole()
+	{
+		$jit = ini_get('pcre.jit');
+		$limit = ini_get('pcre.backtrack_limit');
+		ini_set('pcre.jit', '0');
+		ini_set('pcre.backtrack_limit', '1');
+
+		try
+		{
+			$removed = 0;
+			$text = $this->scrubber()->scrub(
+				'connect to https://user:SECRETpass@db.example.com/x ' . str_repeat('xyz password=', 50),
+				$removed
+			);
+		}
+		finally
+		{
+			ini_set('pcre.backtrack_limit', (string) $limit);
+			ini_set('pcre.jit', (string) $jit);
+		}
+
+		$this->assertSame('[withheld]', $text);
+		$this->assertSame(1, $removed);
+	}
+
+	/**
 	 * A marker is not itself taken for a credential, so text scrubbed twice comes out the same and
 	 * the second pass counts nothing - a caller adding up `scrubbed` would otherwise over-count.
 	 */

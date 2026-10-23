@@ -188,6 +188,33 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertNotSame('', $root);
 	}
 
+	/**
+	 * A trace the pattern cannot get through keeps its paths as logged, so none of it is returned.
+	 */
+	public function test_a_trace_past_pcres_limits_is_not_returned()
+	{
+		$jit = ini_get('pcre.jit');
+		$limit = ini_get('pcre.backtrack_limit');
+		ini_set('pcre.jit', '0');
+		ini_set('pcre.backtrack_limit', '1');
+
+		try
+		{
+			$trace = '';
+			for ($i = 0; $i < 50; $i++)
+			{
+				$trace .= "#$i /tmp/session-1000/scratch/render.php($i): run()\n";
+			}
+
+			$this->assertSame('', $this->repo()->getRelativeTrace($trace));
+		}
+		finally
+		{
+			ini_set('pcre.backtrack_limit', (string) $limit);
+			ini_set('pcre.jit', (string) $jit);
+		}
+	}
+
 	public function test_a_file_is_placed_by_its_path()
 	{
 		$repo = $this->repo();
