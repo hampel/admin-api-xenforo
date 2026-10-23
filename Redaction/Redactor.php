@@ -57,13 +57,13 @@ class Redactor
 		'/\b[0-9a-f]{32,}\b/i',
 	];
 
-	/** @var array path => true */
+	/** @var array<string, true> path => true */
 	protected $known;
 
-	/** @var array path => true */
+	/** @var array<string, true> path => true */
 	protected $forceRedact;
 
-	/** @var array path => true */
+	/** @var array<string, true> path => true */
 	protected $forceShow;
 
 	/**
@@ -83,8 +83,9 @@ class Redactor
 	 * @param mixed $value
 	 * @param bool $trusted Whether the add-on that owns it has had its secrets declared
 	 *
-	 * @return array value - a copy with each withheld part replaced by null; redactions - a list
-	 *               of [path, segments, reason, set] for each such part, relative to the setting
+	 * @return array{value: mixed, redactions: list<array<string, mixed>>} value - a copy with each
+	 *         withheld part replaced by null; redactions - a list of [path, segments, reason, set]
+	 *         for each such part, relative to the setting
 	 */
 	public function redact($path, $value, $trusted)
 	{
@@ -95,7 +96,16 @@ class Redactor
 	}
 
 	/**
+	 * @param string $path
 	 * @param string[] $relative The keys leading from the setting to this value
+	 * @param int|string $name The key this value is held under
+	 * @param mixed $value
+	 * @param bool $trusted
+	 * @param bool $shown Whether the forum has said to show what is here
+	 * @param int $depth
+	 * @param list<array<string, mixed>> $redactions Added to for each part withheld
+	 *
+	 * @return mixed
 	 */
 	protected function walk($path, array $relative, $name, $value, $trusted, $shown, $depth, array &$redactions)
 	{
@@ -191,6 +201,14 @@ class Redactor
 		return $value;
 	}
 
+	/**
+	 * @param string[] $relative
+	 * @param string $reason
+	 * @param mixed $value
+	 * @param list<array<string, mixed>> $redactions
+	 *
+	 * @return null
+	 */
 	protected function withhold(array $relative, $reason, $value, array &$redactions)
 	{
 		$redactions[] = $this->describe($relative, $reason, $value);
@@ -202,6 +220,12 @@ class Redactor
 	 * A key can itself contain a dot, so the dotted path is for reading and the segments are for
 	 * finding the value: each is one key, exactly as it is in the array. "set" is whether there
 	 * was anything there to withhold, which is all that is said about it.
+	 *
+	 * @param string[] $relative
+	 * @param string $reason
+	 * @param mixed $value
+	 *
+	 * @return array{path: string, segments: string[], reason: string, set: bool}
 	 */
 	protected function describe(array $relative, $reason, $value)
 	{
@@ -213,11 +237,21 @@ class Redactor
 		];
 	}
 
+	/**
+	 * @param mixed $value
+	 *
+	 * @return bool
+	 */
 	protected function isPlain($value)
 	{
 		return $value === null || is_bool($value) || is_int($value) || is_float($value);
 	}
 
+	/**
+	 * @param string $path
+	 *
+	 * @return string
+	 */
 	protected function leafName($path)
 	{
 		$dot = strrpos($path, '.');
@@ -225,6 +259,11 @@ class Redactor
 		return $dot === false ? $path : substr($path, $dot + 1);
 	}
 
+	/**
+	 * @param int|string $name
+	 *
+	 * @return bool
+	 */
 	public function isSecretName($name)
 	{
 		return preg_match(self::SECRET_WORD, (string) $name) || preg_match(self::SECRET_SUFFIX, (string) $name);
@@ -321,6 +360,11 @@ class Redactor
 		return $address;
 	}
 
+	/**
+	 * @param string $value
+	 *
+	 * @return float Bits per character
+	 */
 	protected function entropy($value)
 	{
 		$length = strlen($value);

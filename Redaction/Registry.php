@@ -54,7 +54,11 @@ class Registry
 	/** @var App */
 	protected $app;
 
-	/** @var array|null add-on id => ['options' => [...], 'config' => [top-level key => [...]]] */
+	/**
+	 * add-on id => ['options' => [...], 'config' => [top-level key => [...]]]
+	 *
+	 * @var array<string, array{options: string[], config: array<string, string[]>}>|null
+	 */
 	protected $declarations;
 
 	public function __construct(App $app)
@@ -62,6 +66,11 @@ class Registry
 		$this->app = $app;
 	}
 
+	/**
+	 * @param string $addOnId
+	 *
+	 * @return bool
+	 */
 	public function isTrustedAddOn($addOnId)
 	{
 		return isset($this->getDeclarations()[$addOnId]);
@@ -72,7 +81,8 @@ class Registry
 	 * secrets has claimed the top-level key it sits under.
 	 *
 	 * @param string $key Dotted
-	 * @param array $defaults XenForo's own default configuration, flattened to dotted keys
+	 * @param array<string, mixed> $defaults XenForo's own default configuration, flattened to
+	 *                                     dotted keys
 	 *
 	 * @return bool
 	 */
@@ -147,7 +157,7 @@ class Registry
 	 * still a declaration, and is what moves it out of the untrusted tier. Anything that is not
 	 * a list of strings is dropped, so a bad listener cannot widen what is shown.
 	 *
-	 * @return array
+	 * @return array<string, array{options: string[], config: array<string, string[]>}>
 	 */
 	public function getDeclarations()
 	{
@@ -237,8 +247,11 @@ class Registry
 
 	/**
 	 * @param mixed $original
-	 * @param array $result What Redactor::redact() returned for it
+	 * @param array{value: mixed, redactions: list<array<string, mixed>>} $result What
+	 *        Redactor::redact() returned for it
 	 * @param string[] $values Added to
+	 *
+	 * @return void
 	 */
 	protected function collectWithheld($original, array $result, array &$values)
 	{
@@ -264,6 +277,11 @@ class Registry
 	/**
 	 * $config['hampelAdminApi']['redact'] and ['show'], each with 'options' and 'config' lists of
 	 * paths. The forum's own word, for a secret the rules miss or a value they hide needlessly.
+	 *
+	 * @param string $direction redact or show
+	 * @param string $kind options or config
+	 *
+	 * @return string[]
 	 */
 	protected function getOverride($direction, $kind)
 	{
@@ -272,6 +290,11 @@ class Registry
 		return $this->strings(is_array($config) ? ($config[$direction][$kind] ?? []) : []);
 	}
 
+	/**
+	 * @param mixed $values
+	 *
+	 * @return list<string> The strings among them
+	 */
 	protected function strings($values)
 	{
 		return array_values(array_filter((array) $values, 'is_string'));
