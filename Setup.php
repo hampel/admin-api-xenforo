@@ -8,6 +8,11 @@ use XF\Db\Schema\Create;
 
 class Setup extends AbstractSetup
 {
+	/**
+	 * @param array<mixed> $stepParams
+	 *
+	 * @return null
+	 */
 	public function install(array $stepParams = [])
 	{
 		$this->createFaultTable();
@@ -15,6 +20,11 @@ class Setup extends AbstractSetup
 		return null;
 	}
 
+	/**
+	 * @param array<mixed> $stepParams
+	 *
+	 * @return null
+	 */
 	public function upgrade(array $stepParams = [])
 	{
 		return null;
@@ -23,6 +33,10 @@ class Setup extends AbstractSetup
 	/**
 	 * Anything the fault commands planted is content this add-on put on the forum, so it goes
 	 * before the record of it does.
+	 *
+	 * @param array<mixed> $stepParams
+	 *
+	 * @return null
 	 */
 	public function uninstall(array $stepParams = [])
 	{
@@ -38,6 +52,8 @@ class Setup extends AbstractSetup
 
 	/**
 	 * What the fault commands planted, written as each thing is saved.
+	 *
+	 * @return void
 	 */
 	public function createFaultTable()
 	{
@@ -53,17 +69,31 @@ class Setup extends AbstractSetup
 		});
 	}
 
+	/**
+	 * @param array<string, mixed> $stateChanges
+	 *
+	 * @return void
+	 */
 	public function postInstall(array &$stateChanges)
 	{
 		$this->withholdScopesFromOAuthClients();
 		$this->restoreDeclarationListeners();
 	}
 
+	/**
+	 * @param int $previousVersion
+	 * @param array<string, mixed> $stateChanges
+	 *
+	 * @return void
+	 */
 	public function postUpgrade($previousVersion, array &$stateChanges)
 	{
 		$this->withholdScopesFromOAuthClients();
 	}
 
+	/**
+	 * @return void
+	 */
 	public function postRebuild()
 	{
 		$this->withholdScopesFromOAuthClients();
@@ -74,6 +104,8 @@ class Setup extends AbstractSetup
 	 * A release carries an API scope's id and nothing else, so on import a scope takes the column
 	 * default and is offered to OAuth clients. The endpoints refuse an access token whatever it
 	 * holds; this stops the scopes being offered for one in the first place.
+	 *
+	 * @return void
 	 */
 	public function withholdScopesFromOAuthClients()
 	{
