@@ -75,7 +75,8 @@ TEMPLATE;
 	}
 
 	/**
-	 * @return array batch => [fault_type => count, ..., 'created_date' => int]
+	 * @return array<string, array{created_date: int, records: array<string, int>}> batch =>
+	 *         its earliest record's date, and how many records of each content type it holds
 	 */
 	public function getBatches()
 	{
@@ -114,8 +115,8 @@ TEMPLATE;
 	 * @param int $memberCount
 	 * @param string[] $kinds From KINDS
 	 *
-	 * @return array batch, and what was planted for each kind - with the members' passwords,
-	 *               which exist nowhere else
+	 * @return array<string, mixed> batch, and what was planted for each kind - with the members'
+	 *                              passwords, which exist nowhere else
 	 */
 	public function arm($batch, $memberCount, array $kinds = self::KINDS)
 	{
@@ -199,6 +200,13 @@ TEMPLATE;
 	 * Written straight to the queue, as an overdue job. Going through the job manager would
 	 * bring the forum's next job run forward to now; a job that has been left waiting is the
 	 * thing being planted.
+	 *
+	 * @param string $batch
+	 * @param string $kind
+	 * @param string $class
+	 * @param array<string, mixed> $data
+	 *
+	 * @return array{job_id: int, kind: string, execute_class: string}
 	 */
 	protected function createJob($batch, $kind, $class, array $data)
 	{
@@ -221,6 +229,10 @@ TEMPLATE;
 	/**
 	 * Written straight to the table for the same reason, and because saving the entity would
 	 * refuse a callback that does not exist.
+	 *
+	 * @param string $batch
+	 *
+	 * @return array{entry_id: string}
 	 */
 	protected function createCronEntry($batch)
 	{
@@ -244,6 +256,10 @@ TEMPLATE;
 	/**
 	 * Inactive, and not marked as processing: an add-on that is processing stops XenForo writing
 	 * to its error log at all, which would hide every other fault.
+	 *
+	 * @param string $batch
+	 *
+	 * @return array{addon_id: string, pending_action: string}
 	 */
 	protected function createAddOnRecord($batch)
 	{
@@ -272,6 +288,8 @@ TEMPLATE;
 	 * whose own rebuild is deferred to the end of the request - so the tree is settled first, a
 	 * builder that already read the old tree is discarded, and the rebuild is then run until it
 	 * says it has finished, since it works in slices.
+	 *
+	 * @return void
 	 */
 	protected function rebuildPermissions()
 	{
@@ -289,6 +307,12 @@ TEMPLATE;
 		}
 	}
 
+	/**
+	 * @param string $batch
+	 * @param int $number
+	 *
+	 * @return array{user_id: int, username: string, password: string}
+	 */
 	protected function createMember($batch, $number)
 	{
 		$password = bin2hex(random_bytes(12));
@@ -306,6 +330,11 @@ TEMPLATE;
 		return ['user_id' => $user->user_id, 'username' => $user->username, 'password' => $password];
 	}
 
+	/**
+	 * @param string $batch
+	 *
+	 * @return array{node_id: int, route: string, template: string}
+	 */
 	protected function createPage($batch)
 	{
 		/** @var \XF\Entity\Node $node */
@@ -345,7 +374,7 @@ TEMPLATE;
 	 *
 	 * @param string|null $batch Every batch when null
 	 *
-	 * @return array content type => how many were removed, plus 'error_log'
+	 * @return array<string, int> content type => how many were removed, plus 'error_log'
 	 */
 	public function clean($batch = null)
 	{
@@ -406,6 +435,12 @@ TEMPLATE;
 		return $removed;
 	}
 
+	/**
+	 * @param string $shortName
+	 * @param int|string $id
+	 *
+	 * @return int 1 when it was there to delete, otherwise 0
+	 */
 	protected function deleteEntity($shortName, $id)
 	{
 		$entity = $this->app->em()->find($shortName, $id);
@@ -422,6 +457,10 @@ TEMPLATE;
 	/**
 	 * The errors a fault page raised are part of the fault. They are found by the path of the
 	 * page's own compiled template in their trace, which nothing else has.
+	 *
+	 * @param int $nodeId
+	 *
+	 * @return int Rows deleted
 	 */
 	protected function deleteErrorsFromPage($nodeId)
 	{
@@ -434,6 +473,12 @@ TEMPLATE;
 
 	/**
 	 * What a batch's jobs left behind once the queue ran them: every such row quotes the marker.
+	 *
+	 * @param string $table
+	 * @param string $column
+	 * @param string $batch
+	 *
+	 * @return int Rows deleted
 	 */
 	protected function deleteMarked($table, $column, $batch)
 	{
@@ -444,6 +489,10 @@ TEMPLATE;
 
 	/**
 	 * Rows XenForo writes about a member as they browse, which deleting the member leaves behind.
+	 *
+	 * @param int $userId
+	 *
+	 * @return void
 	 */
 	protected function sweepUser($userId)
 	{
@@ -454,6 +503,13 @@ TEMPLATE;
 		$db->delete('xf_user_alert', 'alerted_user_id = ? OR user_id = ?', [$userId, $userId]);
 	}
 
+	/**
+	 * @param string $batch
+	 * @param string $contentType
+	 * @param int|string $contentId
+	 *
+	 * @return void
+	 */
 	protected function record($batch, $contentType, $contentId)
 	{
 		$this->app->db()->insert(self::TABLE, [
@@ -467,7 +523,7 @@ TEMPLATE;
 	/**
 	 * @param string|null $batch
 	 *
-	 * @return array Oldest first
+	 * @return list<array<string, mixed>> Oldest first
 	 */
 	protected function getRecords($batch = null)
 	{
