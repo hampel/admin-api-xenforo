@@ -266,24 +266,32 @@ class Redactor
 	 * For a URL that carries a login, or a long opaque part in its path or query - which is what
 	 * a webhook is - the scheme, host and port, which say where it points. Null for anything else.
 	 *
+	 * A URL with no host - a socket, or a client's default server - is judged the same way and
+	 * cut down to its scheme alone. PHP will not parse most of them, so its parts are split here.
+	 *
 	 * @param string $value
 	 *
 	 * @return string|null
 	 */
 	public function getAddressOfSecretUrl($value)
 	{
-		if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $value))
+		if (!preg_match('#^([a-z][a-z0-9+.-]*)://([^/?\#]*)([^?\#]*)(?:\?([^\#]*))?#i', $value, $match))
 		{
 			return null;
 		}
 
 		$parts = parse_url($value);
-		if (!$parts || empty($parts['host']))
+		if ($parts && !empty($parts['host']))
 		{
-			return null;
+			$opaque = isset($parts['user']) || isset($parts['pass']);
+			$address = $parts['scheme'] . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
 		}
-
-		$opaque = isset($parts['user']) || isset($parts['pass']);
+		else
+		{
+			$parts = ['scheme' => $match[1], 'host' => '', 'path' => $match[3], 'query' => $match[4] ?? ''];
+			$opaque = strpos($match[2], '@') !== false;
+			$address = $match[1] . '://';
+		}
 
 		// a webhook's URL is its credential, whatever its path happens to look like
 		if (preg_match('#^hooks\.#i', $parts['host']) || preg_match('#/webhooks?/.#i', $parts['path'] ?? ''))
@@ -310,7 +318,7 @@ class Redactor
 			return null;
 		}
 
-		return $parts['scheme'] . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+		return $address;
 	}
 
 	protected function entropy($value)

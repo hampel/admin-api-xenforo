@@ -26,6 +26,7 @@ class ValuesTest extends TestCase
 		$this->insertOption('adminApiTestApiKey', self::TRUSTED, 'string', 'SECRET-by-name');
 		$this->insertOption('adminApiTestOpaque', self::TRUSTED, 'string', 'k3J9xQ2mP7vL4nR8tW6yB1cD5fG0hZSECRET');
 		$this->insertOption('adminApiTestHook', self::TRUSTED, 'string', 'https://hooks.example.com/services/T01ABCDEFGH/SECRETx9Kq2mP7vL4nR8tW6yB1c');
+		$this->insertOption('adminApiTestSocket', self::TRUSTED, 'string', 'redis://user:SECRETpassw0rd1234@/0');
 		$this->insertOption('adminApiTestMail', self::TRUSTED, 'array', json_encode([
 			'type' => 'smtp', 'host' => 'mail.example.com', 'port' => 587, 'password' => 'SECRET-in-array',
 		]));
@@ -164,6 +165,10 @@ class ValuesTest extends TestCase
 
 		$this->assertSame('https://hooks.example.com', $options['adminApiTestHook']['value']);
 		$this->assertSame(Redactor::URL, $options['adminApiTestHook']['redactions'][0]['reason']);
+
+		// a URL with no host keeps only its scheme
+		$this->assertSame('redis://', $options['adminApiTestSocket']['value']);
+		$this->assertSame(Redactor::URL, $options['adminApiTestSocket']['redactions'][0]['reason']);
 	}
 
 	public function test_an_array_option_is_returned_whole_except_for_its_secrets()
@@ -518,6 +523,16 @@ class ValuesTest extends TestCase
 			$settings['hampelAdminApi.service.oauth.client']['redactions']
 		);
 		$this->assertNull($settings['hampelAdminApi.service.oauth.client']['value']);
+	}
+
+	public function test_a_config_url_with_a_login_and_no_host_keeps_only_its_scheme()
+	{
+		$this->setConfig('hampelAdminApi', ['cacheTarget' => 'redis://user:SECRETpassw0rd1234@/0']);
+
+		$setting = array_column($this->config()['settings'], null, 'key')['hampelAdminApi.cacheTarget'];
+
+		$this->assertSame('redis://', $setting['value']);
+		$this->assertSame(Redactor::URL, $setting['redactions'][0]['reason']);
 	}
 
 	/**

@@ -618,7 +618,7 @@ has to get past all of them:
 | `name` | its name, or the name of something it sits inside, reads like a credential: password, secret, token, salt, webhook, an API or private key, a username |
 | `untrusted_add_on` | it is text belonging to an add-on nobody has declared the secrets of |
 | `value` | it looks like a credential whatever it is called: a known token format, or a long random string |
-| `url` | it is a URL carrying a login or a long opaque part, as a webhook does. The scheme and host are kept, since where it points is not the secret |
+| `url` | it is a URL carrying a login or a long opaque part, as a webhook does. The scheme and host are kept, since where it points is not the secret; a URL with no host, such as `redis://:password@/0`, keeps its scheme alone |
 
 A withheld part comes back as `null`, and `redactions` lists each one, so nothing is mistaken for
 empty. Booleans and numbers are shown.

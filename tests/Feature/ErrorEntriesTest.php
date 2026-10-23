@@ -109,7 +109,7 @@ class ErrorEntriesTest extends TestCase
 			'message' => 'Client error: `POST https://hooks.slack.com/services/T0SECRET01/B0SECRET02/SECRETabcdefghijklmnopqrs` resulted in a `404 Not Found` response: no_service (key forum-held-SECRET-value)',
 			'filename' => self::FILE,
 			'line' => 999,
-			'trace_string' => "#0 src/XF/Http.php(20): post('https://u:SECRETpw@api.example.com/x')\n#1 {main}",
+			'trace_string' => "#0 src/XF/Http.php(20): post('https://u:SECRETpw@api.example.com/x')\n#1 src/XF/Cache.php(9): connect('redis://:SECRETpassw0rd1234@/0')\n#2 {main}",
 			'request_state' => '{"url":"/hook/?token=SECRETtokenvalue","referrer":"","_GET":[],"_POST":{"note":"forum-held-SECRET-value"}}',
 		]);
 		$id = (int) $db->lastInsertId();
@@ -122,8 +122,9 @@ class ErrorEntriesTest extends TestCase
 		);
 		$this->assertStringNotContainsString('SECRET', json_encode($entry));
 		$this->assertStringContainsString('https://api.example.com/[withheld]', $entry['trace']);
+		$this->assertStringContainsString("connect('redis:///[withheld]')", $entry['trace']);
 		$this->assertSame('[withheld]', $entry['request']['_POST']['note']);
-		$this->assertSame(5, $entry['scrubbed']);
+		$this->assertSame(6, $entry['scrubbed']);
 
 		// what is left is still the error: who raised it, where, and what came back
 		$this->assertSame('GuzzleHttp\\Exception\\ClientException', $entry['exception_type']);

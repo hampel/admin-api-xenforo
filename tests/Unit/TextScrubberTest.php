@@ -43,6 +43,11 @@ class TextScrubberTest extends TestCase
 		);
 		$this->assertStringNotContainsString('SECRET', $scrubber->scrub('GET https://api.example.com/v1/lookup?api_key=SECRET9f86d081884c7d65 failed'));
 		$this->assertStringNotContainsString('SECRET', $scrubber->scrub("discord said no: https://discord.com/api/webhooks/12345/SECRETshort"));
+		$this->assertSame(
+			'Connection refused for redis:///[withheld], retrying',
+			$scrubber->scrub('Connection refused for redis://:SECRETpassw0rd1234@/0, retrying')
+		);
+		$this->assertSame('could not reach unix:///run/redis.sock', $scrubber->scrub('could not reach unix:///run/redis.sock'));
 	}
 
 	public function test_an_ordinary_url_and_ordinary_text_are_left_alone()

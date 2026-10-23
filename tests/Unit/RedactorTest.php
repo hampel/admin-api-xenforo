@@ -256,6 +256,11 @@ class RedactorTest extends TestCase
 			'https://user:SECRETpass@db.example.com:8443/path' => 'https://db.example.com:8443',
 			'https://hooks.example.com/services/T01ABCDEFGH/B02IJKLMNOP/SECRETx9Kq2mP7vL4nR8tW6yB1c' => 'https://hooks.example.com',
 			'https://api.example.com/v1?key=SECRET9f86d081884c7d659a2feaa0c55ad015' => 'https://api.example.com',
+			// no host - a socket, or a client's default server - and so nothing to keep but the scheme
+			'redis://:SECRETpassw0rd1234@/0' => 'redis://',
+			'redis://user:SECRETpassw0rd1234@/0' => 'redis://',
+			'smtp://SECRETuser:SECRETpass@' => 'smtp://',
+			'unix:///run/redis.sock?auth=SECRETx9Kq2mP7vL4nR8tW6yB1c' => 'unix://',
 		] AS $url => $address)
 		{
 			$result = $this->redact('endpointUrl', $url);
@@ -270,6 +275,7 @@ class RedactorTest extends TestCase
 		foreach ([
 			'https://forum.example.com/community/', 'http://localhost:8025', 'https://example.com/help/terms?lang=en',
 			'https://forum.example.com/threads/a-long-thread-title-about-nothing.1234/',
+			'file:///var/log/forum/error.log', 'unix:///run/redis.sock', 'redis:///0',
 		] AS $url)
 		{
 			$this->assertSame(['value' => $url, 'redactions' => []], $this->redact('homePageUrl', $url));
