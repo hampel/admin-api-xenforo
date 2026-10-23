@@ -3,6 +3,7 @@
 		"rm -fv _build/upload/src/addons/{addon_id}/composer.json",
 		"rm -fv _build/upload/src/addons/{addon_id}/composer.lock",
 		"rm -fv _build/upload/src/addons/{addon_id}/phpunit.xml",
+		"rm -fv _build/upload/src/addons/{addon_id}/phpstan.neon",
 		"rm -rfv _build/upload/src/addons/{addon_id}/tests",
 		"rm -rfv _build/upload/src/addons/{addon_id}/vendor",
 		"rm -rfv _build/upload/src/addons/{addon_id}/_driver",

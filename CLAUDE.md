@@ -182,7 +182,12 @@ is whether it can carry member data.
   that. Lowering the floor means running it there first; do not lower it on a reading of the
   code. Decided 2026-10-09.
 - **The dev dependencies need far newer PHP**, so the suite cannot tell you that a newer syntax
-  has crept in. Keep to 7.4 by hand, and lint the release under 7.4 in a sandbox.
+  has crept in. `vendor/bin/phpstan analyse` reads the add-on as 7.4 and reports newer syntax,
+  but not a function newer than 7.4 (`str_contains()` passes). Keep to 7.4 by hand, and lint the
+  release under 7.4 in a sandbox.
+- **PHPStan runs at level 2 and must stay clean**; `phpstan.neon` gives the reason for each
+  ignored error, and a count that stops matching fails the run. It is analysed against the
+  development forum's XenForo 2.3, so a guard for 2.2 can read as always true at higher levels.
 - **A test only adds rows.** The suite runs on the forum's real tables inside a transaction, and
   `emptyTable()` is a `TRUNCATE` that commits it. `TESTING.md` has the incident.
 - **`composer.json` holds dev dependencies only.** `addon.json` has no `composer_autoload`, and

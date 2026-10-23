@@ -11,10 +11,13 @@ class Setup extends AbstractSetup
 	public function install(array $stepParams = [])
 	{
 		$this->createFaultTable();
+
+		return null;
 	}
 
 	public function upgrade(array $stepParams = [])
 	{
+		return null;
 	}
 
 	/**
@@ -29,6 +32,8 @@ class Setup extends AbstractSetup
 		}
 
 		$this->schemaManager()->dropTable(Manager::TABLE);
+
+		return null;
 	}
 
 	/**
