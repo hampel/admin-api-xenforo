@@ -458,6 +458,18 @@ database password still withheld; a super user key was refused; and the entries 
 400 with no `error_id`. The remainder entry in `by_action` was not seen there, since a fresh forum
 has one action; the suite and the generated-session run cover it.
 
+Proved from a `1.0.0a7` build on XenForo 2.2.19 Patch 2 with PHP 7.4.33, upgrading from `1.0.0a6`,
+on 2026-10-23, after the hostless-URL fix and the PHPStan work. The upgrade imported the release's
+own data and left no file the release does not ship; every PHP file linted; the job queue ran
+empty and no error was logged. Over HTTP all seven summary endpoints answered. A `config.php`
+setting holding `redis://user:…@/0` came back as `redis://` with reason `url`, and an error whose
+message quoted `redis://:…@/0` came back as `redis:///[withheld]` with `scrubbed: 1`. The four
+refusals held: each scope on the other's endpoint, and a super user key with and without the
+bypass parameter. `fault-arm` printed its JSON and `fault-clean` removed every row; on 2.2 the
+`jobs` fault plants one job, since the second needs a 2.3 class. `validate --strict` exited 2 on
+the one warning that faults were enabled, which the run had switched on, and its probe passed.
+Uninstall left no add-on row, scope, permission, phrase, route, key grant or table.
+
 ### The fault commands, the same day and the same way
 
 On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
