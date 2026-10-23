@@ -39,6 +39,10 @@ if (!is_array($armed) || empty($armed['page']['route']))
  * XenForo's command runner prints its own lines after a command's output when the command left
  * work queued - "Running clean up tasks..." - so the file is the JSON and then whatever followed.
  * Reads the first complete object and ignores the rest.
+ *
+ * @param string $text
+ *
+ * @return array<string, mixed>|null
  */
 function firstJsonObject($text)
 {
@@ -93,10 +97,19 @@ $route = $armed['page']['route'];
  */
 final class Visitor
 {
+	/** @var string */
 	private $base;
+
+	/** @var string|null */
 	private $host;
+
+	/** @var string */
 	private $jar;
 
+	/**
+	 * @param string $base
+	 * @param string|null $host Sent as the Host header, when given
+	 */
 	public function __construct($base, $host)
 	{
 		$this->base = $base;
@@ -109,7 +122,12 @@ final class Visitor
 		@unlink($this->jar);
 	}
 
-	/** @return array [status code, body] */
+	/**
+	 * @param string $route
+	 * @param array<string, mixed>|null $post
+	 *
+	 * @return array{int, string} [status code, body]
+	 */
 	public function request($route, ?array $post = null)
 	{
 		$curl = curl_init($this->base . '/index.php?' . $route);
@@ -136,12 +154,24 @@ final class Visitor
 		return [$status, (string) $body];
 	}
 
-	/** The id XenForo itself says this session belongs to, or null when the page did not say. */
+	/**
+	 * The id XenForo itself says this session belongs to, or null when the page did not say.
+	 *
+	 * @param string $body
+	 *
+	 * @return int|null
+	 */
 	public function userId($body)
 	{
 		return preg_match('/userId:\s*(\d+)/', $body, $match) ? (int) $match[1] : null;
 	}
 
+	/**
+	 * @param string $username
+	 * @param string $password
+	 *
+	 * @return int|false|null The user id the session now belongs to; false when there was no login form
+	 */
 	public function login($username, $password)
 	{
 		[, $form] = $this->request('login/');

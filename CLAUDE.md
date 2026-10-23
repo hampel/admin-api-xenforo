@@ -185,11 +185,12 @@ is whether it can carry member data.
   has crept in. `vendor/bin/phpstan analyse` reads the add-on as 7.4 and reports newer syntax,
   but not a function newer than 7.4 (`str_contains()` passes). Keep to 7.4 by hand, and lint the
   release under 7.4 in a sandbox.
-- **PHPStan runs at level 5 and must stay clean**; `phpstan.neon` gives the reason for each
+- **PHPStan runs at level 6 and must stay clean**; `phpstan.neon` gives the reason for each
   ignored error, and a count that stops matching fails the run. It is analysed against the
   development forum's XenForo 2.3, so a guard for 2.2 reads as always true: ignore it there with
-  the reason, as the `accessToken()` guard is, rather than removing the guard. Level 6 is about
-  200 missing type declarations, not defects.
+  the reason, as the `accessToken()` guard is, rather than removing the guard. Types are
+  declared in docblocks, not in signatures: a native type on a method XenForo or Symfony
+  declares untyped is a fatal on load, and 7.4 has no `mixed` or union types.
 - **A test only adds rows.** The suite runs on the forum's real tables inside a transaction, and
   `emptyTable()` is a `TRUNCATE` that commits it. `TESTING.md` has the incident.
 - **`composer.json` holds dev dependencies only.** `addon.json` has no `composer_autoload`, and

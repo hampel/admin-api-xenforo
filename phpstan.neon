@@ -2,7 +2,7 @@ includes:
     - vendor/hampel/xenforo-phpstan/extension.neon
 
 parameters:
-    level: 5
+    level: 6
 
     # The add-on's PHP floor. PHPStan reports syntax newer than this, which the suite, running
     # on far newer PHP, cannot. It is why tests/ is not analysed: read as 7.4, PHPUnit 12 is

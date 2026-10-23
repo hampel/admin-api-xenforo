@@ -25,7 +25,7 @@ class ValueShape
 	/**
 	 * @param mixed $value
 	 *
-	 * @return array type, set, disclosed, value, count
+	 * @return array<string, mixed> type, set, disclosed, value, count
 	 */
 	public function describe($value)
 	{
@@ -45,9 +45,9 @@ class ValueShape
 	 * Describes a value that is meant to be one of a fixed set of choices.
 	 *
 	 * @param mixed $value
-	 * @param array $choices The values the setting's definition allows
+	 * @param array<mixed> $choices The values the setting's definition allows
 	 *
-	 * @return array type, set, disclosed, value, count
+	 * @return array<string, mixed> type, set, disclosed, value, count
 	 */
 	public function describeChoice($value, array $choices)
 	{
@@ -66,11 +66,11 @@ class ValueShape
 	 * Reduces a nested array to its leaves, keyed by dotted path. An array is followed only while
 	 * it has string keys: a list is a leaf, since its members are values rather than settings.
 	 *
-	 * @param array $values
+	 * @param array<mixed> $values
 	 * @param string $prefix
 	 * @param int $depth
 	 *
-	 * @return array dotted key => value
+	 * @return array<string, mixed> dotted key => value
 	 */
 	public function flatten(array $values, $prefix = '', $depth = 0)
 	{
@@ -109,6 +109,11 @@ class ValueShape
 		return $value === $default;
 	}
 
+	/**
+	 * @param mixed $value
+	 *
+	 * @return bool
+	 */
 	protected function isDisclosable($value)
 	{
 		if ($value === null || is_bool($value))
@@ -124,6 +129,11 @@ class ValueShape
 		return false;
 	}
 
+	/**
+	 * @param mixed $value
+	 *
+	 * @return bool
+	 */
 	protected function isMap($value)
 	{
 		if (!is_array($value) || !$value)
@@ -142,6 +152,11 @@ class ValueShape
 		return true;
 	}
 
+	/**
+	 * @param mixed $value
+	 *
+	 * @return string
+	 */
 	protected function getType($value)
 	{
 		if ($value instanceof \Closure)
