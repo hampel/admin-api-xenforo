@@ -135,6 +135,57 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertSame('Single', $this->repo()->getOriginAddOnId('src/XF/Template/Templater.php', $trace, self::ADD_ONS));
 	}
 
+	/**
+	 * The shape seen in a real log: an add-on extends the job manager, so every job runs through
+	 * it, and a core job's error named that add-on.
+	 */
+	public function test_a_class_extension_that_only_hands_on_to_its_parent_is_passed_over()
+	{
+		$trace = "#0 src/XF/Db/AbstractAdapter.php(96): XF\\Db\\AbstractStatement->execute()\n"
+			. "#1 src/XF/Job/Cron.php(30): XF\\Db\\AbstractAdapter->query('...')\n"
+			. "#2 src/XF/Job/Manager.php(275): XF\\Job\\Cron->run(8)\n"
+			. "#3 src/addons/Vendor/Second/XF/Job/Manager.php(20): XF\\Job\\Manager->runJobInternal(Array, 8)\n"
+			. "#4 src/XF/Job/Manager.php(201): Vendor\\Second\\XF\\Job\\Manager->runJobInternal(Array, 8)\n"
+			. "#5 src/addons/Vendor/Second/XF/Job/Manager.php(31): XF\\Job\\Manager->runQueue(false, 8)\n"
+			. "#6 job.php(46): Vendor\\Second\\XF\\Job\\Manager->runQueue(false, 8)\n"
+			. "#7 {main}";
+
+		$this->assertNull($this->repo()->getOriginAddOnId('src/XF/Db/AbstractStatement.php', $trace, self::ADD_ONS));
+
+		// with the job's own add-on further along, that add-on is named
+		$withJob = str_replace('src/XF/Job/Cron.php(30)', 'src/addons/Single/Job/Sync.php(30)', $trace);
+		$this->assertSame('Single', $this->repo()->getOriginAddOnId('src/XF/Db/AbstractStatement.php', $withJob, self::ADD_ONS));
+	}
+
+	/**
+	 * An extension is also where an add-on's own faults live, so only a call to the class it
+	 * extends is passed over.
+	 */
+	public function test_a_class_extension_doing_anything_else_still_counts()
+	{
+		$callsElsewhere = "#0 src/XF/Db/AbstractAdapter.php(96): XF\\Db\\AbstractStatement->execute()\n"
+			. "#1 src/addons/Vendor/Second/XF/Job/Manager.php(44): XF\\Db\\AbstractAdapter->query('...')\n"
+			. "#2 {main}";
+		$plainFunction = "#0 src/XF/Util/Arr.php(5): array_map(Object(Closure), Array)\n"
+			. "#1 src/addons/Vendor/Second/XF/Job/Manager.php(44): array_map(Object(Closure), Array)\n"
+			. "#2 {main}";
+
+		$this->assertSame('Vendor/Second', $this->repo()->getOriginAddOnId('src/XF/Db/AbstractStatement.php', $callsElsewhere, self::ADD_ONS));
+		$this->assertSame('Vendor/Second', $this->repo()->getOriginAddOnId('src/XF/Util/Arr.php', $plainFunction, self::ADD_ONS));
+		$this->assertSame('Vendor/Second', $this->repo()->getOriginAddOnId('src/addons/Vendor/Second/XF/Job/Manager.php', '', self::ADD_ONS));
+	}
+
+	public function test_only_a_call_to_the_class_its_path_spells_is_a_hand_on()
+	{
+		$repo = $this->repo();
+
+		$this->assertTrue($repo->isPassedThrough('src/addons/Vendor/Second/XF/Job/Manager.php', 'Vendor/Second', 'XF\\Job\\Manager'));
+		$this->assertTrue($repo->isPassedThrough('src/addons/Single/XFRM/Entity/Resource.php', 'Single', 'XFRM\\Entity\\Resource'));
+		$this->assertFalse($repo->isPassedThrough('src/addons/Vendor/Second/XF/Job/Manager.php', 'Vendor/Second', 'XF\\Job\\Cron'));
+		$this->assertFalse($repo->isPassedThrough('src/addons/Vendor/Second/Job/Manager.php', 'Vendor/Second', 'Vendor\\Second\\Job\\Manager'));
+		$this->assertFalse($repo->isPassedThrough('src/addons/Vendor/Second/XF/Job/Manager.php', 'Vendor/Second', ''));
+	}
+
 	public function test_a_full_path_in_a_trace_is_followed_too()
 	{
 		$trace = '#0 ' . \XF::getRootDirectory() . "/src/addons/Vendor/Second/Job/Send.php(3): x()\n#1 {main}";

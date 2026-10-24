@@ -576,8 +576,15 @@ class ErrorLog extends Repository
 	 * The add-on nearest to the error: the one it was raised in, or failing that the first one on
 	 * the way there. Null when no installed add-on's code is involved, which leaves the core.
 	 *
-	 * A trace line is "#3 path/to/File.php(123): call(arguments)". Only the path is taken, and it
-	 * is only ever used to look up an installed add-on's id.
+	 * A trace line is "#3 path/to/File.php(123): Class->call(arguments)". Only the path and the
+	 * called class are taken; the path is only ever used to look up an installed add-on's id, and
+	 * the class only to compare with a name made from that path.
+	 *
+	 * On the way there, a frame in a class extension that only calls the class it extends is
+	 * passed over. An add-on that extends the job manager or the dispatcher sits in the path of
+	 * everything that runs through them, and would otherwise be named for every error the core
+	 * raises there. An extension that calls anything else, or raises the error itself, still
+	 * counts: that is its own code.
 	 *
 	 * @param string $filename Relative to the install root, or empty when outside it
 	 * @param string $traceStart
@@ -593,26 +600,52 @@ class ErrorLog extends Repository
 			return $addOnId;
 		}
 
-		if (!preg_match_all('~^#\d+ (.+?)\(\d+\): ~m', $traceStart, $matches))
+		if (!preg_match_all('~^#\d+ (.+?)\(\d+\): ([A-Za-z0-9_\\\\]*)~m', $traceStart, $matches, PREG_SET_ORDER))
 		{
 			return null;
 		}
 
-		foreach ($matches[1] AS $path)
+		foreach ($matches AS $match)
 		{
-			if (!$this->isInInstall($path))
+			if (!$this->isInInstall($match[1]))
 			{
 				continue;
 			}
 
-			$addOnId = $this->getAddOnIdFromFilename($this->getRelativeFilename($path), $addOnIds);
-			if ($addOnId !== null && $addOnId !== 'XF')
+			$path = $this->getRelativeFilename($match[1]);
+			$addOnId = $this->getAddOnIdFromFilename($path, $addOnIds);
+			if ($addOnId !== null && $addOnId !== 'XF' && !$this->isPassedThrough($path, $addOnId, $match[2]))
 			{
 				return $addOnId;
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * Whether a frame is a class extension handing on to the class it extends. XenForo's
+	 * convention puts the extension of XF\Job\Manager at src/addons/<add-on>/XF/Job/Manager.php,
+	 * so the class it extends is spelled by its path, and a call to that class from that file is
+	 * a call to its parent.
+	 *
+	 * @param string $path Relative to the install root
+	 * @param string $addOnId The add-on the path belongs to
+	 * @param string $calledClass The class the frame calls, or empty for a plain function
+	 *
+	 * @return bool
+	 */
+	public function isPassedThrough($path, $addOnId, $calledClass)
+	{
+		$prefix = 'src/addons/' . $addOnId . '/';
+		if ($calledClass === '' || strpos($path, $prefix) !== 0 || substr($path, -4) !== '.php')
+		{
+			return false;
+		}
+
+		$extended = str_replace('/', '\\', substr($path, strlen($prefix), -4));
+
+		return strcasecmp($extended, $calledClass) === 0;
 	}
 
 	/**

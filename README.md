@@ -234,9 +234,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   error was raised in or, for an error raised in the core, the first add-on in the calls that led
   there. `null` means no installed add-on's PHP file is in that path — which is not the same as no
   add-on being involved: an error raised while rendering an add-on's *template* has only core
-  files in its path. It is the *nearest* add-on, which
-  is usually the cause and occasionally one that only wraps a core class every request passes
-  through — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
+  files in its path. A class extension that only hands a call on to the core class it extends is
+  passed over, so an add-on that extends the job manager is not named for every core job's error;
+  one that runs code of its own there, or raises the error itself, is. It is the *nearest*
+  add-on, which is usually the cause and not always — so read a surprising result as a lead. `by_origin_add_on` is the forum-wide count and
   `origin_add_ons` the same for one signature, since one line of core is reached from many places.
 - **`from_message` counts the errors attributed from the message, because the trace named
   nobody.** The two commonest ways an add-on takes a forum down fail inside the core before any
