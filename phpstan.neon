@@ -2,6 +2,9 @@ includes:
     - vendor/hampel/xenforo-phpstan/extension.neon
 
 parameters:
+    # Level 9 reported 311 errors on 2026-10-24, every one about a mixed value: XenForo's database
+    # adapter returns rows untyped, and the repositories cast each column they read. Proving each
+    # column's type before its cast would catch nothing the cast does not already handle.
     level: 8
 
     # The add-on's PHP floor. PHPStan reports syntax newer than this, which the suite, running
