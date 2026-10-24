@@ -1,0 +1,1 @@
+List the moderators and administrators and what each may do, through the Admin API endpoints

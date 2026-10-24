@@ -24,6 +24,9 @@ checked. For whoever changes it next.
 | API route | `admin-api/user-upgrade-records/` → `Api\Controller\UserUpgradeRecords` |
 | API scope | `hampel_admin_api:upgrades`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:ips`, not usable with OAuth clients |
+| API route | `admin-api/moderators/` → `Api\Controller\Moderators` |
+| API route | `admin-api/administrators/` → `Api\Controller\Administrators` |
+| API scope | `hampel_admin_api:staff`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
@@ -39,8 +42,9 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiLogs` |
 | admin permission | `hampelAdminApiUpgrades` |
 | admin permission | `hampelAdminApiUpgRecords` — with core's `userUpgrade`; an id is capped at 25 characters |
+| admin permission | `hampelAdminApiStaff` — with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 22 — the five scope descriptions, the twelve permission titles, five errors |
+| phrases | 24 — the six scope descriptions, the thirteen permission titles, five errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -381,6 +385,12 @@ vendor/bin/phpunit
   and a payment for something else, with `SECRET` in the provider's details and in a key a
   provider added to `extra`. It checks both endpoints' counts and order, the window both ways,
   that `SECRET` never comes back, and the member endpoint's gates and admin log line.
+- `tests/Feature/StaffTest.php` makes a moderator with global and per-content grants, a denial,
+  a permission that is not a moderator's and one that does not exist, on a forum and on a
+  content type with no handler; an administrator holding two permissions and one no longer
+  defined; and a super administrator. It checks what each endpoint lists, that the
+  administrators need a super administrator and the moderators core's `user`, the scope, and the
+  admin log line.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the

@@ -101,6 +101,14 @@ they can't do anything else.
 - create a key with the `hampel_admin_api:upgrades` scope. Every lookup is written to the admin
   log.
 
+**To list the moderators and administrators**, and what each may do:
+
+- give the administrator *Admin API: Look up moderators and administrators*, and XenForo's *Manage
+  users and moderators* for the moderators;
+- create a key with the `hampel_admin_api:staff` scope. Every lookup is written to the admin log.
+- **The administrators are for a super administrator's key alone**, as their page in the control
+  panel is.
+
 ## How access is decided
 
 **A request has to pass three checks, and the third is the one that decides.**
@@ -138,8 +146,9 @@ too, with what was asked: an IP address looked up goes wherever the admin log go
 
 Every endpoint is a `GET` under `/api/admin-api/`, and needs the `hampel_admin_api:read` scope
 except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, *Members by IP
-address*, which needs `hampel_admin_api:ips`, and *User upgrade records*, which needs
-`hampel_admin_api:upgrades`. The JSON under
+address*, which needs `hampel_admin_api:ips`, *User upgrade records*, which needs
+`hampel_admin_api:upgrades`, and *Moderators* and *Administrators*, which need
+`hampel_admin_api:staff`. The JSON under
 each shows the shape of a response; the figures in it are illustrative.
 
 ## Error log summary
@@ -673,6 +682,124 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/user-upgrade
   the details XenForo logs from a payment callback can carry the payer's name and address, and
   are never read. XenForo itself never holds card details.
 - Only the member's id and username; ask XenForo's own `users/{id}` for the rest.
+
+## Moderators
+
+`GET /api/admin-api/moderators/`
+
+**Who the moderators are, and what each has been granted** — for "who can delete posts in this
+forum?", or a check that nobody is a moderator who should not be.
+
+It takes three things to reach it:
+
+- a key holding `hampel_admin_api:staff`;
+- the *Admin API: Look up moderators and administrators* admin permission;
+- XenForo's own *Manage users and moderators* admin permission.
+
+**Every lookup is written to the admin log**, as for *Members by IP address*.
+
+| parameter | meaning |
+|---|---|
+| `user_id` | only this member |
+
+```json
+{
+    "total": 1,
+    "complete": true,
+    "moderators": [
+        {
+            "user_id": 1234,
+            "username": "Example",
+            "is_staff": true,
+            "last_activity": 1792445401,
+            "uses_tfa": true,
+            "is_super_moderator": false,
+            "extra_user_group_ids": [4],
+            "notify_report": true,
+            "notify_approval": false,
+            "permissions": {
+                "general": ["banUser", "warn"],
+                "profilePost": ["deleteAny"]
+            },
+            "content": [
+                {
+                    "moderator_id": 12,
+                    "content_type": "node",
+                    "content_id": 2,
+                    "content_title": "Forum - Main forum",
+                    "permissions": {
+                        "forum": ["deleteAnyPost", "lockUnlockThread"]
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+- **`permissions` are the moderator permissions granted to that member by name**, as the
+  control panel's moderator page sets them: globally, and under `content` for each forum or other
+  piece of content they moderate. A permission the member has from a user group, including one
+  in `extra_user_group_ids`, is the group's and is not listed.
+- Only permissions the forum defines as moderator permissions are listed, by group and id.
+- `uses_tfa` is whether the member has two-step verification switched on. `username`, `is_staff`
+  and `last_activity` are `null` for an account that has gone.
+- At most 500 are returned, in username order; `complete` is `false` past that.
+
+## Administrators
+
+`GET /api/admin-api/administrators/`
+
+**Who the administrators are, and which admin permissions each holds** — for an audit of who can
+reach the control panel and whether they use two-step verification.
+
+It takes two things to reach it:
+
+- a key holding `hampel_admin_api:staff`;
+- **a super administrator as the key's user.** Only a super administrator can see the control
+  panel's list of administrators, so the API asks the same.
+
+**Every lookup is written to the admin log**, as for *Members by IP address*.
+
+| parameter | meaning |
+|---|---|
+| `user_id` | only this member |
+
+```json
+{
+    "total": 2,
+    "complete": true,
+    "administrators": [
+        {
+            "user_id": 1,
+            "username": "Admin",
+            "is_staff": true,
+            "last_activity": 1792445401,
+            "uses_tfa": true,
+            "is_super_admin": true,
+            "last_login": 1792441801,
+            "extra_user_group_ids": [],
+            "permissions": null
+        },
+        {
+            "user_id": 1234,
+            "username": "Example",
+            "is_staff": false,
+            "last_activity": 1792359001,
+            "uses_tfa": false,
+            "is_super_admin": false,
+            "last_login": null,
+            "extra_user_group_ids": [],
+            "permissions": ["hampelAdminApiErrorLog", "option", "user"]
+        }
+    ]
+}
+```
+
+- **`permissions` is `null` for a super administrator**, who holds every admin permission,
+  including any added later. For anyone else it lists the admin permission ids they hold.
+- `last_login` is the last login to the control panel, `null` if never.
+- At most 500 are returned, in username order; `complete` is `false` past that.
 
 ## Add-on inventory
 

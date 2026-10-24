@@ -2,6 +2,9 @@
     "api_admin-api_add-ons.json": {
         "hash": "7799e44600ce31b3badd3a6f30469814"
     },
+    "api_admin-api_administrators.json": {
+        "hash": "14effd813eea5e1d074b2bea20f0ee93"
+    },
     "api_admin-api_config.json": {
         "hash": "fa77f0976947510253cf727b0e35ca28"
     },
@@ -22,6 +25,9 @@
     },
     "api_admin-api_logs.json": {
         "hash": "0eaf9ca95edb74f86e6251e0c30d10a9"
+    },
+    "api_admin-api_moderators.json": {
+        "hash": "0023615159ecf18b48fb76980e11e3ff"
     },
     "api_admin-api_online.json": {
         "hash": "c449c044087241fc3ac5bfa48d026116"
