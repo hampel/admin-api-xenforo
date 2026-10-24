@@ -20,6 +20,12 @@ class HealthCheck
 	const FAIL = 'fail';
 	const SKIP = 'skip';
 
+	/**
+	 * What these checks expect to find. Read through static::, like the other two lists below, so
+	 * that a test can name one that is not there.
+	 */
+	const SCOPES = AbstractController::SCOPES;
+
 	const PERMISSIONS = [
 		'hampelAdminApiErrorLog',
 		'hampelAdminApiErrorDetail',
@@ -71,7 +77,7 @@ class HealthCheck
 	{
 		$rows = [];
 
-		foreach (AbstractController::SCOPES AS $scopeId)
+		foreach (static::SCOPES AS $scopeId)
 		{
 			$scope = $this->app->em()->find('XF:ApiScope', $scopeId);
 
@@ -106,14 +112,14 @@ class HealthCheck
 			'SELECT admin_permission_id FROM xf_admin_permission WHERE addon_id = ?',
 			'Hampel/AdminApi'
 		);
-		$missing = array_diff(self::PERMISSIONS, $defined);
+		$missing = array_diff(static::PERMISSIONS, $defined);
 
 		if ($missing)
 		{
 			return [[self::FAIL, 'admin permissions', 'not defined: ' . implode(', ', $missing)]];
 		}
 
-		return [[self::OK, 'admin permissions', count(self::PERMISSIONS) . ' defined']];
+		return [[self::OK, 'admin permissions', count(static::PERMISSIONS) . ' defined']];
 	}
 
 	/**
@@ -126,7 +132,7 @@ class HealthCheck
 		);
 		$problems = [];
 
-		foreach (self::ROUTES AS $name)
+		foreach (static::ROUTES AS $name)
 		{
 			if (!isset($routes[$name]))
 			{
@@ -143,7 +149,7 @@ class HealthCheck
 			return [[self::FAIL, 'routes', implode('; ', $problems)]];
 		}
 
-		return [[self::OK, 'routes', count(self::ROUTES) . ' registered, each with its controller']];
+		return [[self::OK, 'routes', count(static::ROUTES) . ' registered, each with its controller']];
 	}
 
 	/**
@@ -214,7 +220,7 @@ class HealthCheck
 
 		foreach ($this->app->finder('XF:ApiKey')->order('api_key_id')->fetch() AS $key)
 		{
-			$scopes = array_values(array_intersect(AbstractController::SCOPES, array_keys(array_filter((array) $key->scopes))));
+			$scopes = array_values(array_intersect(static::SCOPES, array_keys(array_filter((array) $key->scopes))));
 			if (!$scopes)
 			{
 				continue;

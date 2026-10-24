@@ -1,5 +1,6 @@
 <?php namespace Tests\Feature;
 
+use Hampel\AdminApi\Api\Controller\AbstractController;
 use Hampel\AdminApi\Check\HealthCheck;
 use Hampel\AdminApi\Cli\Command\Config;
 use Hampel\AdminApi\Cli\Command\Validate;
@@ -217,6 +218,32 @@ class CommandsTest extends TestCase
 		$this->assertSame(1, $exit);
 		$this->assertSame(1, $strictExit);
 		$this->assertStringContainsString('[fail] REST API', $display);
+	}
+
+	/**
+	 * A scope, a permission or a route this add-on depends on and the forum does not have. Each
+	 * list is named once, on the class, so a subclass can add one that is not there.
+	 */
+	public function test_a_missing_scope_permission_or_route_fails_by_name()
+	{
+		$check = new class(\XF::app()) extends HealthCheck
+		{
+			const SCOPES = ['hampel_admin_api:read', 'hampel_admin_api:nowhere'];
+			const PERMISSIONS = ['hampelAdminApiErrorLog', 'hampelAdminApiNowhere'];
+			const ROUTES = ['error-log', 'nowhere'];
+		};
+
+		$this->assertSame([
+			[HealthCheck::OK, 'hampel_admin_api:read', 'defined, and withheld from OAuth clients'],
+			[HealthCheck::FAIL, 'hampel_admin_api:nowhere', 'not defined - no key can be given it'],
+		], $check->scopes());
+		$this->assertSame(
+			[[HealthCheck::FAIL, 'admin permissions', 'not defined: hampelAdminApiNowhere']],
+			$check->permissions()
+		);
+		$this->assertSame([[HealthCheck::FAIL, 'routes', 'nowhere is not registered']], $check->routes());
+
+		$this->assertSame(AbstractController::SCOPES, HealthCheck::SCOPES);
 	}
 
 	/**
