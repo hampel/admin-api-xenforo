@@ -41,6 +41,12 @@
         "version_string": "1.0.0a3",
         "hash": "3d24a68bce7d2d6052b1fbba0546c382"
     },
+    "admin_permission.hampelAdminApiLogEntries.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "cb20eb815e2e3728b19405041a74ef13"
+    },
     "admin_permission.hampelAdminApiLogs.txt": {
         "global_cache": false,
         "version_id": 1000018,
@@ -95,6 +101,12 @@
         "version_string": "1.0.0a8",
         "hash": "7416dea1ba293131246bb34e93638f5d"
     },
+    "api_scope.hampel_admin_api_log_entries.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "a4f138d99ef139407f0403209d67f85e"
+    },
     "api_scope.hampel_admin_api_read.txt": {
         "global_cache": false,
         "version_id": 1000011,
@@ -124,6 +136,12 @@
         "version_id": 1000011,
         "version_string": "1.0.0a1",
         "hash": "3c767942231103f9fa59c67417e91734"
+    },
+    "hampel_adminapi_log_filter_unsupported.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "083ed4b102d682f278873701e78ec3db"
     },
     "hampel_adminapi_unknown_log.txt": {
         "global_cache": false,

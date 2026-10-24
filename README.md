@@ -110,6 +110,14 @@ they can't do anything else.
 - **The administrators are for a super administrator's key alone**, as their page in the control
   panel is.
 
+**To read entries from the logs** of what members and staff did:
+
+- give the administrator *Admin API: Read log entries*, and XenForo's *View logs*;
+- create a key with the `hampel_admin_api:log_entries` scope. Every lookup is written to the admin
+  log.
+- **The admin log's entries are for a super administrator's key alone**, as its page in the
+  control panel is.
+
 ## How access is decided
 
 **A request has to pass three checks, and the third is the one that decides.**
@@ -148,8 +156,9 @@ too, with what was asked: an IP address looked up goes wherever the admin log go
 Every endpoint is a `GET` under `/api/admin-api/`, and needs the `hampel_admin_api:read` scope
 except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, *Members by IP
 address*, which needs `hampel_admin_api:ips`, *User upgrade records*, which needs
-`hampel_admin_api:upgrades`, and *Moderators* and *Administrators*, which need
-`hampel_admin_api:staff`. The JSON under
+`hampel_admin_api:upgrades`, *Moderators* and *Administrators*, which need
+`hampel_admin_api:staff`, and *Log entries*, which needs `hampel_admin_api:log_entries`. The JSON
+under
 each shows the shape of a response; the figures in it are illustrative.
 
 ## Error log summary
@@ -487,6 +496,88 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
   may be where the log was last pruned. Most of these logs are pruned by an option.
 - `by_day` is as in the error log summary: one entry per UTC day, quiet days included, from the
   start of the window or of the log, at most 366.
+
+## Log entries
+
+`GET /api/admin-api/log-entries/?log=<log>`
+
+**Who did what, to whom and when**, from the logs that record members and staff — for "who
+deleted this thread?", "who changed this member's email address?" or "why is this member not
+getting our mail?". *Logs* counts every log; this reads the entries of one.
+
+It takes three things to reach it:
+
+- a key holding `hampel_admin_api:log_entries`;
+- the *Admin API: Read log entries* admin permission;
+- XenForo's own *View logs* admin permission, and for the admin log a super administrator as the
+  key's user, as in the control panel.
+
+**Every lookup is written to the admin log**, as for *Members by IP address*.
+
+| parameter | meaning |
+|---|---|
+| `log` | which log; see the table below. Required |
+| `since`, `until` | only entries in this window, as Unix timestamps. Default the whole log, up to now |
+| `user_id` | only entries recording this member's action |
+| `about_user_id` | only entries about this member |
+| `content_type`, `content_id` | only entries about this content |
+| `limit` | how many entries to return, newest first. Default 50, maximum 200 |
+
+A filter a log has nothing for is refused with a 400 rather than ignored.
+
+| log | the member who acted (`user_id`) | the member it is about (`about_user_id`) | also returned |
+|---|---|---|---|
+| `admin` | the administrator | — | `section`, `request_url` |
+| `moderator` | the moderator | the content's author | `content_type`, `content_id`, `action`, `content_username`, `discussion_content_type`, `discussion_content_id` |
+| `user_change` | who made the change | the member changed | `field`, `protected` |
+| `username_change` | who asked for it | the member renamed | `old_username`, `new_username`, `state`, `moderator_user_id`, `visible` |
+| `spam_trigger` | the member, or `null` for a guest | — | `content_type`, `content_id`, `result` |
+| `spam_cleaner` | who applied it | the member cleaned | `cleaned_username`, `restored_date` |
+| `rejected_user` | who rejected them | the member rejected | — |
+| `email_bounce` | — | the member the mail was for | `message_type`, `action`, `email_date`, `status_code` |
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/log-entries/?log=moderator&content_type=thread&content_id=123"
+```
+
+```json
+{
+    "log": "moderator",
+    "window": {"since": 0, "until": 1792445401},
+    "total": 1,
+    "complete": true,
+    "scrubbed": 0,
+    "entries": [
+        {
+            "id": 9012,
+            "date": 1792441801,
+            "user_id": 12,
+            "username": "Moderator",
+            "about_user_id": 1234,
+            "about_username": "Example",
+            "content_type": "thread",
+            "content_id": 123,
+            "action": "delete_soft",
+            "content_username": "Example",
+            "discussion_content_type": "thread",
+            "discussion_content_id": 123
+        }
+    ]
+}
+```
+
+- **What a member or a provider wrote is never returned**: a reason, a thread title, a moderator
+  action's details, an admin request's input, a bounced message, an email address. Nor is an IP
+  address; *Members by IP address* is the endpoint for those, under its own scope.
+- **A user change says which field changed, not what it changed from or to.** The control panel
+  shows the values.
+- **The values that come from a list are checked against it**, as in *Logs*: a content type the
+  forum has, a moderator action core has a phrase for, a field of the member's records, a
+  username change state, an SMTP status code. One that is not is `null`.
+- **The admin log's `request_url` goes through the same scrubbing as error entries**, since a
+  URL can carry a token, and `scrubbed` counts what was taken out. Its input is never read.
+- `username` and `about_username` are the member's name now, `null` for an account that has
+  gone; a name the log stored itself, such as `old_username`, is as it was then.
 
 ## Members by IP address
 

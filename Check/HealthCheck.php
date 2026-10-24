@@ -41,6 +41,7 @@ class HealthCheck
 		'hampelAdminApiUpgRecords',
 		'hampelAdminApiStaff',
 		'hampelAdminApiApproval',
+		'hampelAdminApiLogEntries',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -56,7 +57,7 @@ class HealthCheck
 		'hampelAdminApiApproval',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries'];
 
 	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
 	const MEMBER_SCOPES = [
@@ -64,6 +65,8 @@ class HealthCheck
 		AbstractController::SCOPE_UPGRADES => ['label' => 'keys for upgrade records', 'permissions' => ['hampelAdminApiUpgRecords', 'userUpgrade']],
 		// the administrators need a super administrator as well, and the moderators are enough to count
 		AbstractController::SCOPE_STAFF => ['label' => 'keys for staff', 'permissions' => ['hampelAdminApiStaff', 'user']],
+		// the admin log needs a super administrator as well, and the other logs are enough to count
+		AbstractController::SCOPE_LOG_ENTRIES => ['label' => 'keys for log entries', 'permissions' => ['hampelAdminApiLogEntries', 'viewLogs']],
 	];
 
 	/** @var App */
@@ -366,6 +369,15 @@ class HealthCheck
 		$logs = $this->app->repository('Hampel\AdminApi:Logs')->getIndex($now - 86400, $now);
 		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
 		$queue = $this->app->repository('Hampel\AdminApi:ApprovalQueue')->getState($now);
+		// the newest entry of every log, read as the endpoint reads it
+		$entryLogs = $this->app->repository('Hampel\AdminApi:LogEntries');
+		$entryTotal = 0;
+		foreach ($entryLogs->getLogIds() AS $logId)
+		{
+			$entryTotal += $entryLogs->getEntries($logId, [
+				'since' => 0, 'until' => $now, 'user_id' => null, 'about_user_id' => null, 'content_type' => null, 'content_id' => null,
+			], 1)['total'];
+		}
 		$staff = $this->app->repository('Hampel\AdminApi:Staff');
 		$moderators = $staff->getModerators();
 		$administrators = $staff->getAdministrators();
@@ -382,6 +394,7 @@ class HealthCheck
 			[self::OK, 'user upgrades', 'read: ' . count($upgrades['upgrades']) . " defined, {$upgrades['active']} held"],
 			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
 			[self::OK, 'approval queue', "read: {$queue['total']} waiting"],
+			[self::OK, 'log entries', "read: $entryTotal entries in the logs that record members"],
 			[self::OK, 'staff', "read: {$moderators['total']} moderators, {$administrators['total']} administrators"],
 		];
 	}

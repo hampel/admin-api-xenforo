@@ -14,9 +14,11 @@ abstract class AbstractController extends BaseController
 	const SCOPE_IPS = 'hampel_admin_api:ips';
 	const SCOPE_UPGRADES = 'hampel_admin_api:upgrades';
 	const SCOPE_STAFF = 'hampel_admin_api:staff';
+	const SCOPE_LOG_ENTRIES = 'hampel_admin_api:log_entries';
 
 	const SCOPES = [
 		self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES, self::SCOPE_IPS, self::SCOPE_UPGRADES, self::SCOPE_STAFF,
+		self::SCOPE_LOG_ENTRIES,
 	];
 
 	const PERMISSION_VALUES = 'hampelAdminApiValues';

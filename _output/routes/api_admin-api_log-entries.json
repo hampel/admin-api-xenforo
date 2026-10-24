@@ -1,0 +1,11 @@
+{
+    "route_type": "api",
+    "route_prefix": "admin-api",
+    "sub_name": "log-entries",
+    "format": "log-entries/",
+    "build_class": "",
+    "build_method": "",
+    "controller": "Hampel\\AdminApi\\Api\\Controller\\LogEntries",
+    "context": "",
+    "action_prefix": ""
+}

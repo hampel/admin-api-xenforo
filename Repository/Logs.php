@@ -389,6 +389,19 @@ class Logs extends Repository
 	}
 
 	/**
+	 * Whether a value is on a breakdown's closed list, for a caller naming one entry's value.
+	 *
+	 * @param string $kind
+	 * @param string $value
+	 *
+	 * @return bool
+	 */
+	public function isListed($kind, $value)
+	{
+		return isset($this->getList($kind)[$value]);
+	}
+
+	/**
 	 * The closed list for a breakdown, as value => true. Loaded once per request.
 	 *
 	 * @param string $kind

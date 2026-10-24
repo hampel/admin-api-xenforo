@@ -28,6 +28,8 @@ checked. For whoever changes it next.
 | API route | `admin-api/administrators/` → `Api\Controller\Administrators` |
 | API scope | `hampel_admin_api:staff`, not usable with OAuth clients |
 | API route | `admin-api/approval-queue/` → `Api\Controller\ApprovalQueue` |
+| API route | `admin-api/log-entries/` → `Api\Controller\LogEntries` |
+| API scope | `hampel_admin_api:log_entries`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
@@ -44,9 +46,10 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiUpgrades` |
 | admin permission | `hampelAdminApiUpgRecords` — with core's `userUpgrade`; an id is capped at 25 characters |
 | admin permission | `hampelAdminApiApproval` |
+| admin permission | `hampelAdminApiLogEntries` — with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
 | admin permission | `hampelAdminApiStaff` — with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 25 — the six scope descriptions, the fourteen permission titles, five errors |
+| phrases | 28 — the seven scope descriptions, the fifteen permission titles, six errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -396,6 +399,12 @@ vendor/bin/phpunit
 - `tests/Feature/ApprovalQueueTest.php` queues items under ids no content has, in each age
   bucket and for a type nothing approves, and compares the answer before and after, since the
   queue is the forum's own; and checks the permission, the scope and that nothing is logged.
+- `tests/Feature/LogEntriesTest.php` reads every declared log, so a misspelt table or column
+  fails there, and plants entries in seven of them with `SECRET` in every column that is not
+  returned and a documentation IP address in each that has one, then checks each log's fields,
+  the filters and their refusal where a log has nothing for one, that a value off its list is
+  `null`, the admin log's super administrator gate and scrubbed URL, the limit, every gate
+  before the input, and the admin log line.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the
