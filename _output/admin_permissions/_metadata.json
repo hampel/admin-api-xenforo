@@ -26,6 +26,12 @@
     "hampelAdminApiOptions.json": {
         "hash": "8539b3ba96d6a80079da48c7d0c95ae7"
     },
+    "hampelAdminApiUpgRecords.json": {
+        "hash": "e8e0e5a794033e71bcdc9d83fb4ef231"
+    },
+    "hampelAdminApiUpgrades.json": {
+        "hash": "9e220c0a05c110e83c257ccfc1015102"
+    },
     "hampelAdminApiValues.json": {
         "hash": "deb61b44374b5a1f0b6e18c5f606d011"
     }

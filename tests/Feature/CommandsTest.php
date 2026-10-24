@@ -363,7 +363,7 @@ class CommandsTest extends TestCase
 	 */
 	public function test_a_super_administrators_key_can_use_every_scope_it_holds()
 	{
-		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail', 'hampel_admin_api:ips']], true, true);
+		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail', 'hampel_admin_api:ips', 'hampel_admin_api:upgrades']], true, true);
 
 		[$exit, $display] = $this->validate();
 

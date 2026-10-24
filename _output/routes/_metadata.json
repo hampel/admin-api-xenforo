@@ -28,5 +28,11 @@
     },
     "api_admin-api_options.json": {
         "hash": "cd8c90ab22e2429095bd367fa8158c8c"
+    },
+    "api_admin-api_user-upgrade-records.json": {
+        "hash": "9603ddb7a57fac4cdf8099db8ecfac27"
+    },
+    "api_admin-api_user-upgrades.json": {
+        "hash": "4eccfe4c422c0fda19c2c250591687c1"
     }
 }

@@ -37,6 +37,8 @@ class HealthCheck
 		'hampelAdminApiValues',
 		'hampelAdminApiIps',
 		'hampelAdminApiLogs',
+		'hampelAdminApiUpgrades',
+		'hampelAdminApiUpgRecords',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -48,13 +50,15 @@ class HealthCheck
 		'hampelAdminApiConfig',
 		'hampelAdminApiOnline',
 		'hampelAdminApiLogs',
+		'hampelAdminApiUpgrades',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records'];
 
 	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
 	const MEMBER_SCOPES = [
 		AbstractController::SCOPE_IPS => ['label' => 'keys for IP lookups', 'permissions' => ['hampelAdminApiIps', 'user']],
+		AbstractController::SCOPE_UPGRADES => ['label' => 'keys for upgrade records', 'permissions' => ['hampelAdminApiUpgRecords', 'userUpgrade']],
 	];
 
 	/** @var App */
@@ -353,6 +357,7 @@ class HealthCheck
 		$online = $this->app->repository('Hampel\AdminApi:Online')->getState($now);
 		// an address from the range kept for documentation, so the lookup runs and finds nobody real
 		$test = (string) \XF\Util\Ip::convertIpStringToBinary('192.0.2.1');
+		$upgrades = $this->app->repository('Hampel\AdminApi:UserUpgrade')->getSummary($now, 30);
 		$logs = $this->app->repository('Hampel\AdminApi:Logs')->getIndex($now - 86400, $now);
 		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
 
@@ -365,6 +370,7 @@ class HealthCheck
 			[self::OK, 'config.php', 'read: ' . count($settings) . ' settings'],
 			[self::OK, 'who is online', "read: {$online['total']} sessions in the last {$online['window_minutes']} minutes"],
 			[self::OK, 'logs', 'read: ' . count($logs['logs']) . ' logs, ' . array_sum(array_column($logs['logs'], 'total')) . ' entries in the last day'],
+			[self::OK, 'user upgrades', 'read: ' . count($upgrades['upgrades']) . " defined, {$upgrades['active']} held"],
 			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
 		];
 	}

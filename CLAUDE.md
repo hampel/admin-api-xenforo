@@ -7,9 +7,9 @@ the surfaces and fragile points; this file does not repeat them.
 ## The endpoints are a read-only window onto the forum, for the people who run it
 
 They cover what the core API leaves out — the server error log, the add-on inventory, cron entries,
-the job queue, counts from every other log, the shape of options and of `config.php`, and the
-members behind an IP address so far. **No endpoint changes the forum, and none may.** The add-on has
-no options.
+the job queue, counts from every other log, the shape of options and of `config.php`, user upgrades
+and their payments, and the members behind an IP address so far. **No endpoint changes the forum,
+and none may.** The add-on has no options.
 
 **The one row an endpoint writes is a line in the admin log, for each member lookup** — decided on
 2026-10-24. Who looked up whom is the record an administrator wants afterwards, and the control
@@ -201,10 +201,10 @@ The rules that hold in every tier, and the aggregate tier's own:
   `string` on `$action` is a fatal at class load.
 - **The XenForo floor is 2.2.0, so core is named the way 2.2 names it.** Short names
   (`XF:ApiKey`) and the pre-2.3 class names work on both lines; a 2.3 class name
-  (`...Repository`, `...Finder`, `...Service`) is a fatal on 2.2. Five things here exist only from
+  (`...Repository`, `...Finder`, `...Service`) is a fatal on 2.2. Six things here exist only from
   2.3 and each is guarded where it is used: `\XF::accessToken()`, a scope's
-  `usable_with_oauth_clients`, the `xf_failed_job` table, `attempts` on `xf_job`, and
-  `XF\Job\IconUsage`. **A new use of anything from core gets checked against 2.2's source before
+  `usable_with_oauth_clients`, the `xf_failed_job` table, `attempts` on `xf_job`,
+  `XF\Job\IconUsage`, and `is_cancelled` on an active user upgrade. **A new use of anything from core gets checked against 2.2's source before
   it is written**, and what 2.2 lacks is reported as absent, not as zero.
 - **The suite runs on 2.3 only** — the test framework needs it — so 2.2 is proved by installing
   the release in a sandbox and asking over HTTP. A change that touches a guarded path needs that

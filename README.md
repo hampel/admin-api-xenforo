@@ -17,12 +17,14 @@ By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
 ### XenForo 2.2 limitations
 
-Everything works, and three things XenForo 2.2 does not have are reported as absent, never as
+Everything works, and four things XenForo 2.2 does not have are reported as absent, never as
 zero:
 
 - **It has no table of failed jobs.** The job queue endpoint's `failed` is empty with
   `recorded: false`. A job that fails on 2.2 shows up in the error log summary, if it logged.
 - **It keeps no count of attempts.** `retrying` and `max_attempts` are `null`.
+- **It does not record a cancelled subscription.** A user upgrade's `cancelled` count and a
+  record's `is_cancelled` are `null`.
 - **It has no OAuth**, so there is no access token to refuse and no scope to withhold from OAuth
   clients. `admin-api:config` and `admin-api:validate` report each scope as defined.
 
@@ -53,6 +55,7 @@ access*. The add-on creates one small table, for the commands under
    |---|---|
    | `error-log/` | Admin API: View error log summary |
    | `logs/` | Admin API: View log summaries |
+   | `user-upgrades/` | Admin API: View user upgrade summary |
    | `add-ons/` | Admin API: View add-ons |
    | `cron/`, `jobs/` | Admin API: View cron and jobs |
    | `online/` | Admin API: View who is online |
@@ -91,6 +94,13 @@ they can't do anything else.
   and moderators*;
 - create a key with the `hampel_admin_api:ips` scope. Every lookup is written to the admin log.
 
+**To look up which members hold user upgrades**, and what they paid:
+
+- give the administrator *Admin API: Look up members' user upgrades*, and XenForo's *Manage user
+  upgrades*;
+- create a key with the `hampel_admin_api:upgrades` scope. Every lookup is written to the admin
+  log.
+
 ## How access is decided
 
 **A request has to pass three checks, and the third is the one that decides.**
@@ -121,12 +131,15 @@ what they are set to takes its own permission as well as its own scope, as above
 **A lookup of members' details also needs XenForo's own permission for the same thing**, and is
 written to the admin log under *Logs > Admin log*, as `api/` and the endpoint, with what was asked.
 The API is not a way round the control panel, and who looked up whom is on record afterwards.
+An add-on that forwards the admin log elsewhere, such as to a chat channel, forwards these lines
+too, with what was asked: an IP address looked up goes wherever the admin log goes.
 
 ## Endpoints
 
 Every endpoint is a `GET` under `/api/admin-api/`, and needs the `hampel_admin_api:read` scope
-except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, and *Members by
-IP address*, which needs `hampel_admin_api:ips`. The JSON under
+except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, *Members by IP
+address*, which needs `hampel_admin_api:ips`, and *User upgrade records*, which needs
+`hampel_admin_api:upgrades`. The JSON under
 each shows the shape of a response; the figures in it are illustrative.
 
 ## Error log summary
@@ -535,6 +548,131 @@ and `is_range`, in place of `user` and `ip_total`.
   Narrow it with `days` or a smaller range.
 - What the log holds at all depends on the forum's *Delete IP usage data after* option; an address
   older than that is not there to find.
+
+## User upgrades
+
+`GET /api/admin-api/user-upgrades/`
+
+**Every user upgrade, with how many members hold it, what ends soon and what was paid** — in
+counts, so a monitoring key can ask "how many upgrades expire this week?" or "what did upgrades
+take this month?" without being able to see who.
+
+| parameter | meaning |
+|---|---|
+| `days` | how far ahead to count what ends and how far back to count what expired and was paid. Default 30, maximum 366 |
+
+```json
+{
+    "days": 30,
+    "active": 412,
+    "ending": 37,
+    "expired": 29,
+    "upgrades": [
+        {
+            "user_upgrade_id": 1,
+            "title": "Supporter",
+            "can_purchase": true,
+            "recurring": true,
+            "cost_amount": "10.00",
+            "cost_currency": "USD",
+            "length_amount": 1,
+            "length_unit": "month",
+            "active": 412,
+            "permanent": 0,
+            "cancelled": 12,
+            "ending": 37,
+            "expired": 29
+        }
+    ],
+    "ending_by_day": [{"day": "2026-10-24", "count": 2}],
+    "expired_by_day": [{"day": "2026-09-24", "count": 1}],
+    "payments": {
+        "total": 380,
+        "by_provider": [{"provider": "stripe", "payments": 380, "newest_date": 1792803483}],
+        "by_currency": [{"currency": "USD", "payments": 380, "amount": "3800.00"}]
+    }
+}
+```
+
+- `active` counts every record, `permanent` those that never end, and `ending` those that end in
+  the next `days`. `cancelled` is a subscription cancelled at the provider that runs until its end
+  date. `expired` counts records that ended in the last `days`, early or not.
+- **A payment is a payment the provider reported**: one for a purchase and one for each renewal.
+  Its amount is the purchase's own price, not a figure from the provider, so a refund, a fee or a
+  currency conversion is not reflected. A provider the forum does not have is counted with a
+  `null` name.
+- `ending_by_day` runs from today to `days` ahead and `expired_by_day` from `days` back to today,
+  one entry per UTC day.
+
+## User upgrade records
+
+`GET /api/admin-api/user-upgrade-records/`
+
+**Which members hold which upgrades, when each ends, and what was paid** — for "which upgrades
+expire in the next week?", or everything one member has bought.
+
+It takes three things to reach it:
+
+- a key holding `hampel_admin_api:upgrades`;
+- the *Admin API: Look up members' user upgrades* admin permission;
+- XenForo's own *Manage user upgrades* admin permission.
+
+**Every lookup is written to the admin log**, as for *Members by IP address*.
+
+| parameter | meaning |
+|---|---|
+| `state` | `active`, the default, or `expired` |
+| `days` | active: only those ending within this many days. Expired: only those that ended within it. Default any; maximum 366 |
+| `user_upgrade_id` | only this upgrade |
+| `user_id` | only this member |
+| `limit` | how many records to return. Default 50, maximum 200 |
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/user-upgrade-records/?days=7"
+```
+
+```json
+{
+    "state": "active",
+    "days": 7,
+    "total": 1,
+    "complete": true,
+    "records": [
+        {
+            "user_upgrade_record_id": 501,
+            "user_id": 1234,
+            "username": "Example",
+            "user_upgrade_id": 1,
+            "title": "Supporter",
+            "start_date": 1789345401,
+            "end_date": 1793037401,
+            "is_cancelled": false,
+            "cost_amount": "10.00",
+            "cost_currency": "USD",
+            "length_amount": 1,
+            "length_unit": "month",
+            "provider": "stripe",
+            "payment_profile_id": 2,
+            "payments": [
+                {"date": 1792445401, "transaction_id": "ch_example2"},
+                {"date": 1789853401, "transaction_id": "ch_example1"}
+            ]
+        }
+    ]
+}
+```
+
+- Active records come soonest-ending first, with one that never ends last and an `end_date` of
+  `null`; expired records come most recently ended first and carry `original_end_date`, when they
+  were due to end, in place of `is_cancelled`.
+- **The price is what the record was given at**, which is the upgrade's price at the time unless
+  a provider passed another. `provider` and `payments` are `null` and empty for an upgrade given
+  in the control panel rather than bought.
+- `payments` lists up to 20, newest first, each with the date and the provider's own transaction
+  id, for finding it in the provider's dashboard. **Nothing else from the provider is returned**:
+  the details XenForo logs from a payment callback can carry the payer's name and address, and
+  are never read. XenForo itself never holds card details.
+- Only the member's id and username; ask XenForo's own `users/{id}` for the rest.
 
 ## Add-on inventory
 

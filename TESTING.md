@@ -20,6 +20,9 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients |
 | API route | `admin-api/ip-users/` → `Api\Controller\IpUsers` |
 | API route | `admin-api/logs/` → `Api\Controller\Logs` |
+| API route | `admin-api/user-upgrades/` → `Api\Controller\UserUpgrades` |
+| API route | `admin-api/user-upgrade-records/` → `Api\Controller\UserUpgradeRecords` |
+| API scope | `hampel_admin_api:upgrades`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:ips`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
@@ -34,13 +37,15 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
 | admin permission | `hampelAdminApiIps` — with core's `user` |
 | admin permission | `hampelAdminApiLogs` |
+| admin permission | `hampelAdminApiUpgrades` |
+| admin permission | `hampelAdminApiUpgRecords` — with core's `userUpgrade`; an id is capped at 25 characters |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 18 — the four scope descriptions, the ten permission titles, four errors |
+| phrases | 22 — the five scope descriptions, the twelve permission titles, five errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
 | table | `xf_hampel_admin_api_fault` — what the fault commands planted |
-| XenForo | 2.2.0 or later; five 2.3-only features are guarded where they are used |
+| XenForo | 2.2.0 or later; six 2.3-only features are guarded where they are used |
 | config key | `hampelAdminApi.faults`, `hampelAdminApi.redact` and `hampelAdminApi.show` in `config.php` |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
@@ -326,6 +331,11 @@ scope id alone, so a forum installing from a zip gets the column default, which 
 gates refuse an access token regardless; `Setup.php` puts the flag back so the scope is not
 offered to an OAuth client at all. Only an install from a zip can show whether that worked.
 
+**Every member lookup reaches any add-on that extends core's admin log.** `logAdminRequest()` is
+the one way in, so an add-on that forwards the admin log to chat forwards the lookup with what was
+asked. A test that deletes its admin log rows after a real request leaves such an add-on a queued
+message for a row that has gone.
+
 **A log's breakdown is only as closed as its list.** Content types, admin routes, media sites and
 providers are read from the forum, and a moderator action is named only if core has a
 `mod_log.<type>_<action>` phrase for it. An add-on that adds an admin route widens the admin
@@ -366,6 +376,11 @@ vendor/bin/phpunit
   fails there, and plants admin, moderator, spam trigger and bounce rows quoting `SECRET` in every
   column that is not read, then checks the breakdowns, that a value off its list is counted
   unnamed, and that `SECRET` appears nowhere in the answer.
+- `tests/Feature/UserUpgradesTest.php` plants two upgrades, four members, a purchase with two
+  payments and an info line, an upgrade given in the control panel, a permanent one, an expired one
+  and a payment for something else, with `SECRET` in the provider's details and in a key a
+  provider added to `extra`. It checks both endpoints' counts and order, the window both ways,
+  that `SECRET` never comes back, and the member endpoint's gates and admin log line.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the

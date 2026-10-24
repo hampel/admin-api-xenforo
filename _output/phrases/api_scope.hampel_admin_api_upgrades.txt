@@ -1,0 +1,1 @@
+Look up which members hold user upgrades, when they end and what was paid, through the Admin API endpoints
