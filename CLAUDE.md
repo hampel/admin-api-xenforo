@@ -4,13 +4,18 @@ Standing guidance for a session working in this repository: what the add-on is f
 design rests on, and where the detail lives. `README.md` documents the endpoints and `TESTING.md`
 the surfaces and fragile points; this file does not repeat them.
 
-## The endpoints are a read-only window onto operational state, and nothing else
+## The endpoints are a read-only window onto the forum, for the people who run it
 
 They cover what the core API leaves out — the server error log, the add-on inventory, cron
-entries, the job queue, and the shape of options and of `config.php` so far. **No endpoint
-writes, and none may.** The add-on has no options.
+entries, the job queue, the shape of options and of `config.php`, and the members behind an IP
+address so far. **No endpoint changes the forum, and none may.** The add-on has no options.
 
-**The one thing that writes is the fault commands, and they are kept away from everything else**:
+**The one row an endpoint writes is a line in the admin log, for each member lookup** — decided on
+2026-10-24. Who looked up whom is the record an administrator wants afterwards, and the control
+panel keeps the same record of its own actions. It goes through core's `logAdminRequest()`, so it
+is pruned with the rest of the log; the aggregate endpoints write nothing.
+
+**The one thing that changes the forum is the fault commands, kept away from everything else**:
 command line only, refused without a key in the forum's own `config.php`, and recording each thing
 they plant in the add-on's one table so it can be removed. See *The fault commands* below.
 
@@ -51,10 +56,12 @@ the administrator back to the control panel. So:
 
 - **The aggregate tier stays as the rules below have it**, because a monitoring key is handed out
   widely and polled constantly, and nothing in it should need the trust a member lookup does.
-- **Member data sits behind a scope a monitoring key does not hold, an admin permission per
-  capability, and core's own permission for the same thing**, as the entries endpoint asks for
-  `viewLogs`. The API must not be a way round the control panel, and an administrator should be
-  able to grant IP lookups without granting payments.
+- **Each member capability has a scope of its own, an admin permission of its own, and core's own
+  permission for the same thing**, as the entries endpoint asks for `viewLogs`. The API must not
+  be a way round the control panel. A scope per capability, not one for all member data, so that
+  a key can be narrower than its user without a second administrator — decided on 2026-10-24.
+- **A member lookup is written to the admin log** through `logMemberLookup()`, after every gate
+  and before the answer, whether or not anything is found: the lookup is what is recorded.
 - **What core's API already answers is not rebuilt here.** Core's `users/{id}` and
   `users/find-email` give an administrator holding the `user` permission a member's email under
   core's `user:read` scope. An endpoint here returns `user_id` and username, and the client asks
