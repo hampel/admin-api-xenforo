@@ -145,6 +145,7 @@ class ErrorLogSummaryTest extends TestCase
 			'member_errors' => 3,
 			'severity' => 'E_WARNING',
 			'origins' => ['web' => 3, 'cli' => 0, 'job' => 0, 'unknown' => 0],
+			'cli_entries' => ['cmd.php' => 0, 'phpunit' => 0, 'other' => 0],
 			'origin_add_ons' => [
 				['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'from_message' => 0, 'newest_date' => 1300],
 			],
@@ -231,6 +232,13 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(
 			['web' => 0, 'cli' => 1, 'job' => 1, 'unknown' => 0],
 			$this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['origins']
+		);
+
+		// both command line rows ran cmd.php; a job is counted as a job, not by its script
+		$this->assertSame(['cmd.php' => 2, 'phpunit' => 0, 'other' => 0], $summary['by_cli_entry']);
+		$this->assertSame(
+			['cmd.php' => 1, 'phpunit' => 0, 'other' => 0],
+			$this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['cli_entries']
 		);
 	}
 
@@ -534,6 +542,7 @@ class ErrorLogSummaryTest extends TestCase
 				$this->assertContains($group['template'], $templates);
 			}
 			$this->assertSame(['web', 'cli', 'job', 'unknown'], array_keys($signature['origins']));
+			$this->assertSame(ErrorLog::CLI_ENTRIES, array_keys($signature['cli_entries']));
 			$this->assertContains($signature['location'], ErrorLog::LOCATIONS);
 
 			foreach ($signature['origin_add_ons'] AS $group)

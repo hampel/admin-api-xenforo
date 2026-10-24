@@ -25,9 +25,17 @@ class ErrorLog extends Repository
 	const BASIS_TRACE = 'trace';
 	const BASIS_MESSAGE = 'message';
 	const TRACE_START = 8000;
-	const STATE_START = 7;
+
+	/**
+	 * How much of the request state is read: enough for its first key and, from the command line,
+	 * the script that was run. Neither is returned except as a value from a list.
+	 */
+	const STATE_START = 300;
 
 	const ORIGINS = ['web', 'cli', 'job', 'unknown'];
+
+	/** The scripts an error from the command line is told apart by, and everything else. */
+	const CLI_ENTRIES = ['cmd.php', 'phpunit', 'other'];
 
 	const TEMPLATE_TYPES = ['public', 'admin', 'email'];
 
@@ -50,11 +58,12 @@ class ErrorLog extends Repository
 	];
 
 	/**
-	 * Returns exception_type, filename, line and exception_date, and four things worked out from
-	 * the columns that are never returned: a severity, an origin, an originating add-on and the
-	 * template being rendered. Each can only take a value from a fixed list - a PHP error level,
-	 * one of four origins, the id of an installed add-on, the name of a template the forum has -
-	 * so nothing written by a member or sent in a request can come back through them.
+	 * Returns exception_type, filename, line and exception_date, and five things worked out from
+	 * the columns that are never returned: a severity, an origin, the script a command line error
+	 * ran, an originating add-on and the template being rendered. Each can only take a value from
+	 * a fixed list - a PHP error level, one of four origins, one of three scripts, the id of an
+	 * installed add-on, the name of a template the forum has - so nothing written by a member or
+	 * sent in a request can come back through them.
 	 *
 	 * user_id is read only to be counted: how many different members an error happened to, never
 	 * which. ip_address is not read at all.
@@ -141,6 +150,7 @@ class ErrorLog extends Repository
 				'member_errors' => (int) $row['member_error_count'],
 				'severity' => null,
 				'origins' => array_fill_keys(self::ORIGINS, 0),
+				'cli_entries' => array_fill_keys(self::CLI_ENTRIES, 0),
 				'origin_add_ons' => [],
 				'templates' => [],
 			];
@@ -189,6 +199,7 @@ class ErrorLog extends Repository
 			'by_type' => $this->sortGroup($byType),
 			'by_severity' => $this->sortGroup($examined['by_severity']),
 			'by_origin' => $examined['by_origin'],
+			'by_cli_entry' => $examined['by_cli_entry'],
 			'by_location' => $byLocation,
 			'by_add_on' => $this->sortGroup($byAddOn),
 			'by_origin_add_on' => $this->sortGroup($examined['by_origin_add_on']),
@@ -316,6 +327,10 @@ class ErrorLog extends Repository
 		$filename = $this->getRelativeFilename($entry->filename);
 		$trace = str_replace('\\', '/', $entry->trace_string);
 		$request = $entry->request_state;
+		$origin = $this->getOrigin(
+			isset($request['url']) ? '{"url":' : (isset($request['cli']) ? '{"cli":' : ''),
+			strpos($trace, 'XF/Job/Manager.php(') !== false
+		);
 		$attribution = $this->getOriginAttribution(
 			$inInstall ? $filename : '',
 			$trace,
@@ -337,10 +352,8 @@ class ErrorLog extends Repository
 				$inInstall ? $this->getAddOnIdFromFilename($filename, $addOnIds) : null
 			),
 			'severity' => $this->getSeverityFromMessage(substr($entry->message, 0, self::MESSAGE_START)),
-			'origin' => $this->getOrigin(
-				isset($request['url']) ? '{"url":' : (isset($request['cli']) ? '{"cli":' : ''),
-				strpos($trace, 'XF/Job/Manager.php(') !== false
-			),
+			'origin' => $origin,
+			'cli_entry' => $origin === 'cli' && isset($request['cli']) ? $this->getCliEntry((string) $request['cli']) : null,
 			'origin_add_on_id' => $attribution[0],
 			'origin_basis' => $attribution[1],
 			'template' => $this->getTemplateFromTrace($inInstall ? $filename : '', $trace),
@@ -397,6 +410,7 @@ class ErrorLog extends Repository
 	{
 		$bySeverity = [];
 		$byOrigin = array_fill_keys(self::ORIGINS, 0);
+		$byCliEntry = array_fill_keys(self::CLI_ENTRIES, 0);
 		$byOriginAddOn = [];
 		$byTemplate = [];
 		$severities = [];
@@ -425,6 +439,7 @@ class ErrorLog extends Repository
 
 			$severity = $this->getSeverityFromMessage($row['message_start']);
 			$origin = $this->getOrigin($row['state_start'], (bool) $row['in_job']);
+			$cliEntry = $origin === 'cli' ? $this->getCliEntryFromState($row['state_start']) : null;
 			[$originAddOnId, $basis] = $this->getOriginAttribution(
 				$inInstall ? $filename : '',
 				$row['trace_start'],
@@ -438,6 +453,10 @@ class ErrorLog extends Repository
 			$this->addTemplateToGroup($byTemplate, $template, $date);
 			$this->addOriginToGroup($byOriginAddOn, $originAddOnId, $basis, $date);
 			$byOrigin[$origin]++;
+			if ($cliEntry !== null)
+			{
+				$byCliEntry[$cliEntry]++;
+			}
 
 			if (!isset($signatures[$key]))
 			{
@@ -446,6 +465,10 @@ class ErrorLog extends Repository
 			}
 
 			$signatures[$key]['origins'][$origin]++;
+			if ($cliEntry !== null)
+			{
+				$signatures[$key]['cli_entries'][$cliEntry]++;
+			}
 			$this->addOriginToGroup($signatures[$key]['origin_add_ons'], $originAddOnId, $basis, $date);
 			$this->addTemplateToGroup($signatures[$key]['templates'], $template, $date);
 			$severities[$key][$severity === null ? '' : $severity] = true;
@@ -472,6 +495,7 @@ class ErrorLog extends Repository
 			'rows' => $examined,
 			'by_severity' => $bySeverity,
 			'by_origin' => $byOrigin,
+			'by_cli_entry' => $byCliEntry,
 			'by_origin_add_on' => $byOriginAddOn,
 			'by_template' => $byTemplate,
 		];
@@ -570,6 +594,46 @@ class ErrorLog extends Repository
 		}
 
 		return 'unknown';
+	}
+
+	/**
+	 * Which script an error from the command line came from, as one of CLI_ENTRIES: XenForo's
+	 * own cmd.php, a test run, or anything else. XenForo records the command line whole, and
+	 * only the name of the script is looked at - its first word, or its second when the first
+	 * names PHP itself.
+	 *
+	 * @param string $command
+	 *
+	 * @return string One of CLI_ENTRIES
+	 */
+	public function getCliEntry($command)
+	{
+		$words = preg_split('/\s+/', trim($command)) ?: [];
+		$script = basename(str_replace('\\', '/', (string) array_shift($words)));
+		if (preg_match('/^php[0-9.]*$/', $script) && $words)
+		{
+			$script = basename(str_replace('\\', '/', (string) array_shift($words)));
+		}
+
+		return $script === 'cmd.php' || $script === 'phpunit' ? $script : 'other';
+	}
+
+	/**
+	 * The same, from the start of the request state as it is stored: {"cli":"cmd.php xf:...
+	 *
+	 * @param string $stateStart
+	 *
+	 * @return string One of CLI_ENTRIES
+	 */
+	public function getCliEntryFromState($stateStart)
+	{
+		if (!preg_match('~^\{"cli":"([^"]*)~', $stateStart, $match))
+		{
+			return 'other';
+		}
+
+		// as JSON writes them: an escaped slash, and an escaped backslash
+		return $this->getCliEntry(str_replace(['\\/', '\\\\'], ['/', '/'], $match[1]));
 	}
 
 	/**

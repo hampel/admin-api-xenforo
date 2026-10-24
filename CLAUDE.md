@@ -51,7 +51,8 @@ is whether it can carry member data.
   not a count any more.
 - **A field worked out from a withheld column must be closed.** The summary reads the start of
   the message, the trace and the request, and returns only a value from a fixed list: a PHP error
-  level, one of four origins, an installed add-on's id, the name of a template the forum has.
+  level, one of four origins, one of three command-line scripts, an installed add-on's id, the
+  name of a template the forum has.
   The add-on's id may come from the message when the trace names none; it is still looked up in
   the installed list, and the answer says which it rests on.
   Check the value against the list in code

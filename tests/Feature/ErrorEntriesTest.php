@@ -83,6 +83,7 @@ class ErrorEntriesTest extends TestCase
 			'location' => 'add_on_tests',
 			'severity' => null,
 			'origin' => 'web',
+			'cli_entry' => null,
 			'origin_add_on_id' => 'Hampel/AdminApi',
 			'origin_basis' => 'trace',
 			'template' => null,
@@ -210,6 +211,8 @@ class ErrorEntriesTest extends TestCase
 
 		$this->assertNull($entry['ip_address']);
 		$this->assertSame(0, $entry['user_id']);
+		$this->assertSame('cli', $entry['origin']);
+		$this->assertSame('cmd.php', $entry['cli_entry']);
 	}
 
 	/**

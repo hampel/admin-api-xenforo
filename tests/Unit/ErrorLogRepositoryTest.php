@@ -110,6 +110,38 @@ class ErrorLogRepositoryTest extends TestCase
 		$this->assertSame('unknown', $this->repo()->getOrigin('{"_GET"', false));
 	}
 
+	/**
+	 * Told apart so that a test run reads as a test run without opening the request. Only the
+	 * script's name is looked at, and it comes back from a list.
+	 */
+	public function test_the_script_a_command_line_error_came_from_is_named_from_a_list()
+	{
+		$repo = $this->repo();
+
+		$this->assertSame('cmd.php', $repo->getCliEntry('cmd.php xf:run-jobs'));
+		$this->assertSame('cmd.php', $repo->getCliEntry('/var/www/forum/cmd.php xf-dev:import --addon=Vendor/AddOn'));
+		$this->assertSame('cmd.php', $repo->getCliEntry('php8.3 cmd.php xf:rebuild-caches'));
+		$this->assertSame('phpunit', $repo->getCliEntry('vendor/bin/phpunit --filter SomeTest'));
+		$this->assertSame('phpunit', $repo->getCliEntry('C:\\forum\\vendor\\bin\\phpunit'));
+		$this->assertSame('other', $repo->getCliEntry('Standard input code'));
+		$this->assertSame('other', $repo->getCliEntry('/tmp/probe.php member@example.com'));
+		$this->assertSame('other', $repo->getCliEntry('php'));
+		$this->assertSame('other', $repo->getCliEntry(''));
+	}
+
+	public function test_the_script_is_read_from_the_request_state_as_it_is_stored()
+	{
+		$repo = $this->repo();
+
+		$this->assertSame('cmd.php', $repo->getCliEntryFromState('{"cli":"cmd.php xf:run-jobs"}'));
+		$this->assertSame('phpunit', $repo->getCliEntryFromState('{"cli":"\\/srv\\/forum\\/vendor\\/bin\\/phpunit"}'));
+		$this->assertSame('phpunit', $repo->getCliEntryFromState('{"cli":"vendor\\\\bin\\\\phpunit --filter x"}'));
+		// cut short by how much of the state is read
+		$this->assertSame('other', $repo->getCliEntryFromState('{"cli":"\\/srv\\/forum\\/vendor\\/bin\\/php'));
+		$this->assertSame('other', $repo->getCliEntryFromState('{"url":"/cmd.php"}'));
+		$this->assertSame('other', $repo->getCliEntryFromState(''));
+	}
+
 	public function test_a_job_is_a_job_however_it_was_triggered()
 	{
 		$this->assertSame('job', $this->repo()->getOrigin('{"url":', true));

@@ -163,6 +163,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
         {"severity": "E_USER_WARNING", "count": 5, "newest_date": 1790771401}
     ],
     "by_origin": {"web": 19, "cli": 4, "job": 1, "unknown": 0},
+    "by_cli_entry": {"cmd.php": 3, "phpunit": 1, "other": 0},
     "by_location": {
         "core": 12, "add_on": 2, "add_on_vendor": 5, "add_on_tests": 0,
         "vendor": 0, "other": 0, "outside": 5
@@ -193,6 +194,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
             "member_errors": 4,
             "severity": "E_USER_WARNING",
             "origins": {"web": 4, "cli": 0, "job": 0, "unknown": 0},
+            "cli_entries": {"cmd.php": 0, "phpunit": 0, "other": 0},
             "origin_add_ons": [
                 {"add_on_id": "Vendor/AddOn", "count": 4, "from_message": 0, "newest_date": 1790771401}
             ],
@@ -266,6 +268,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 - `by_origin` and each signature's `origins` say how the errors arose: a `web` request, the `cli`,
   or a `job` — which includes every cron entry, however the job was triggered. Errors that are all
   `cli` are someone at a terminal, not members.
+- `by_cli_entry` and each signature's `cli_entries` split the `cli` errors by the script that was
+  run: XenForo's own `cmd.php`, `phpunit` — a test suite, usually a developer's and not the
+  forum's trouble — or `other`. Only the script's name is read from the recorded command line,
+  and only one of those three comes back. A job run from the command line is counted as a job.
 - `severity` is the PHP error level of a warning, notice or deprecation, `fatal` for a fatal
   error, and `null` for anything else — an exception that was thrown, or a message that was
   logged — which has no level. `mixed` means one
@@ -326,6 +332,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
             "location": "core",
             "severity": "E_USER_WARNING",
             "origin": "web",
+            "cli_entry": null,
             "origin_add_on_id": "Vendor/AddOn",
             "origin_basis": "trace",
             "template": {"template": "public:thread_view", "add_on_id": "XF"},
@@ -355,6 +362,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   the entry, so a reader can tell that something was. It is a best effort on free text: a
   secret with no recognisable shape that the forum does not itself hold will get through, which
   is why this endpoint stays behind its own scope and permission.
+- `cli_entry` is `cmd.php`, `phpunit` or `other` for an entry whose `origin` is `cli`, as in the
+  summary, and `null` otherwise.
 - `origin_basis` says what `origin_add_on_id` rests on: `trace`, or `message` when the trace named
   no add-on and the message did. It is `null` when there is no originating add-on.
 - Paths in `filename` and at the start of each trace line are relative to the forum's root, and a
