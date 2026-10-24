@@ -17,7 +17,7 @@ By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
 ### XenForo 2.2 limitations
 
-Everything works, and four things XenForo 2.2 does not have are reported as absent, never as
+Everything works, and five things XenForo 2.2 does not have are reported as absent, never as
 zero:
 
 - **It has no table of failed jobs.** The job queue endpoint's `failed` is empty with
@@ -25,6 +25,8 @@ zero:
 - **It keeps no count of attempts.** `retrying` and `max_attempts` are `null`.
 - **It does not record a cancelled subscription.** A user upgrade's `cancelled` count and a
   record's `is_cancelled` are `null`.
+- **A moderator cannot choose to be told of reports or of content awaiting approval.** A
+  moderator's `notify_report` and `notify_approval` are `null`.
 - **It has no OAuth**, so there is no access token to refuse and no scope to withhold from OAuth
   clients. `admin-api:config` and `admin-api:validate` report each scope as defined.
 
@@ -836,6 +838,7 @@ It takes three things to reach it:
 - Only permissions the forum defines as moderator permissions are listed, by group and id.
 - `uses_tfa` is whether the member has two-step verification switched on. `username`, `is_staff`
   and `last_activity` are `null` for an account that has gone.
+- `notify_report` and `notify_approval` are `null` on XenForo 2.2, which has neither setting.
 - At most 500 are returned, in username order; `complete` is `false` past that.
 
 ## Administrators

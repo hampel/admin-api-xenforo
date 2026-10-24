@@ -29,8 +29,11 @@ class Staff extends Repository
 			SELECT COUNT(*) FROM xf_moderator' . ($userId ? ' WHERE user_id = ' . $db->quote($userId) : '')
 		);
 
+		$notify = $this->hasNotifications();
+
 		$rows = $db->fetchAllKeyed('
-			SELECT m.user_id, m.is_super_moderator, m.extra_user_group_ids, m.notify_report, m.notify_approval,
+			SELECT m.user_id, m.is_super_moderator, m.extra_user_group_ids,
+				' . ($notify ? 'm.notify_report, m.notify_approval,' : '') . '
 				u.username, u.is_staff, u.last_activity, o.use_tfa
 			FROM xf_moderator AS m
 			LEFT JOIN xf_user AS u ON (u.user_id = m.user_id)
@@ -105,8 +108,8 @@ class Staff extends Repository
 			$moderators[] = $this->describeMember($row) + [
 				'is_super_moderator' => (bool) $row['is_super_moderator'],
 				'extra_user_group_ids' => $this->groupIds($row['extra_user_group_ids']),
-				'notify_report' => (bool) $row['notify_report'],
-				'notify_approval' => (bool) $row['notify_approval'],
+				'notify_report' => $notify ? (bool) $row['notify_report'] : null,
+				'notify_approval' => $notify ? (bool) $row['notify_approval'] : null,
 				'permissions' => $this->groupPermissions($global[$id] ?? [], $known),
 				'content' => $records,
 			];
@@ -197,6 +200,17 @@ class Staff extends Repository
 		}
 
 		return $known;
+	}
+
+	/**
+	 * XenForo 2.3 lets a moderator choose to be told of reports and of content awaiting approval;
+	 * 2.2 has neither setting.
+	 *
+	 * @return bool
+	 */
+	protected function hasNotifications()
+	{
+		return isset($this->em->getEntityStructure('XF:Moderator')->columns['notify_report']);
 	}
 
 	/**

@@ -54,7 +54,7 @@ checked. For whoever changes it next.
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
 | table | `xf_hampel_admin_api_fault` — what the fault commands planted |
-| XenForo | 2.2.0 or later; six 2.3-only features are guarded where they are used |
+| XenForo | 2.2.0 or later; seven 2.3-only features are guarded where they are used |
 | config key | `hampelAdminApi.faults`, `hampelAdminApi.redact` and `hampelAdminApi.show` in `config.php` |
 
 No class extensions, code event listeners, template modifications, templates, options, entities,
