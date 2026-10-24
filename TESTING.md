@@ -691,6 +691,11 @@ suite plants a handful of rows; this is what showed the caps and the cost.
   not been looked at; the lookups were only ever run where nothing forwards the log.
 - **The member endpoints against a production forum's data.** Proved with planted rows in the
   suite and in a 2.2 sandbox; a forum with real staff, upgrades and logs has not been asked.
+- **How long the logs overview takes on a large forum.** Without `log` it counts every row of
+  all 18 log tables for `log_total` on each call, the IP log among them, which can hold millions
+  of rows. On the development forum each count takes under a millisecond, which says nothing.
+  Kept on purpose, decided 2026-10-24; time it against a production forum's tables, and watch
+  it wherever monitoring polls the overview.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.
