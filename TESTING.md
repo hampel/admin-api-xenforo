@@ -683,6 +683,12 @@ suite plants a handful of rows; this is what showed the caps and the cost.
 - **An upgrade across a change to `Setup`.** `1.0.0a1` to `1.0.0a2` was run on 2026-10-09 and is
   recorded above; `Setup` has no upgrade steps yet, so that run could not have failed where an
   install passes. The first release that adds one needs the run again.
+- **A member lookup on a forum whose admin log is forwarded elsewhere**, such as by a Slack
+  add-on. Each lookup writes an admin log line holding what was asked - an IP address, a member's
+  id - and such an add-on posts it on. What reaches the channel, and whether that is wanted, has
+  not been looked at; the lookups were only ever run where nothing forwards the log.
+- **The member endpoints against a production forum's data.** Proved with planted rows in the
+  suite and in a 2.2 sandbox; a forum with real staff, upgrades and logs has not been asked.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.
