@@ -49,7 +49,7 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiLogEntries` — with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
 | admin permission | `hampelAdminApiStaff` — with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 28 — the seven scope descriptions, the fifteen permission titles, six errors |
+| phrases | 29 — the seven scope descriptions, the fifteen permission titles, seven errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -404,7 +404,9 @@ vendor/bin/phpunit
   returned and a documentation IP address in each that has one, then checks each log's fields,
   the filters and their refusal where a log has nothing for one, that a value off its list is
   `null`, the admin log's super administrator gate and scrubbed URL, the limit, every gate
-  before the input, and the admin log line.
+  before the input, and the admin log line. For user change values: none unless asked, none for
+  a protected field, a credential scrubbed, a long value cut at a character boundary, and a 400
+  for any other log.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the

@@ -524,6 +524,7 @@ It takes three things to reach it:
 | `about_user_id` | only entries about this member |
 | `content_type`, `content_id` | only entries about this content |
 | `limit` | how many entries to return, newest first. Default 50, maximum 200 |
+| `values` | `user_change` only: each change's `old_value` and `new_value`. See below |
 
 A filter a log has nothing for is refused with a 400 rather than ignored.
 
@@ -531,7 +532,7 @@ A filter a log has nothing for is refused with a 400 rather than ignored.
 |---|---|---|---|
 | `admin` | the administrator | — | `section`, `request_url` |
 | `moderator` | the moderator | the content's author | `content_type`, `content_id`, `action`, `content_username`, `discussion_content_type`, `discussion_content_id` |
-| `user_change` | who made the change | the member changed | `field`, `protected` |
+| `user_change` | who made the change | the member changed | `field`, `protected`; with `values`, `old_value`, `new_value`, `values_truncated` |
 | `username_change` | who asked for it | the member renamed | `old_username`, `new_username`, `state`, `moderator_user_id`, `visible` |
 | `spam_trigger` | the member, or `null` for a guest | — | `content_type`, `content_id`, `result` |
 | `spam_cleaner` | who applied it | the member cleaned | `cleaned_username`, `restored_date` |
@@ -568,11 +569,18 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/log-entries/
 }
 ```
 
-- **What a member or a provider wrote is never returned**: a reason, a thread title, a moderator
-  action's details, an admin request's input, a bounced message, an email address. Nor is an IP
+- **What a member or a provider wrote is never returned**, except a user change's values when
+  asked for: a reason, a thread title, a moderator action's details, an admin request's input, a
+  bounced message, a bounce's email address. Nor is an IP
   address; *Members by IP address* is the endpoint for those, under its own scope.
-- **A user change says which field changed, not what it changed from or to.** The control panel
-  shows the values.
+- **A user change says which field changed, and what from and to only when asked**, with
+  `values=1`. The values are as XenForo stored them, not as the control panel formats them: a
+  user group is its id, a yes or no is `1` or `0`. They can be an email address, a signature or
+  a custom field, so they go through the same scrubbing as error entries, count in `scrubbed`,
+  and are cut to 1000 characters, with `values_truncated` saying so. **A protected field, the
+  password, never gives values**: both are `null`, as the control panel withholds them. Asking
+  for values is recorded in the admin log line with the rest of the request. Any other log
+  answers `values` with a 400.
 - **The values that come from a list are checked against it**, as in *Logs*: a content type the
   forum has, a moderator action core has a phrase for, a field of the member's records, a
   username change state, an SMTP status code. One that is not is `null`.

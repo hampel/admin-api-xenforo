@@ -9,12 +9,16 @@ use XF\Mvc\Entity\Repository;
  *
  * Member identity is the point here, so user ids and usernames are returned. What is still never
  * read: an IP address, which has an endpoint and a scope of its own; anything a member or a
- * provider wrote - a reason, a title, a message, a request's input, a change's values, an email
- * address. The admin log's URL is the one free text returned, and it goes through the scrubber.
+ * provider wrote - a reason, a title, a message, a request's input, an email address. Free text is
+ * returned in two places and goes through the scrubber in both: the admin log's URL, and a user
+ * change's values, which only a caller who asks for them gets.
  */
 class LogEntries extends Repository
 {
 	const MAX_LIMIT = 200;
+
+	/** The most characters of a change's value returned; a signature can run to thousands */
+	const MAX_VALUE_LENGTH = 1000;
 
 	/**
 	 * table, id, date: the log's table, its key and the column it is dated by
@@ -22,6 +26,7 @@ class LogEntries extends Repository
 	 * where: a condition every entry meets, as core's own page for the log applies
 	 * content: the log's content type and id columns, where it records content
 	 * fields: name => [column, kind], for describeField()
+ * values: name => column, returned only when asked for, and never for a protected entry
 	 * super_admin: core shows the log to super administrators alone
 	 */
 	const LOGS = [
@@ -40,7 +45,8 @@ class LogEntries extends Repository
 			]],
 		'user_change' => ['table' => 'xf_change_log', 'id' => 'log_id', 'date' => 'edit_date',
 			'actor' => 'edit_user_id', 'subject' => 'content_id', 'where' => "content_type = 'user'",
-			'fields' => ['field' => ['field', 'user_field'], 'protected' => ['protected', 'bool']]],
+			'fields' => ['field' => ['field', 'user_field'], 'protected' => ['protected', 'bool']],
+			'values' => ['old_value' => 'old_value', 'new_value' => 'new_value']],
 		'username_change' => ['table' => 'xf_username_change', 'id' => 'change_id', 'date' => 'change_date',
 			'actor' => 'change_user_id', 'subject' => 'user_id',
 			'fields' => [
@@ -92,10 +98,11 @@ class LogEntries extends Repository
 	 * @param string $logId One of getLogIds()
 	 * @param array{since: int, until: int, user_id: int|null, about_user_id: int|null, content_type: string|null, content_id: int|null} $filters
 	 * @param int $limit
+	 * @param bool $values Return each entry's values, for a log that declares them
 	 *
 	 * @return array{total: int, complete: bool, scrubbed: int, entries: list<array<string, mixed>>}
 	 */
-	public function getEntries($logId, array $filters, $limit)
+	public function getEntries($logId, array $filters, $limit, $values = false)
 	{
 		$log = self::LOGS[$logId];
 		$db = $this->db();
@@ -138,6 +145,15 @@ class LogEntries extends Repository
 		{
 			$columns[] = "$column AS `field_$name`";
 		}
+		if ($values && !isset($log['values']))
+		{
+			// the controller refuses this with a 400 first
+			throw new \InvalidArgumentException("The $logId log has no values");
+		}
+		foreach ($values ? $log['values'] : [] AS $name => $column)
+		{
+			$columns[] = "$column AS `value_$name`";
+		}
 
 		$total = (int) $db->fetchOne("SELECT COUNT(*) FROM {$log['table']} WHERE $where");
 		$rows = $db->fetchAll('
@@ -178,6 +194,11 @@ class LogEntries extends Repository
 			foreach ($log['fields'] AS $name => [$column, $kind])
 			{
 				$entry[$name] = $this->describeField($kind, $row["field_$name"], $scrubbed);
+			}
+
+			if ($values)
+			{
+				$entry += $this->describeValues($log['values'], $row, !empty($entry['protected']), $scrubbed);
 			}
 
 			$entries[] = $logId === 'moderator' ? $this->closeModeratorAction($entry) : $entry;
@@ -239,6 +260,60 @@ class LogEntries extends Repository
 			default:
 				return $this->isListed($kind, (string) $value);
 		}
+	}
+
+	/**
+	 * A change's values as the control panel shows them, raw rather than formatted, scrubbed and
+	 * cut to a length. A protected entry's values are withheld as the control panel withholds
+	 * them: they are a password's hash and its scheme.
+	 *
+	 * @param array<string, string> $columns
+	 * @param array<string, mixed> $row
+	 * @param bool $protected
+	 * @param int $scrubbed
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function describeValues(array $columns, array $row, $protected, &$scrubbed)
+	{
+		$described = [];
+		$truncated = false;
+
+		foreach (array_keys($columns) AS $name)
+		{
+			$value = $row["value_$name"];
+			if ($protected || $value === null)
+			{
+				$described[$name] = null;
+				continue;
+			}
+
+			$value = (string) $this->getScrubber()->scrub((string) $value, $scrubbed);
+			$cut = $this->cut($value);
+			if ($cut !== $value)
+			{
+				$value = $cut;
+				$truncated = true;
+			}
+			$described[$name] = $value;
+		}
+
+		return $described + ['values_truncated' => $truncated];
+	}
+
+	/**
+	 * Cut to the length in characters, so that a multi-byte character is never split. A value that
+	 * is not valid UTF-8 is cut by bytes instead.
+	 *
+	 * @param string $value
+	 *
+	 * @return string
+	 */
+	protected function cut($value)
+	{
+		return preg_match('/^.{0,' . self::MAX_VALUE_LENGTH . '}/su', $value, $match)
+			? $match[0]
+			: substr($value, 0, self::MAX_VALUE_LENGTH);
 	}
 
 	/**

@@ -143,6 +143,12 @@
         "version_string": "1.0.0a8",
         "hash": "083ed4b102d682f278873701e78ec3db"
     },
+    "hampel_adminapi_log_values_unsupported.txt": {
+        "global_cache": false,
+        "version_id": 1000019,
+        "version_string": "1.0.0a9",
+        "hash": "ec0bf07a3c5b94e9498bd7fac2097b8c"
+    },
     "hampel_adminapi_unknown_log.txt": {
         "global_cache": false,
         "version_id": 1000018,

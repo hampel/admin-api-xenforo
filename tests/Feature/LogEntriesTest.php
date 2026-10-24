@@ -140,6 +140,69 @@ class LogEntriesTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
+	private function userChange($date, $field, $old, $new, $protected = 0)
+	{
+		return $this->insert('xf_change_log', [
+			'content_type' => 'user', 'content_id' => $this->member->user_id, 'edit_user_id' => $this->staff->user_id,
+			'edit_date' => $date, 'field' => $field, 'old_value' => $old, 'new_value' => $new, 'protected' => $protected,
+		]);
+	}
+
+	public function test_a_user_changes_values_are_returned_only_when_asked_for()
+	{
+		$this->userChange(1000, 'email', 'before@example.com', 'after@example.com');
+
+		$this->assertArrayNotHasKey('old_value', $this->entries(['log' => 'user_change'])['entries'][0]);
+
+		$entry = $this->entries(['log' => 'user_change', 'values' => 1])['entries'][0];
+		$this->assertSame('email', $entry['field']);
+		$this->assertSame('before@example.com', $entry['old_value']);
+		$this->assertSame('after@example.com', $entry['new_value']);
+		$this->assertFalse($entry['values_truncated']);
+	}
+
+	public function test_a_protected_change_never_gives_its_values()
+	{
+		$this->userChange(1000, 'data', 'SECRET-hash', 'SECRET-new-hash', 1);
+
+		$result = $this->entries(['log' => 'user_change', 'values' => 1]);
+
+		$this->assertTrue($result['entries'][0]['protected']);
+		$this->assertNull($result['entries'][0]['old_value']);
+		$this->assertNull($result['entries'][0]['new_value']);
+		$this->assertStringNotContainsString('SECRET', json_encode($result));
+	}
+
+	public function test_a_value_is_scrubbed_and_cut_without_splitting_a_character()
+	{
+		$token = 'sk_live_' . str_repeat('a1B2', 6);
+		$this->userChange(1000, 'signature', "api_key=$token", str_repeat('é', LogEntries::MAX_VALUE_LENGTH + 5));
+
+		$result = $this->entries(['log' => 'user_change', 'values' => 1]);
+		$entry = $result['entries'][0];
+
+		$this->assertStringNotContainsString($token, json_encode($result));
+		$this->assertStringStartsWith('api_key=', $entry['old_value']);
+		$this->assertGreaterThan(0, $result['scrubbed']);
+		$this->assertSame(str_repeat('é', LogEntries::MAX_VALUE_LENGTH), $entry['new_value']);
+		$this->assertTrue($entry['values_truncated']);
+	}
+
+	public function test_values_from_any_other_log_are_refused_and_asking_is_recorded()
+	{
+		$this->assertReplyIsError(
+			$this->dispatch(self::ROUTE, 'api', ['log' => 'moderator', 'values' => 1] + self::WINDOW),
+			400,
+			'Only these do: user_change'
+		);
+
+		$this->entries(['log' => 'user_change', 'values' => 1]);
+
+		$rows = $this->adminLogRows();
+		$this->assertCount(1, $rows);
+		$this->assertSame('1', (string) json_decode($rows[0]['request_data'], true)['values']);
+	}
+
 	public function test_username_changes_spam_cleaning_and_rejections_name_both_members()
 	{
 		$this->insert('xf_username_change', [

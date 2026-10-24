@@ -40,10 +40,11 @@ class LogEntries extends AbstractController
 
 	/**
 	 * @api-desc Returns entries from one log, newest first: who acted, the member it was about, when,
-	 *   and the log's own closed values. Never an IP address, a reason, a title, a message or a
-	 *   change's values. Every lookup is written to the admin log. Requires a user API key holding
-	 *   the hampel_admin_api:log_entries scope, whose user has both the hampelAdminApiLogEntries and
-	 *   the viewLogs admin permissions; the admin log needs a super administrator as well.
+	 *   and the log's own closed values. Never an IP address, a reason, a title or a message; a
+	 *   user change's values only when asked for. Every lookup is written to the admin log.
+	 *   Requires a user API key holding the hampel_admin_api:log_entries scope, whose user has both
+	 *   the hampelAdminApiLogEntries and the viewLogs admin permissions; the admin log needs a
+	 *   super administrator as well.
 	 *
 	 * @api-in str $log admin, moderator, user_change, username_change, spam_trigger, spam_cleaner, rejected_user or email_bounce
 	 * @api-in int $since Only entries from this Unix timestamp. Default the whole log.
@@ -53,6 +54,7 @@ class LogEntries extends AbstractController
 	 * @api-in str $content_type Only entries about this content type, where the log records content
 	 * @api-in int $content_id Only entries about this content id, where the log records content
 	 * @api-in int $limit How many entries to return. Default 50, maximum 200.
+	 * @api-in bool $values The user change log only: each change's old_value and new_value, scrubbed and cut to 1000 characters. Never for a protected field.
 	 *
 	 * @api-out array $entries Newest first
 	 * @api-out int $total How many entries match, including any past the limit
@@ -101,6 +103,20 @@ class LogEntries extends AbstractController
 			}
 		}
 
+		$values = $this->filter('values', 'bool');
+		if ($values && !isset($log['values']))
+		{
+			$withValues = array_keys(array_filter(LogEntriesRepository::LOGS, function (array $declared)
+			{
+				return isset($declared['values']);
+			}));
+
+			return $this->error(\XF::phrase('hampel_adminapi_log_values_unsupported', [
+				'log' => $logId,
+				'logs' => implode(', ', $withValues),
+			]), 400);
+		}
+
 		$limit = min($this->filter('limit', 'uint') ?: self::DEFAULT_LIMIT, LogEntriesRepository::MAX_LIMIT);
 
 		$this->logMemberLookup();
@@ -108,6 +124,6 @@ class LogEntries extends AbstractController
 		return $this->apiResult([
 			'log' => $logId,
 			'window' => ['since' => $filters['since'], 'until' => $filters['until']],
-		] + $repo->getEntries($logId, $filters, $limit));
+		] + $repo->getEntries($logId, $filters, $limit, $values));
 	}
 }
