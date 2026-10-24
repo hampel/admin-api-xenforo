@@ -199,13 +199,13 @@ The rules that hold in every tier, and the aggregate tier's own:
   value comes from `_output/`.
 - **`preDispatchController($action, ParameterBag $params)` is untyped**, as it is in core. A
   `string` on `$action` is a fatal at class load.
-- **The XenForo floor is 2.2.0, so core is named the way 2.2 names it.** Short names
-  (`XF:ApiKey`) and the pre-2.3 class names work on both lines; a 2.3 class name
-  (`...Repository`, `...Finder`, `...Service`) is a fatal on 2.2. Six things here exist only from
-  2.3 and each is guarded where it is used: `\XF::accessToken()`, a scope's
-  `usable_with_oauth_clients`, the `xf_failed_job` table, `attempts` on `xf_job`,
-  `XF\Job\IconUsage`, and `is_cancelled` on an active user upgrade. **A new use of anything from core gets checked against 2.2's source before
-  it is written**, and what 2.2 lacks is reported as absent, not as zero.
+- **The XenForo floor is 2.2.0, so core is named the way 2.2 names it.** Short names (`XF:ApiKey`)
+  and the pre-2.3 class names work on both lines; a 2.3 class name (`...Repository`, `...Finder`,
+  `...Service`) is a fatal on 2.2. Six things here exist only from 2.3 and each is guarded where it
+  is used: `\XF::accessToken()`, a scope's `usable_with_oauth_clients`, the `xf_failed_job` table,
+  `attempts` on `xf_job`, `XF\Job\IconUsage`, and `is_cancelled` on an active user upgrade. **A new
+  use of anything from core gets checked against 2.2's source before it is written**, and what 2.2
+  lacks is reported as absent, not as zero.
 - **The suite runs on 2.3 only** — the test framework needs it — so 2.2 is proved by installing
   the release in a sandbox and asking over HTTP. A change that touches a guarded path needs that
   run again.
