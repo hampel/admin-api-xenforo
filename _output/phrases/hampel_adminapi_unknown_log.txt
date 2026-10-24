@@ -1,0 +1,1 @@
+There is no log by that name. Name one of: {logs}

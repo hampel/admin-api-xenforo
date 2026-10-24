@@ -6,9 +6,10 @@ the surfaces and fragile points; this file does not repeat them.
 
 ## The endpoints are a read-only window onto the forum, for the people who run it
 
-They cover what the core API leaves out — the server error log, the add-on inventory, cron
-entries, the job queue, the shape of options and of `config.php`, and the members behind an IP
-address so far. **No endpoint changes the forum, and none may.** The add-on has no options.
+They cover what the core API leaves out — the server error log, the add-on inventory, cron entries,
+the job queue, counts from every other log, the shape of options and of `config.php`, and the
+members behind an IP address so far. **No endpoint changes the forum, and none may.** The add-on has
+no options.
 
 **The one row an endpoint writes is a line in the admin log, for each member lookup** — decided on
 2026-10-24. Who looked up whom is the record an administrator wants afterwards, and the control

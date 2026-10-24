@@ -19,6 +19,7 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients |
 | API route | `admin-api/ip-users/` → `Api\Controller\IpUsers` |
+| API route | `admin-api/logs/` → `Api\Controller\Logs` |
 | API scope | `hampel_admin_api:ips`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
@@ -32,8 +33,9 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiConfig` |
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
 | admin permission | `hampelAdminApiIps` — with core's `user` |
+| admin permission | `hampelAdminApiLogs` |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 16 — the four scope descriptions, the nine permission titles, three errors |
+| phrases | 18 — the four scope descriptions, the ten permission titles, four errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -324,6 +326,11 @@ scope id alone, so a forum installing from a zip gets the column default, which 
 gates refuse an access token regardless; `Setup.php` puts the flag back so the scope is not
 offered to an OAuth client at all. Only an install from a zip can show whether that worked.
 
+**A log's breakdown is only as closed as its list.** Content types, admin routes, media sites and
+providers are read from the forum, and a moderator action is named only if core has a
+`mod_log.<type>_<action>` phrase for it. An add-on that adds an admin route widens the admin
+log's list, which is right: it is a route the forum has.
+
 **The IP lookup names its own utility calls the 2.2 way.** `XF\Util\Ip::stringToBinary()` and
 `binaryToString()` arrived with 2.3; `convertIpStringToBinary()`, `convertIpBinaryToString()`
 and `parseIpRangeString()` are on both lines. Core's own `IpRepository` lookups are not used: they
@@ -355,6 +362,10 @@ vendor/bin/phpunit
   members, a guest and an account that has gone, and checks both lookups, the window on both
   sides, a range and IPv6, the limit, every gate before the input, and that a lookup writes one
   admin log row whether or not it finds anyone while a refused or invalid one writes none.
+- `tests/Feature/LogsTest.php` reads every declared log in full, so a misspelt table or column
+  fails there, and plants admin, moderator, spam trigger and bounce rows quoting `SECRET` in every
+  column that is not read, then checks the breakdowns, that a value off its list is counted
+  unnamed, and that `SECRET` appears nowhere in the answer.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the

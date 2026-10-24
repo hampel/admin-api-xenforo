@@ -52,6 +52,7 @@ access*. The add-on creates one small table, for the commands under
    | endpoint | admin permission |
    |---|---|
    | `error-log/` | Admin API: View error log summary |
+   | `logs/` | Admin API: View log summaries |
    | `add-ons/` | Admin API: View add-ons |
    | `cron/`, `jobs/` | Admin API: View cron and jobs |
    | `online/` | Admin API: View who is online |
@@ -386,6 +387,84 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   inside a trace, are returned as logged** — a database error's message carries the SQL and the
   database name, which the configuration endpoint withholds.
 
+## Logs
+
+`GET /api/admin-api/logs/`
+
+**Counts from every log XenForo keeps** — the ones the control panel lists under *Logs*, and the
+IP, login attempt and upgrade logs it keeps without a page. Without `log`, one line for each:
+how many entries fall in the window, and the oldest and newest the log holds. With `log`, that
+log in full.
+
+| parameter | meaning |
+|---|---|
+| `log` | one log, named as below |
+| `since` | start of the window, as a Unix timestamp. Default 24 hours ago; `0` is the whole log |
+| `until` | end of the window. Default now |
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=admin&since=0"
+```
+
+```json
+{
+    "log": "admin",
+    "window": {"since": 0, "until": 1792807981, "precedes_log": true},
+    "total": 2364,
+    "oldest_date": 1790216806,
+    "newest_date": 1792803483,
+    "log_total": 2364,
+    "log_oldest_date": 1790216806,
+    "log_newest_date": 1792803483,
+    "members": 2,
+    "by_day": [
+        {"day": "2026-09-24", "count": 31}
+    ],
+    "by_section": [
+        {"section": "login", "count": 830, "newest_date": 1792803483},
+        {"section": "options", "count": 9, "newest_date": 1791117177},
+        {"section": null, "count": 1, "newest_date": 1790308928}
+    ]
+}
+```
+
+| `log` | what it records | also returned |
+|---|---|---|
+| `admin` | control panel actions that changed something | `members`, `by_section` |
+| `moderator` | moderator actions | `members`, `by_content_type`, `by_action` |
+| `user_change` | changes to members' details and other content | `members`, `by_content_type` |
+| `username_change` | username changes and requests | `members`, `by_state` |
+| `cookie_consent` | cookie consent given | `members`, `guest_entries` |
+| `spam_trigger` | content and registrations the spam checks stopped | `members`, `guest_entries`, `by_content_type`, `by_result` |
+| `spam_cleaner` | spam cleaner runs | `members`, `restored` |
+| `rejected_user` | rejected registrations | `members` |
+| `email_bounce` | bounced and other returned mail | `members`, `by_message_type`, `by_action` |
+| `image_proxy` | images served through the proxy, by last request | `views`, `failed`, `pruned` |
+| `link_proxy` | links followed through the proxy, by last request | `hits` |
+| `oembed` | embedded media fetched, by last request | `views`, `failed`, `by_media_site` |
+| `payment_provider` | payment callbacks | `by_provider`, `by_log_type` |
+| `sitemap` | sitemap builds | `entries` in the active sitemap |
+| `server_error` | the server error log; `error-log/` has the detail | `members`, `guest_entries` |
+| `ip` | the IP log | `members`, `guest_entries`, `by_content_type` |
+| `login_attempt` | failed logins | `logins`, `addresses` |
+| `upgrade` | XenForo installs and upgrades | `by_log_type` |
+
+- **Counts, never content.** No URL, request, IP address, login name, email address, reason,
+  message or details is read. `members` is how many distinct members acted — moderators in the
+  moderator log, the administrators in the admin log, the member a spam check stopped —
+  `guest_entries` how many entries had no member, and `logins` and `addresses` how many distinct
+  login names and addresses failed. None of them names anyone.
+- **Every breakdown is a value the forum or XenForo defines**: an admin section is the first part
+  of a control panel route the forum has (`index` for the front page, `api` for this add-on's
+  member lookups); a moderator action is named only if XenForo has a phrase for it; a content
+  type, media site or provider must be one the forum has. Anything else is counted on one entry
+  whose value is `null`, which also takes whatever falls past the busiest 500.
+- `log_total`, `log_oldest_date` and `log_newest_date` describe the whole log, whatever the
+  window; `precedes_log` is true when the window starts before the oldest entry, so a quiet start
+  may be where the log was last pruned. Most of these logs are pruned by an option.
+- `by_day` is as in the error log summary: one entry per UTC day, quiet days included, from the
+  start of the window or of the log, at most 366.
+
 ## Members by IP address
 
 `GET /api/admin-api/ip-users/`
@@ -454,8 +533,8 @@ and `is_range`, in place of `user` and `ip_total`.
 - **`complete` is false when the answer was cut short** — by `limit`, which `total_users` shows,
   or because more than 500 of the member's addresses or 2,000 rows of member and address matched.
   Narrow it with `days` or a smaller range.
-- What the log holds at all depends on the forum's *Delete IP usage data after* option; an address older
-  than that is not there to find.
+- What the log holds at all depends on the forum's *Delete IP usage data after* option; an address
+  older than that is not there to find.
 
 ## Add-on inventory
 
