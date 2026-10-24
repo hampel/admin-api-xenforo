@@ -23,6 +23,12 @@
         "version_string": "1.0.0a3",
         "hash": "4c66d0d1296893570232a274906af0aa"
     },
+    "admin_permission.hampelAdminApiIps.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "9e72ff5a3f5aa4a65fbf61a9920e71de"
+    },
     "admin_permission.hampelAdminApiJobs.txt": {
         "global_cache": false,
         "version_id": 1000013,
@@ -53,6 +59,12 @@
         "version_string": "1.0.0a1",
         "hash": "8b6852b87561aeac78d47fda3634b9e2"
     },
+    "api_scope.hampel_admin_api_ips.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "7416dea1ba293131246bb34e93638f5d"
+    },
     "api_scope.hampel_admin_api_read.txt": {
         "global_cache": false,
         "version_id": 1000011,
@@ -76,5 +88,11 @@
         "version_id": 1000011,
         "version_string": "1.0.0a1",
         "hash": "61f752a2e75f0e78348fa9584e07fc1b"
+    },
+    "hampel_adminapi_user_id_or_ip_required.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "ddd6a2717909953111270476f0bb8495"
     }
 }

@@ -363,7 +363,7 @@ class CommandsTest extends TestCase
 	 */
 	public function test_a_super_administrators_key_can_use_every_scope_it_holds()
 	{
-		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail']], true, true);
+		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail', 'hampel_admin_api:ips']], true, true);
 
 		[$exit, $display] = $this->validate();
 
@@ -378,6 +378,22 @@ class CommandsTest extends TestCase
 		[, $display] = $this->validate();
 
 		$this->assertStringContainsString('its user lacks viewLogs', $display);
+	}
+
+	/**
+	 * A member scope is counted on its own row, and its key is checked for core's permission as
+	 * well as the add-on's, as the endpoint checks them.
+	 */
+	public function test_an_ip_key_is_counted_and_needs_the_user_permission_as_well()
+	{
+		$this->assertMatchesRegularExpression('/keys for IP lookups\s+none/', $this->validate()[1]);
+
+		$this->plantKey(['hampelAdminApiIps', 'user'], ['scopes' => ['hampel_admin_api:ips']]);
+		$this->assertMatchesRegularExpression('/keys for IP lookups\s+1/', $this->validate()[1]);
+
+		$key = $this->plantKey(['hampelAdminApiIps'], ['scopes' => ['hampel_admin_api:ips']]);
+		$this->assertStringContainsString("key #{$key->api_key_id}", $this->validate()[1]);
+		$this->assertStringContainsString('its user lacks user', $this->validate()[1]);
 	}
 
 	public function test_faults_being_enabled_is_a_warning_wherever_it_is()

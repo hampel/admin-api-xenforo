@@ -18,6 +18,8 @@ checked. For whoever changes it next.
 | API route | `admin-api/online/` → `Api\Controller\Online` |
 | API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients |
+| API route | `admin-api/ip-users/` → `Api\Controller\IpUsers` |
+| API scope | `hampel_admin_api:ips`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
@@ -29,7 +31,9 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiOptions` |
 | admin permission | `hampelAdminApiConfig` |
 | admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
-| phrases | 13 — the three scope descriptions, the eight permission titles, two errors |
+| admin permission | `hampelAdminApiIps` — with core's `user` |
+| admin log | a row for every member lookup, through core's `logAdminRequest()` |
+| phrases | 16 — the four scope descriptions, the nine permission titles, three errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -320,6 +324,16 @@ scope id alone, so a forum installing from a zip gets the column default, which 
 gates refuse an access token regardless; `Setup.php` puts the flag back so the scope is not
 offered to an OAuth client at all. Only an install from a zip can show whether that worked.
 
+**The IP lookup names its own utility calls the 2.2 way.** `XF\Util\Ip::stringToBinary()` and
+`binaryToString()` arrived with 2.3; `convertIpStringToBinary()`, `convertIpBinaryToString()`
+and `parseIpRangeString()` are on both lines. Core's own `IpRepository` lookups are not used: they
+have no date window for an address and load an entity per member.
+
+**The admin log line takes its path from the request, and a test's request is not a real one.**
+A dispatched test request already carries `api/` and a real one does not, so the prefix is added
+only when it is missing. A test cannot tell the two apart; the path was read off a real request
+on 2026-10-24.
+
 ## Automated
 
 ```bash
@@ -337,6 +351,10 @@ vendor/bin/phpunit
   several members, and checks that only members are counted and each only once.
 - `tests/Feature/AddOnInventoryTest.php` checks the response against `addon.json`, and plants an
   add-on record in each unfinished state to check what is reported for it.
+- `tests/Feature/IpUsersTest.php` logs addresses from the documentation ranges for three new
+  members, a guest and an account that has gone, and checks both lookups, the window on both
+  sides, a range and IPv6, the limit, every gate before the input, and that a lookup writes one
+  admin log row whether or not it finds anyone while a refused or invalid one writes none.
 - `tests/Feature/CronStateTest.php` adds entries that are due, recently due, overdue, disabled and
   owned by an add-on that is not installed, and checks which are called overdue.
 - `tests/Feature/JobStateTest.php` queues jobs under classes no real job uses and checks the

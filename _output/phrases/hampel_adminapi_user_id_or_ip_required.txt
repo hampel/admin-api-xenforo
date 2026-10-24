@@ -1,0 +1,1 @@
+Give either the user_id of a member or an ip address or range, and not both.

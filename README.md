@@ -4,7 +4,9 @@ A XenForo add-on that adds read-only REST API endpoints for a forum's operationa
 things the core API does not cover, because it is a content API. For an administrator who wants a
 monitoring script, a dashboard or an agent to be able to ask "is anything in the error log?",
 "what is installed, at which version?", "is cron running?" and "how is this forum configured?"
-without being handed the admin control panel — or a single credential.
+without being handed the admin control panel — or a single credential. And, behind scopes and
+permissions of their own, for troubleshooting that needs a member's details: "which other members
+have used this IP address?"
 
 By [Simon Hampel](https://xenforo.com/community/members/sim.4264/).
 
@@ -82,6 +84,12 @@ they can't do anything else.
 - give the administrator *Admin API: View error log entries*, and XenForo's *View logs*;
 - create a second key with only the `hampel_admin_api:error_detail` scope.
 
+**To look up members by IP address**:
+
+- give the administrator *Admin API: Look up members by IP address*, and XenForo's *Manage users
+  and moderators*;
+- create a key with the `hampel_admin_api:ips` scope. Every lookup is written to the admin log.
+
 ## How access is decided
 
 **A request has to pass three checks, and the third is the one that decides.**
@@ -93,7 +101,9 @@ they can't do anything else.
 2. **The key must hold the scope for that endpoint.** `hampel_admin_api:read` covers every
    endpoint that returns counts and shape, and `hampel_admin_api:error_detail` the one that
    returns error content. A third, `hampel_admin_api:values`, adds to the read scope: with it the
-   options and configuration endpoints return what settings are set to, not only whether.
+   options and configuration endpoints return what settings are set to, not only whether. Each
+   endpoint that returns members' details has a scope of its own, such as
+   `hampel_admin_api:ips`, so that a key can be issued for one kind of lookup and no other.
 3. **The key's user must hold the admin permission for that endpoint.**
 
 So a key can never do more than the administrator it belongs to. A key with *all scopes* allowed
@@ -107,10 +117,15 @@ ordinary administrators only.
 **The options and configuration permissions cover which settings are set, and no more.** Seeing
 what they are set to takes its own permission as well as its own scope, as above.
 
+**A lookup of members' details also needs XenForo's own permission for the same thing**, and is
+written to the admin log under *Logs > Admin log*, as `api/` and the endpoint, with what was asked.
+The API is not a way round the control panel, and who looked up whom is on record afterwards.
+
 ## Endpoints
 
 Every endpoint is a `GET` under `/api/admin-api/`, and needs the `hampel_admin_api:read` scope
-except *Error log entries*, which needs `hampel_admin_api:error_detail` instead. The JSON under
+except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, and *Members by
+IP address*, which needs `hampel_admin_api:ips`. The JSON under
 each shows the shape of a response; the figures in it are illustrative.
 
 ## Error log summary
@@ -370,6 +385,77 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   file outside it is given by name only, as in the summary. **The message, and the arguments
   inside a trace, are returned as logged** — a database error's message carries the SQL and the
   database name, which the configuration endpoint withholds.
+
+## Members by IP address
+
+`GET /api/admin-api/ip-users/`
+
+**Which members have used an IP address, or which other members have used a member's
+addresses**, from XenForo's IP log: the same lookups as the control panel's search for users by
+IP address and a member's *Shared IPs*, with a date window on both. For troubleshooting a
+report of account sharing, a suspected sock puppet or a spam run.
+
+It takes three things to reach it:
+
+- a key holding `hampel_admin_api:ips`;
+- the *Admin API: Look up members by IP address* admin permission;
+- XenForo's own *Manage users and moderators* admin permission, which the control panel's IP
+  lookups need.
+
+**Every lookup is written to the admin log**, found or not; a request refused at a gate, or with
+nothing to look up, is not.
+
+| parameter | meaning |
+|---|---|
+| `user_id` | the member whose addresses to compare with everyone else's. Give this or `ip` |
+| `ip` | an address, a CIDR range (`203.0.113.0/24`), or a partial IPv4 address (`203.0.113.*`). Give this or `user_id` |
+| `days` | only what was logged in this many days, on both sides. Default the forum's *Shared IPs check limit* option, 28 unless changed; maximum 3650 |
+| `limit` | how many members to return, most recently seen first. Default 50, maximum 200 |
+
+```bash
+curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/ip-users/?user_id=1234&days=90"
+```
+
+```json
+{
+    "user": {"user_id": 1234, "username": "Example"},
+    "days": 90,
+    "ip_total": 3,
+    "total_users": 1,
+    "complete": true,
+    "users": [
+        {
+            "user_id": 5678,
+            "username": "Another",
+            "first_date": 1790771401,
+            "last_date": 1791203401,
+            "total": 3,
+            "ips": [
+                {"ip": "203.0.113.10", "first_date": 1790771401, "last_date": 1791203401, "total": 2},
+                {"ip": "2001:db8::1", "first_date": 1790857801, "last_date": 1790857801, "total": 1}
+            ]
+        }
+    ]
+}
+```
+
+With `ip` instead, the answer starts with `ip`, as given or as a range XenForo understood it,
+and `is_range`, in place of `user` and `ip_total`.
+
+- **Only a member's id and username are returned.** For their email and the rest, ask XenForo's
+  own `users/{id}` or `users/find-email`, which give them to an administrator with *Manage users
+  and moderators* under the `user:read` scope.
+- **Guests are not counted**: XenForo logs an address against a member, and a guest is nobody.
+- **A member whose account has gone is kept, with a `username` of `null`**, because the log can
+  outlive the account.
+- `total` is how many times the address was logged for that member — on login, on posting and
+  the like — not visits. `ip_total` is how many of the member's own addresses were compared,
+  most recently used first, up to 500.
+- **`complete` is false when the answer was cut short** — by `limit`, which `total_users` shows,
+  or because more than 500 of the member's addresses or 2,000 rows of member and address matched.
+  Narrow it with `days` or a smaller range.
+- What the log holds at all depends on the forum's *Delete IP usage data after* option; an address older
+  than that is not there to find.
 
 ## Add-on inventory
 

@@ -35,6 +35,7 @@ class HealthCheck
 		'hampelAdminApiConfig',
 		'hampelAdminApiOnline',
 		'hampelAdminApiValues',
+		'hampelAdminApiIps',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -47,7 +48,12 @@ class HealthCheck
 		'hampelAdminApiOnline',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users'];
+
+	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
+	const MEMBER_SCOPES = [
+		AbstractController::SCOPE_IPS => ['label' => 'keys for IP lookups', 'permissions' => ['hampelAdminApiIps', 'user']],
+	];
 
 	/** @var App */
 	protected $app;
@@ -164,6 +170,7 @@ class HealthCheck
 		$readers = 0;
 		$detailReaders = 0;
 		$valueReaders = 0;
+		$memberReaders = array_fill_keys(array_keys(static::MEMBER_SCOPES), 0);
 
 		foreach ($this->getKeys() AS $key)
 		{
@@ -182,6 +189,10 @@ class HealthCheck
 				else if ($scopeId === AbstractController::SCOPE_VALUES)
 				{
 					$valueReaders++;
+				}
+				else if (isset($memberReaders[$scopeId]))
+				{
+					$memberReaders[$scopeId]++;
 				}
 				else
 				{
@@ -202,6 +213,15 @@ class HealthCheck
 				? [self::OK, 'keys that see values', (string) $valueReaders]
 				: [self::SKIP, 'keys that see values', 'none - options and config.php are reported by shape only']
 		);
+
+		$memberRows = [];
+		foreach (static::MEMBER_SCOPES AS $scopeId => $scope)
+		{
+			$memberRows[] = $memberReaders[$scopeId]
+				? [self::OK, $scope['label'], (string) $memberReaders[$scopeId]]
+				: [self::SKIP, $scope['label'], 'none, which is the safe default'];
+		}
+		array_splice($rows, 3, 0, $memberRows);
 
 		return $rows;
 	}
@@ -296,6 +316,13 @@ class HealthCheck
 				: 'its user lacks hampelAdminApiOptions and hampelAdminApiConfig';
 		}
 
+		if (isset(static::MEMBER_SCOPES[$scopeId]))
+		{
+			$missing = array_diff(static::MEMBER_SCOPES[$scopeId]['permissions'], $key['admin_permissions']);
+
+			return $missing ? 'its user lacks ' . implode(' and ', $missing) : null;
+		}
+
 		if ($scopeId === AbstractController::SCOPE_ERROR_DETAIL)
 		{
 			$missing = array_diff(['hampelAdminApiErrorDetail', 'viewLogs'], $key['admin_permissions']);
@@ -322,6 +349,9 @@ class HealthCheck
 		$cron = $this->app->repository('Hampel\AdminApi:Cron')->getState($now);
 		$settings = (new ValueShape())->flatten($this->app->config());
 		$online = $this->app->repository('Hampel\AdminApi:Online')->getState($now);
+		// an address from the range kept for documentation, so the lookup runs and finds nobody real
+		$test = (string) \XF\Util\Ip::convertIpStringToBinary('192.0.2.1');
+		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
 
 		return [
 			[self::OK, 'error log', "read: {$errors['total']} in the last day, {$errors['log']['total']} in the log"],
@@ -331,6 +361,7 @@ class HealthCheck
 			[self::OK, 'options', 'read: ' . $this->app->finder('XF:Option')->total() . ' options'],
 			[self::OK, 'config.php', 'read: ' . count($settings) . ' settings'],
 			[self::OK, 'who is online', "read: {$online['total']} sessions in the last {$online['window_minutes']} minutes"],
+			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
 		];
 	}
 

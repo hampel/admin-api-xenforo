@@ -10,7 +10,10 @@ abstract class AbstractController extends BaseController
 
 	const SCOPE_VALUES = 'hampel_admin_api:values';
 
-	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES];
+	/** Member data: a scope for each capability, so that a key can be narrower than its user */
+	const SCOPE_IPS = 'hampel_admin_api:ips';
+
+	const SCOPES = [self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES, self::SCOPE_IPS];
 
 	const PERMISSION_VALUES = 'hampelAdminApiValues';
 
@@ -86,6 +89,36 @@ abstract class AbstractController extends BaseController
 		{
 			throw $this->exception($this->noPermission());
 		}
+	}
+
+	/**
+	 * A lookup of member data leaves a line in the admin log, as an action in the control panel
+	 * does, so that who looked up whom can be seen afterwards. It records the route and what was
+	 * asked, with core's own masking of the input, and is pruned with the rest of the log. Call it
+	 * once every gate has passed and the input is valid, before the answer: whether anything was
+	 * found does not matter.
+	 *
+	 * @return void
+	 */
+	protected function logMemberLookup()
+	{
+		$request = $this->request;
+
+		// marked as the API's, so that it is not read as a control panel page
+		$path = $request->getRoutePath();
+		if (strpos($path, 'api/') !== 0)
+		{
+			$path = 'api/' . $path;
+		}
+
+		/** @var \XF\Repository\AdminLog $repo */
+		$repo = $this->repository('XF:AdminLog');
+		$repo->logAdminRequest(
+			\XF::visitor()->user_id,
+			$path,
+			$request->getInputForLogs(),
+			$request->getIp()
+		);
 	}
 
 	/**
