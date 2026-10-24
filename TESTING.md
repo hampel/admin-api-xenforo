@@ -585,6 +585,32 @@ bypass parameter. `fault-arm` printed its JSON and `fault-clean` removed every r
 the one warning that faults were enabled, which the run had switched on, and its probe passed.
 Uninstall left no add-on row, scope, permission, phrase, route, key grant or table.
 
+Proved from a `1.0.0a8` build on XenForo 2.2.19 Patch 2 with PHP 7.4.33, development off, on
+2026-10-24, for the member tier and the endpoints added that day. The upgrade from the archived
+`1.0.0a7` zip imported the release's own data, and every PHP file linted. **`admin-api:validate`
+then failed its reader check**: the moderators endpoint selected `notify_report` and
+`notify_approval`, which `xf_moderator` has only from 2.3. Guarded, rebuilt, and installed fresh
+over the uninstalled add-on; `validate --strict` then warned only that no key existed yet.
+
+With a non-super administrator holding every permission, a key per scope and a super
+administrator's keys, over HTTP:
+
+| checked | result |
+|---|---|
+| `ip-users/` for a member | the one other member on a shared documentation address |
+| `user-upgrades/`, `user-upgrade-records/` | the upgrade's counts and its payment; the record with its provider, price and transaction id, `is_cancelled` `null` |
+| `moderators/` | the member's global and per-forum grants, the forum's title, both notification settings `null` |
+| `administrators/` | refused for the non-super key with core's super administrator phrase; listed for the super administrator, `permissions` `null` for them |
+| `approval-queue/` | the planted registration, and `cached_total` 0 beside `total` 1, since the row was written without core's rebuild |
+| `log-entries/` | each of the eight logs; the admin log refused for the non-super key; a filter a log lacks and an unknown log refused with 400 |
+| scopes | the read, staff and entries scopes each refused on another's endpoint |
+| `SECRET` planted in every withheld column | in no response |
+| the admin log | one line per lookup, with what was asked; none for a 400 or 403 |
+| the error log | nothing from the run |
+
+The forum rendered, the job queue held only core's own jobs after a run, and uninstall left no
+add-on row, scope, permission, phrase, route, permission grant or table.
+
 ### The fault commands, the same day and the same way
 
 On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
