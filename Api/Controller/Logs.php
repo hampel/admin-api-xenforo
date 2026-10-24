@@ -28,7 +28,7 @@ class Logs extends AbstractController
 	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now.
 	 *
 	 * @api-out array $window The window counted
-	 * @api-out array $logs Without log: each log's total in the window, oldest_date and newest_date
+	 * @api-out array $logs Without log: each log's total in the window, and its log_total, log_oldest_date and log_newest_date
 	 *
 	 * @return \XF\Mvc\Reply\AbstractReply
 	 */

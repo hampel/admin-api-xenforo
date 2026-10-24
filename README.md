@@ -206,6 +206,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
         {"day": "2026-09-25", "count": 12},
         {"day": "2026-09-26", "count": 0}
     ],
+    "by_day_complete": true,
     "by_type": [
         {"exception_type": "ErrorException", "count": 15, "newest_date": 1790857181}
     ],
@@ -328,7 +329,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
   signature was seen at more than one.
 - `by_day` has one entry per UTC day, quiet days included, from the start of the window or of the
   log, whichever is later. A day before the log begins is left out, not shown as zero. At most 366
-  days are returned, the most recent.
+  days are returned, the most recent, and `by_day_complete` is `false` when that cut the series
+  short.
 - **`examined.complete` is false only in an error storm.** Severity, origin, originating add-on
   and template are worked out from the most recent 20000 rows of the window. Every other figure
   is exact
@@ -427,8 +429,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
 
 **Counts from every log XenForo keeps** — the ones the control panel lists under *Logs*, and the
 IP, login attempt and upgrade logs it keeps without a page. Without `log`, one line for each:
-how many entries fall in the window, and the oldest and newest the log holds. With `log`, that
-log in full.
+how many entries fall in the window as `total`, and how many the log holds with its oldest and
+newest as `log_total`, `log_oldest_date` and `log_newest_date`. With `log`, that log in full.
 
 | parameter | meaning |
 |---|---|
@@ -454,6 +456,7 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
     "by_day": [
         {"day": "2026-09-24", "count": 31}
     ],
+    "by_day_complete": true,
     "by_section": [
         {"section": "login", "count": 830, "newest_date": 1792803483},
         {"section": "options", "count": 9, "newest_date": 1791117177},
@@ -497,7 +500,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
   window; `precedes_log` is true when the window starts before the oldest entry, so a quiet start
   may be where the log was last pruned. Most of these logs are pruned by an option.
 - `by_day` is as in the error log summary: one entry per UTC day, quiet days included, from the
-  start of the window or of the log, at most 366.
+  start of the window or of the log, at most 366. `by_day_complete` is `false` when that cut it,
+  so a series summing to less than `total` is not taken for pruning.
+- **A name beginning `log_` always means the whole log**, in both forms of the answer; `total`,
+  `oldest_date` and `newest_date` always mean the window.
 
 ## Log entries
 

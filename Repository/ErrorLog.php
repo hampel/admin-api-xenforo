@@ -196,6 +196,7 @@ class ErrorLog extends Repository
 			'members' => $total ? $this->countMembers($since, $until) : 0,
 			'member_errors' => array_sum(array_column($signatures, 'member_errors')),
 			'by_day' => $this->getDays($since, $until, $logOldest),
+			'by_day_complete' => $this->isDaySeriesComplete($since, $until, $logOldest),
 			'by_type' => $this->sortGroup($byType),
 			'by_severity' => $this->sortGroup($examined['by_severity']),
 			'by_origin' => $examined['by_origin'],
@@ -499,6 +500,29 @@ class ErrorLog extends Repository
 			'by_origin_add_on' => $byOriginAddOn,
 			'by_template' => $byTemplate,
 		];
+	}
+
+	/**
+	 * Whether the day series covers the whole of the window the log has entries in, or was cut to
+	 * the most recent MAX_DAYS.
+	 *
+	 * @param int $since
+	 * @param int $until
+	 * @param int|null $logOldest
+	 *
+	 * @return bool
+	 */
+	protected function isDaySeriesComplete($since, $until, $logOldest)
+	{
+		if ($logOldest === null)
+		{
+			return true;
+		}
+
+		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$firstDay = (int) floor(max($since, $logOldest) / 86400);
+
+		return $firstDay > $lastDay - self::MAX_DAYS;
 	}
 
 	/**

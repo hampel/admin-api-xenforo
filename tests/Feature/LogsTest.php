@@ -70,7 +70,23 @@ class LogsTest extends TestCase
 		$admin = $result['logs'][0];
 		$this->assertSame('admin', $admin['log']);
 		$this->assertSame(2, $admin['total']);
-		$this->assertSame(1000, $admin['oldest_date']);
+		// the whole log's figures carry the log_ name, as they do for one log
+		$this->assertSame(1000, $admin['log_oldest_date']);
+		$this->assertGreaterThanOrEqual(2, $admin['log_total']);
+		$this->assertGreaterThanOrEqual(2000, $admin['log_newest_date']);
+		$this->assertArrayNotHasKey('oldest_date', $admin);
+	}
+
+	public function test_a_series_cut_to_the_most_recent_days_says_so()
+	{
+		$this->insertAdminLog(1000, 1, 'options/');
+
+		$this->assertTrue($this->logs(['log' => 'admin'])['by_day_complete']);
+
+		// the log reaches back to 1970, so a window from then is cut to the last 366 days
+		$result = $this->logs(['log' => 'admin', 'since' => 0, 'until' => \XF::$time]);
+		$this->assertFalse($result['by_day_complete']);
+		$this->assertCount(Logs::MAX_DAYS, $result['by_day']);
 	}
 
 	/**

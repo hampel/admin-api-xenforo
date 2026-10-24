@@ -89,8 +89,9 @@ class Logs extends Repository
 	}
 
 	/**
-	 * Every log, in a line each: how many entries fall in the window, and the oldest and newest
-	 * entry it holds at all.
+	 * Every log, in a line each: how many entries fall in the window, and how many it holds at
+	 * all with the oldest and newest - named log_ as the same figures are for one log, so that
+	 * no name means the window in one answer and the whole log in another.
 	 *
 	 * @param int $since
 	 * @param int $until
@@ -106,8 +107,9 @@ class Logs extends Repository
 			$logs[] = [
 				'log' => $logId,
 				'total' => $this->countWindow($log, $since, $until),
-				'oldest_date' => $range['oldest_date'],
-				'newest_date' => $range['newest_date'],
+				'log_total' => (int) $this->db()->fetchOne("SELECT COUNT(*) FROM {$log['table']}"),
+				'log_oldest_date' => $range['oldest_date'],
+				'log_newest_date' => $range['newest_date'],
 			];
 		}
 
@@ -179,6 +181,7 @@ class Logs extends Repository
 		}
 
 		$result['by_day'] = $this->getDays($log, $since, $until, $range['oldest_date']);
+		$result['by_day_complete'] = $this->isDaySeriesComplete($since, $until, $range['oldest_date']);
 
 		foreach ($log['by'] ?? [] AS $name => $kind)
 		{
@@ -219,6 +222,29 @@ class Logs extends Repository
 			"SELECT COUNT(*) FROM {$log['table']} WHERE $date >= ? AND $date <= ?",
 			[$since, $until]
 		);
+	}
+
+	/**
+	 * Whether the day series covers the whole of the window the log has entries in, or was cut to
+	 * the most recent MAX_DAYS.
+	 *
+	 * @param int $since
+	 * @param int $until
+	 * @param int|null $logOldest
+	 *
+	 * @return bool
+	 */
+	protected function isDaySeriesComplete($since, $until, $logOldest)
+	{
+		if ($logOldest === null)
+		{
+			return true;
+		}
+
+		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$firstDay = (int) floor(max($since, $logOldest) / 86400);
+
+		return $firstDay > $lastDay - self::MAX_DAYS;
 	}
 
 	/**

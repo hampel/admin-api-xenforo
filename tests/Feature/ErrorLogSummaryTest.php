@@ -447,6 +447,16 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(['1970-01-01', '1970-01-02'], array_column($days, 'day'));
 	}
 
+	public function test_a_series_cut_to_the_most_recent_days_says_so()
+	{
+		$this->assertTrue($this->summary(['since' => 0, 'until' => 86400 * 2 - 1])['by_day_complete']);
+
+		// the rows are in 1970, so a window from then to now is cut to the last 366 days
+		$summary = $this->summary(['since' => 0, 'until' => \XF::$time]);
+		$this->assertFalse($summary['by_day_complete']);
+		$this->assertCount(366, $summary['by_day']);
+	}
+
 	public function test_the_limit_trims_signatures_but_not_the_counts()
 	{
 		$summary = $this->summary(['limit' => 1]);
