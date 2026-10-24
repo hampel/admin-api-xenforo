@@ -74,8 +74,8 @@ class CommandsTest extends TestCase
 	}
 
 	/**
-	 * XenForo 2.2's console throws on a grey tag. This add-on needs 2.3, but the report trait is
-	 * shared with add-ons that do not, and is only ever copied whole.
+	 * XenForo 2.2's console throws on a grey tag, and this add-on runs on 2.2. The report trait is
+	 * also shared with other add-ons, and is only ever copied whole.
 	 */
 	public function test_no_grey_tag_is_written_directly()
 	{
