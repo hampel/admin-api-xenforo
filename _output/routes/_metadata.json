@@ -5,6 +5,9 @@
     "api_admin-api_administrators.json": {
         "hash": "14effd813eea5e1d074b2bea20f0ee93"
     },
+    "api_admin-api_approval-queue.json": {
+        "hash": "df2d96a3530ea6b304d542f9404d33be"
+    },
     "api_admin-api_config.json": {
         "hash": "fa77f0976947510253cf727b0e35ca28"
     },

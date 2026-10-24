@@ -5,6 +5,12 @@
         "version_string": "1.0.0a3",
         "hash": "a26631cb0ffc2621775dfb3d992a4be7"
     },
+    "admin_permission.hampelAdminApiApproval.txt": {
+        "global_cache": false,
+        "version_id": 1000018,
+        "version_string": "1.0.0a8",
+        "hash": "f1d30e55ca4fd89ae38bf4e0a1d4800c"
+    },
     "admin_permission.hampelAdminApiConfig.txt": {
         "global_cache": false,
         "version_id": 1000013,

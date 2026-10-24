@@ -40,6 +40,7 @@ class HealthCheck
 		'hampelAdminApiUpgrades',
 		'hampelAdminApiUpgRecords',
 		'hampelAdminApiStaff',
+		'hampelAdminApiApproval',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -52,9 +53,10 @@ class HealthCheck
 		'hampelAdminApiOnline',
 		'hampelAdminApiLogs',
 		'hampelAdminApiUpgrades',
+		'hampelAdminApiApproval',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue'];
 
 	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
 	const MEMBER_SCOPES = [
@@ -363,6 +365,7 @@ class HealthCheck
 		$upgrades = $this->app->repository('Hampel\AdminApi:UserUpgrade')->getSummary($now, 30);
 		$logs = $this->app->repository('Hampel\AdminApi:Logs')->getIndex($now - 86400, $now);
 		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
+		$queue = $this->app->repository('Hampel\AdminApi:ApprovalQueue')->getState($now);
 		$staff = $this->app->repository('Hampel\AdminApi:Staff');
 		$moderators = $staff->getModerators();
 		$administrators = $staff->getAdministrators();
@@ -378,6 +381,7 @@ class HealthCheck
 			[self::OK, 'logs', 'read: ' . count($logs['logs']) . ' logs, ' . array_sum(array_column($logs['logs'], 'total')) . ' entries in the last day'],
 			[self::OK, 'user upgrades', 'read: ' . count($upgrades['upgrades']) . " defined, {$upgrades['active']} held"],
 			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
+			[self::OK, 'approval queue', "read: {$queue['total']} waiting"],
 			[self::OK, 'staff', "read: {$moderators['total']} moderators, {$administrators['total']} administrators"],
 		];
 	}

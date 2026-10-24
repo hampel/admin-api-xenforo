@@ -56,6 +56,7 @@ access*. The add-on creates one small table, for the commands under
    | `error-log/` | Admin API: View error log summary |
    | `logs/` | Admin API: View log summaries |
    | `user-upgrades/` | Admin API: View user upgrade summary |
+   | `approval-queue/` | Admin API: View approval queue summary |
    | `add-ons/` | Admin API: View add-ons |
    | `cron/`, `jobs/` | Admin API: View cron and jobs |
    | `online/` | Admin API: View who is online |
@@ -800,6 +801,39 @@ It takes two things to reach it:
   including any added later. For anyone else it lists the admin permission ids they hold.
 - `last_login` is the last login to the control panel, `null` if never.
 - At most 500 are returned, in username order; `complete` is `false` past that.
+
+## Approval queue
+
+`GET /api/admin-api/approval-queue/`
+
+**How much is waiting for a moderator, of what kind, and for how long** — for "is anyone working
+the queue?" without a moderator's account. Counts only: the queue holds a content type, an id
+and a date for each item, and nothing else is read.
+
+```json
+{
+    "total": 14,
+    "oldest_date": 1791840601,
+    "newest_date": 1792445101,
+    "by_age": {"under_hour": 2, "under_day": 5, "under_week": 6, "older": 1},
+    "by_content_type": [
+        {"content_type": "user", "count": 9, "oldest_date": 1791840601, "newest_date": 1792445101},
+        {"content_type": "post", "count": 5, "oldest_date": 1792100001, "newest_date": 1792441501}
+    ],
+    "cached_total": 14,
+    "cached_date": 1792445101
+}
+```
+
+- `content_type` is a type something on the forum can approve. One no longer handled, from an
+  add-on since removed, is counted with a `null` name.
+- `oldest_date` is when the content was posted, not when it was queued, which for most content is
+  the same moment.
+- **`cached_total` is the count XenForo keeps for moderators**, the number beside the queue in
+  their navigation, rebuilt when an item is queued or dealt with. One that differs from `total`
+  means moderators are being shown the wrong number.
+- An item whose content has since been deleted is still counted, as XenForo keeps it in the
+  queue; XenForo's queue page skips it, and so skips an item a moderator cannot view.
 
 ## Add-on inventory
 
