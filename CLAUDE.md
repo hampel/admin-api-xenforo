@@ -37,11 +37,34 @@ hold, because a super user key can turn core's permission checks off from the re
 one thing must not imply reading another. Cron and the job queue share `hampelAdminApiJobs`
 because they are one capability — cron entries are run by a job.
 
-## An endpoint returns aggregates, and personal data never — with two exceptions, each kept apart
+## Monitoring returns aggregates; member data is a tier behind gates of its own
 
 **Read-only protects the forum and does nothing for the people on it.** Whatever an endpoint
 returns ends up in a log, a transcript or a third party's system, so the question for every field
 is whether it can carry member data.
+
+**Member data is answered, deliberately, and never by loosening the aggregate tier** — decided on
+2026-10-24, against this file's earlier rule that no endpoint returns it. Troubleshooting needs it:
+which other accounts used this IP address recently, a member's email to look them up in a helpdesk
+or CRM, which upgrades a member holds and what they paid. A tool that cannot answer those sends
+the administrator back to the control panel. So:
+
+- **The aggregate tier stays as the rules below have it**, because a monitoring key is handed out
+  widely and polled constantly, and nothing in it should need the trust a member lookup does.
+- **Member data sits behind a scope a monitoring key does not hold, an admin permission per
+  capability, and core's own permission for the same thing**, as the entries endpoint asks for
+  `viewLogs`. The API must not be a way round the control panel, and an administrator should be
+  able to grant IP lookups without granting payments.
+- **What core's API already answers is not rebuilt here.** Core's `users/{id}` and
+  `users/find-email` give an administrator holding the `user` permission a member's email under
+  core's `user:read` scope. An endpoint here returns `user_id` and username, and the client asks
+  core for the rest.
+- **A payment is reported as that it was made, how much, when and through which provider.** Read
+  it from the purchase and upgrade records. Never return `xf_payment_provider_log.log_details`:
+  XenForo never holds card numbers, but that column is the provider's own callback and can carry
+  the payer's name and address.
+
+The rules that hold in every tier, and the aggregate tier's own:
 
 - **Name the columns a query reads.** The error log summary returns four of ten, and the other six
   are the reason it exists.
@@ -61,15 +84,15 @@ is whether it can carry member data.
   `execute_data` and `unique_key` are the same hazard.
 - **A field that can carry personal or request data does not join an existing endpoint.** If it
   is needed, it goes behind a separate endpoint with its own admin permission, used deliberately.
-- **`Api\Controller\ErrorEntries` is that endpoint, and the only one.** It has its own scope, so a
-  monitoring key cannot reach it; its own permission; and it asks for core's `viewLogs` as well,
-  because the API must not be a way round the control panel. It can only be entered through one
-  named entry, it caps what comes back, and it leaves out the request, user and IP address unless
-  asked. **Every gate runs before `error_id` is read**, so a request with no `error_id` is
-  refused exactly as a real one would be, and answers 400 only when it would have been allowed.
-  That is how a client finds out whether a key can read entries without reading one. It is
-  pinned by a test; keep the order. **Do not add a list, a search or a date range to it** — the
-  summary is how an entry is found, and that is what keeps this endpoint a deliberate act.
+- **`Api\Controller\ErrorEntries` was the first such endpoint, and is the pattern.** It has its own
+  scope, so a monitoring key cannot reach it; its own permission; and it asks for core's `viewLogs`
+  as well, because the API must not be a way round the control panel. It can only be entered through
+  one named entry, it caps what comes back, and it leaves out the request, user and IP address
+  unless asked. **Every gate runs before `error_id` is read**, so a request with no `error_id` is
+  refused exactly as a real one would be, and answers 400 only when it would have been allowed. That
+  is how a client finds out whether a key can read entries without reading one. It is pinned by a
+  test; keep the order. **Do not add a list, a search or a date range to it** — the summary is how
+  an entry is found, and that is what keeps this endpoint a deliberate act.
 - **Free text that leaves the forum goes through `Redaction\TextScrubber`.** The entries endpoint
   returns a message, a trace and a request, and each can quote a credential the options endpoint
   would withhold. Permission to read an error is not permission to read a secret inside it. Any
@@ -78,7 +101,7 @@ is whether it can carry member data.
 - **Settings are reported as shape unless the key holds the values scope.** `src/config.php` holds
   the database password, and an option can hold an API key. `ValueShape` decides what the shape
   tier shows, by type: a boolean, a null, a number up to 999999.
-- **The values tier shows a setting unless it is a secret, and that is the second exception.** It
+- **The values tier shows a setting unless it is a secret, and is kept apart the same way.** It
   exists because shape alone could not answer "how is this forum configured" for someone
   troubleshooting it — decided on 2026-10-08, against this file's earlier rule. It is
   kept apart by its own scope, its own admin permission (`hampelAdminApiValues`), core's `option`
