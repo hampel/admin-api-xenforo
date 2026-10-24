@@ -83,7 +83,7 @@ class IpUsersTest extends TestCase
 		return array_column($result['users'], 'user_id');
 	}
 
-	public function test_it_returns_the_other_members_who_used_a_members_addresses()
+	public function test_it_returns_the_other_members_who_used_a_members_addresses() : void
 	{
 		$result = $this->lookup(['user_id' => $this->alice->user_id]);
 
@@ -105,7 +105,7 @@ class IpUsersTest extends TestCase
 		], $bob['ips']);
 	}
 
-	public function test_an_account_that_has_gone_is_kept_without_a_name()
+	public function test_an_account_that_has_gone_is_kept_without_a_name() : void
 	{
 		$gone = $this->lookup(['user_id' => $this->alice->user_id])['users'][1];
 
@@ -113,7 +113,7 @@ class IpUsersTest extends TestCase
 		$this->assertNull($gone['username']);
 	}
 
-	public function test_the_window_applies_to_both_sides()
+	public function test_the_window_applies_to_both_sides() : void
 	{
 		$this->assertNotContains($this->carol->user_id, $this->userIds($this->lookup(['user_id' => $this->alice->user_id])));
 
@@ -123,7 +123,7 @@ class IpUsersTest extends TestCase
 		$this->assertContains($this->carol->user_id, $this->userIds($result));
 	}
 
-	public function test_a_member_who_shares_nothing_gets_nobody()
+	public function test_a_member_who_shares_nothing_gets_nobody() : void
 	{
 		$result = $this->lookup(['user_id' => $this->carol->user_id]);
 
@@ -132,7 +132,7 @@ class IpUsersTest extends TestCase
 		$this->assertSame(1, $result['ip_total']);
 	}
 
-	public function test_it_returns_everyone_behind_one_address_but_guests()
+	public function test_it_returns_everyone_behind_one_address_but_guests() : void
 	{
 		$result = $this->lookup(['ip' => self::SHARED]);
 
@@ -141,7 +141,7 @@ class IpUsersTest extends TestCase
 		$this->assertSame([$this->bob->user_id, $this->alice->user_id, self::GONE], $this->userIds($result));
 	}
 
-	public function test_an_ipv6_address_and_a_range()
+	public function test_an_ipv6_address_and_a_range() : void
 	{
 		$this->assertSame([$this->alice->user_id, $this->bob->user_id], $this->userIds($this->lookup(['ip' => self::V6])));
 
@@ -155,7 +155,7 @@ class IpUsersTest extends TestCase
 		);
 	}
 
-	public function test_the_limit_says_the_answer_is_cut_short()
+	public function test_the_limit_says_the_answer_is_cut_short() : void
 	{
 		$result = $this->lookup(['ip' => self::SHARED, 'limit' => 1]);
 
@@ -164,7 +164,7 @@ class IpUsersTest extends TestCase
 		$this->assertFalse($result['complete']);
 	}
 
-	public function test_it_needs_a_member_or_an_address_and_not_both()
+	public function test_it_needs_a_member_or_an_address_and_not_both() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'user_id');
 		$this->assertReplyIsError(
@@ -186,7 +186,7 @@ class IpUsersTest extends TestCase
 		);
 	}
 
-	public function test_every_lookup_is_written_to_the_admin_log_found_or_not()
+	public function test_every_lookup_is_written_to_the_admin_log_found_or_not() : void
 	{
 		$this->lookup(['ip' => self::SHARED]);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['user_id' => 4000000000]), 404);
@@ -199,7 +199,7 @@ class IpUsersTest extends TestCase
 		$this->assertSame('4000000000', (string) json_decode($rows[1]['request_data'], true)['user_id']);
 	}
 
-	public function test_a_request_that_is_refused_or_invalid_is_not_written()
+	public function test_a_request_that_is_refused_or_invalid_is_not_written() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400);
 
@@ -211,7 +211,7 @@ class IpUsersTest extends TestCase
 
 	// access
 
-	public function test_the_read_scope_does_not_reach_it()
+	public function test_the_read_scope_does_not_reach_it() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS);
 
@@ -222,7 +222,7 @@ class IpUsersTest extends TestCase
 	 * As with the error entries, access is settled before the input is read, so a request with no
 	 * input says whether the key could look anything up without looking anything up.
 	 */
-	public function test_every_gate_is_checked_before_the_input()
+	public function test_every_gate_is_checked_before_the_input() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:ips');
@@ -243,14 +243,14 @@ class IpUsersTest extends TestCase
 	/**
 	 * An administrator who cannot look up an IP address in the control panel cannot here either.
 	 */
-	public function test_it_also_needs_the_user_admin_permission()
+	public function test_it_also_needs_the_user_admin_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiIps'], self::KEY);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403, 'do not have permission');
 	}
 
-	public function test_the_ip_scope_does_not_reach_the_summaries()
+	public function test_the_ip_scope_does_not_reach_the_summaries() : void
 	{
 		$this->actingAsAdminWithKey(array_merge(self::PERMISSIONS, ['hampelAdminApiErrorLog']), self::KEY);
 

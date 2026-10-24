@@ -19,7 +19,7 @@ class RedactorTest extends TestCase
 	 * A key can contain a dot - a hostname, a template name - and a list has numeric keys. The
 	 * dotted path cannot tell "a.b" from a key called "a.b"; the segments can.
 	 */
-	public function test_each_redaction_says_where_it_is_one_key_at_a_time()
+	public function test_each_redaction_says_where_it_is_one_key_at_a_time() : void
 	{
 		$result = $this->redact('hosts', [
 			'mail.example.com' => ['password' => 'SECRET'],
@@ -39,7 +39,7 @@ class RedactorTest extends TestCase
 		return array_column($result['redactions'], 'reason', 'path');
 	}
 
-	public function test_an_ordinary_value_is_returned_as_it_is()
+	public function test_an_ordinary_value_is_returned_as_it_is() : void
 	{
 		foreach (['Community Forum', 'smtp', 'mail.example.com', 'admin@example.com', '/var/log/forum/app.log', '1', 'compact'] AS $value)
 		{
@@ -60,7 +60,7 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('secretNames')]
-	public function test_a_name_that_reads_like_a_credential_is_withheld($name)
+	public function test_a_name_that_reads_like_a_credential_is_withheld($name) : void
 	{
 		$result = $this->redact($name, 'SECRET');
 
@@ -82,7 +82,7 @@ class RedactorTest extends TestCase
 	 * containing token is withheld, and that is the right way to be wrong.
 	 */
 	#[DataProvider('innocentNames')]
-	public function test_a_name_that_only_resembles_one_is_shown($name)
+	public function test_a_name_that_only_resembles_one_is_shown($name) : void
 	{
 		if ($name === 'tokenise')
 		{
@@ -94,7 +94,7 @@ class RedactorTest extends TestCase
 		$this->assertSame('value', $this->redact($name, 'value')['value'], $name);
 	}
 
-	public function test_a_number_or_a_flag_is_shown_whatever_it_is_called()
+	public function test_a_number_or_a_flag_is_shown_whatever_it_is_called() : void
 	{
 		$this->assertSame(3600, $this->redact('tokenLifetime', 3600)['value']);
 		$this->assertTrue($this->redact('requireApiKey', true)['value']);
@@ -104,7 +104,7 @@ class RedactorTest extends TestCase
 	 * An empty secret that came back as "" could not be told from one that was shown. It is
 	 * withheld like a full one, and the redaction says there was nothing there.
 	 */
-	public function test_an_empty_secret_is_withheld_and_says_it_is_not_set()
+	public function test_an_empty_secret_is_withheld_and_says_it_is_not_set() : void
 	{
 		foreach ([null, '', []] AS $empty)
 		{
@@ -127,7 +127,7 @@ class RedactorTest extends TestCase
 		$this->assertFalse($inside['redactions'][0]['set']);
 	}
 
-	public function test_an_empty_value_that_is_not_a_secret_is_returned_as_it_is()
+	public function test_an_empty_value_that_is_not_a_secret_is_returned_as_it_is() : void
 	{
 		foreach ([null, '', []] AS $empty)
 		{
@@ -143,7 +143,7 @@ class RedactorTest extends TestCase
 		$this->assertSame('', $this->redact('smtpLoginPassword', '', true, [], [], ['smtpLoginPassword'])['value']);
 	}
 
-	public function test_a_known_secret_is_withheld_whatever_it_is_called_and_whatever_its_type()
+	public function test_a_known_secret_is_withheld_whatever_it_is_called_and_whatever_its_type() : void
 	{
 		$result = $this->redact('boringName', 'SECRET', true, ['boringName']);
 		$this->assertSame(['' => Redactor::KNOWN], $this->reasons($result));
@@ -153,7 +153,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['pin' => Redactor::KNOWN], $this->reasons($result));
 	}
 
-	public function test_an_array_keeps_its_shape_and_loses_only_its_secrets()
+	public function test_an_array_keeps_its_shape_and_loses_only_its_secrets() : void
 	{
 		$result = $this->redact('emailTransport', [
 			'emailTransport' => 'smtp',
@@ -182,7 +182,7 @@ class RedactorTest extends TestCase
 	/**
 	 * A name that makes something a secret makes everything inside it one.
 	 */
-	public function test_a_secret_name_withholds_the_whole_of_what_it_names()
+	public function test_a_secret_name_withholds_the_whole_of_what_it_names() : void
 	{
 		$result = $this->redact('handler', ['enabled' => true, 'oauth' => ['client' => 'SECRET', 'refresh' => 'SECRET']]);
 
@@ -190,7 +190,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['oauth' => Redactor::NAME], $this->reasons($result));
 	}
 
-	public function test_the_members_of_a_list_answer_to_the_lists_name()
+	public function test_the_members_of_a_list_answer_to_the_lists_name() : void
 	{
 		$this->assertSame(['a.example.com', 'b.example.com'], $this->redact('allowedHosts', ['a.example.com', 'b.example.com'])['value']);
 		$this->assertNull($this->redact('apiKeys', ['x' => ['SECRET1', 'SECRET2']], true, ['apiKeys'])['value']);
@@ -200,7 +200,7 @@ class RedactorTest extends TestCase
 	 * The tier that makes showing values safe: text belonging to an add-on nobody has declared
 	 * the secrets of is not shown, however harmless it is called and however short it is.
 	 */
-	public function test_text_from_an_untrusted_add_on_is_withheld_and_its_flags_and_numbers_are_not()
+	public function test_text_from_an_untrusted_add_on_is_withheld_and_its_flags_and_numbers_are_not() : void
 	{
 		$result = $this->redact('serviceSettings', ['enabled' => true, 'limit' => 5, 'serviceValue' => 'letmein'], false);
 
@@ -223,7 +223,7 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('secretValues')]
-	public function test_a_value_that_looks_like_a_credential_is_withheld_whatever_it_is_called($value)
+	public function test_a_value_that_looks_like_a_credential_is_withheld_whatever_it_is_called($value) : void
 	{
 		$result = $this->redact('harmlessLookingName', $value);
 
@@ -245,12 +245,12 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('ordinaryLongValues')]
-	public function test_a_long_ordinary_value_is_not_mistaken_for_one($value)
+	public function test_a_long_ordinary_value_is_not_mistaken_for_one($value) : void
 	{
 		$this->assertSame($value, $this->redact('harmlessLookingName', $value)['value']);
 	}
 
-	public function test_a_url_carrying_a_login_or_an_opaque_part_keeps_only_where_it_points()
+	public function test_a_url_carrying_a_login_or_an_opaque_part_keeps_only_where_it_points() : void
 	{
 		foreach ([
 			'https://user:SECRETpass@db.example.com:8443/path' => 'https://db.example.com:8443',
@@ -270,7 +270,7 @@ class RedactorTest extends TestCase
 		}
 	}
 
-	public function test_an_ordinary_url_is_returned_whole()
+	public function test_an_ordinary_url_is_returned_whole() : void
 	{
 		foreach ([
 			'https://forum.example.com/community/', 'http://localhost:8025', 'https://example.com/help/terms?lang=en',
@@ -285,7 +285,7 @@ class RedactorTest extends TestCase
 	/**
 	 * The forum's own list wins in both directions, and a "show" reaches inside what it names.
 	 */
-	public function test_the_forums_own_list_overrides_every_rule()
+	public function test_the_forums_own_list_overrides_every_rule() : void
 	{
 		$hidden = $this->redact('boardTitle', 'Community Forum', true, [], ['boardTitle']);
 		$this->assertSame(['' => Redactor::OVERRIDE], $this->reasons($hidden));
@@ -300,7 +300,7 @@ class RedactorTest extends TestCase
 		$this->assertSame('v', $both['value'], 'show is the more specific instruction and wins');
 	}
 
-	public function test_what_cannot_be_represented_is_withheld()
+	public function test_what_cannot_be_represented_is_withheld() : void
 	{
 		$result = $this->redact('container', ['fn' => function () { return 'SECRET'; }, 'n' => 1]);
 
@@ -312,7 +312,7 @@ class RedactorTest extends TestCase
 	 * Nesting is not followed for ever: past the limit the rest is withheld whole, where it starts,
 	 * rather than walked or returned unexamined.
 	 */
-	public function test_what_is_nested_past_the_limit_is_withheld_where_the_limit_is()
+	public function test_what_is_nested_past_the_limit_is_withheld_where_the_limit_is() : void
 	{
 		$value = 'SECRET';
 		// eight levels, two past the limit of six
@@ -328,7 +328,7 @@ class RedactorTest extends TestCase
 		$this->assertNull($result['value']['l7']['l6']['l5']['l4']['l3']['l2']);
 	}
 
-	public function test_one_batch_of_paths_does_not_match_another_that_starts_the_same()
+	public function test_one_batch_of_paths_does_not_match_another_that_starts_the_same() : void
 	{
 		$result = $this->redact('service', ['pin' => 1234, 'pinned' => 5678], true, ['service.pin']);
 

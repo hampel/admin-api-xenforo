@@ -69,7 +69,7 @@ class FaultTest extends TestCase
 	/**
 	 * A command class that cannot load stops every command on the forum, not only this one.
 	 */
-	public function test_each_command_is_one_xenforo_can_load()
+	public function test_each_command_is_one_xenforo_can_load() : void
 	{
 		foreach ([FaultArm::class, FaultClean::class, FaultList::class] AS $class)
 		{
@@ -81,7 +81,7 @@ class FaultTest extends TestCase
 		}
 	}
 
-	public function test_faults_are_off_unless_the_forums_config_turns_them_on()
+	public function test_faults_are_off_unless_the_forums_config_turns_them_on() : void
 	{
 		$this->setConfig('hampelAdminApi', null);
 		$this->assertFalse($this->manager()->isEnabled());
@@ -96,7 +96,7 @@ class FaultTest extends TestCase
 		$this->assertTrue($this->manager()->isEnabled());
 	}
 
-	public function test_arming_is_refused_and_plants_nothing_when_faults_are_off()
+	public function test_arming_is_refused_and_plants_nothing_when_faults_are_off() : void
 	{
 		$this->setConfig('hampelAdminApi', null);
 		$users = (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_user');
@@ -115,7 +115,7 @@ class FaultTest extends TestCase
 		$this->manager()->arm('refused', 1);
 	}
 
-	public function test_a_batch_name_is_checked_before_anything_is_planted()
+	public function test_a_batch_name_is_checked_before_anything_is_planted() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 
@@ -136,7 +136,7 @@ class FaultTest extends TestCase
 	/**
 	 * Running it twice under one name would double the content with no way to tell the halves apart.
 	 */
-	public function test_a_batch_that_already_exists_is_refused()
+	public function test_a_batch_that_already_exists_is_refused() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 		$this->plantRecord('taken', 'node', self::NODE);
@@ -152,7 +152,7 @@ class FaultTest extends TestCase
 	 * A run that stopped half-way, or content somebody deleted by hand, leaves records pointing at
 	 * nothing. They are cleared, not tripped over.
 	 */
-	public function test_cleaning_clears_records_whose_content_has_already_gone()
+	public function test_cleaning_clears_records_whose_content_has_already_gone() : void
 	{
 		$this->plantRecord('gone', 'user', self::NODE);
 		$this->plantRecord('gone', 'node', self::NODE);
@@ -166,7 +166,7 @@ class FaultTest extends TestCase
 		$this->assertSame(0, $this->recordCount());
 	}
 
-	public function test_cleaning_one_batch_leaves_the_others()
+	public function test_cleaning_one_batch_leaves_the_others() : void
 	{
 		$this->plantRecord('one', 'node', self::NODE);
 		$this->plantRecord('two', 'node', self::OTHER_NODE);
@@ -179,7 +179,7 @@ class FaultTest extends TestCase
 	/**
 	 * Faults being switched off must not strand the ones already planted.
 	 */
-	public function test_cleaning_works_with_faults_switched_off()
+	public function test_cleaning_works_with_faults_switched_off() : void
 	{
 		$this->setConfig('hampelAdminApi', null);
 		$this->plantRecord('stranded', 'node', self::NODE);
@@ -190,7 +190,7 @@ class FaultTest extends TestCase
 		$this->assertSame(0, $this->recordCount());
 	}
 
-	public function test_cleaning_removes_the_errors_its_page_raised_and_no_others()
+	public function test_cleaning_removes_the_errors_its_page_raised_and_no_others() : void
 	{
 		$this->plantRecord('errors', 'node', self::NODE);
 		$mine = $this->plantError(self::NODE);
@@ -223,7 +223,7 @@ class FaultTest extends TestCase
 		return $this->replyApiResult($this->dispatch($route, 'api'));
 	}
 
-	public function test_planted_jobs_show_as_stalled()
+	public function test_planted_jobs_show_as_stalled() : void
 	{
 		$armed = $this->armRows();
 
@@ -237,7 +237,7 @@ class FaultTest extends TestCase
 		$this->assertGreaterThanOrEqual(1, $byClass['XF\Job\IconUsage']['stalled']);
 	}
 
-	public function test_a_planted_cron_entry_shows_as_overdue()
+	public function test_a_planted_cron_entry_shows_as_overdue() : void
 	{
 		$armed = $this->armRows();
 		$state = $this->endpoint('admin-api/cron/', ['hampelAdminApiJobs']);
@@ -249,7 +249,7 @@ class FaultTest extends TestCase
 		$this->assertGreaterThanOrEqual(1, $state['overdue']);
 	}
 
-	public function test_a_planted_add_on_record_shows_an_unfinished_upgrade()
+	public function test_a_planted_add_on_record_shows_an_unfinished_upgrade() : void
 	{
 		$armed = $this->armRows();
 		$addOns = array_column($this->endpoint('admin-api/add-ons/', ['hampelAdminApiAddOns'])['add_ons'], null, 'addon_id');
@@ -264,14 +264,14 @@ class FaultTest extends TestCase
 	 * An add-on that is processing stops XenForo writing to its error log, which would hide every
 	 * other fault on the forum.
 	 */
-	public function test_nothing_planted_is_marked_as_processing()
+	public function test_nothing_planted_is_marked_as_processing() : void
 	{
 		$this->armRows();
 
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_addon WHERE is_processing = 1'));
 	}
 
-	public function test_cleaning_removes_every_planted_row_and_what_the_jobs_left()
+	public function test_cleaning_removes_every_planted_row_and_what_the_jobs_left() : void
 	{
 		$db = $this->app()->db();
 		$counts = function () use ($db)
@@ -322,7 +322,7 @@ class FaultTest extends TestCase
 	 * A record is a claim about a row. If the row it names has become something else - a real
 	 * add-on, a real cron entry, another job with a reused id - it is left alone.
 	 */
-	public function test_cleaning_will_not_delete_a_row_that_is_not_a_planted_fault()
+	public function test_cleaning_will_not_delete_a_row_that_is_not_a_planted_fault() : void
 	{
 		$db = $this->app()->db();
 		$cron = $db->fetchOne('SELECT entry_id FROM xf_cron_entry ORDER BY entry_id LIMIT 1');
@@ -347,7 +347,7 @@ class FaultTest extends TestCase
 		}
 	}
 
-	public function test_only_the_faults_asked_for_are_planted_and_an_unknown_one_is_refused()
+	public function test_only_the_faults_asked_for_are_planted_and_an_unknown_one_is_refused() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 
@@ -374,7 +374,7 @@ class FaultTest extends TestCase
 	 * a run says what it planted and how to remove it on one stream and prints what was planted,
 	 * passwords included, on the other - which is the only place they are ever written.
 	 */
-	public function test_the_arm_command_refuses_an_unknown_fault_and_reports_a_planted_one()
+	public function test_the_arm_command_refuses_an_unknown_fault_and_reports_a_planted_one() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 
@@ -393,7 +393,7 @@ class FaultTest extends TestCase
 		$this->assertSame(['cron' => 1], $this->manager()->getBatches()['viacommand']['records']);
 	}
 
-	public function test_cleaning_a_batch_that_does_not_exist_says_so()
+	public function test_cleaning_a_batch_that_does_not_exist_says_so() : void
 	{
 		$tester = new CommandTester(new FaultClean());
 
@@ -401,7 +401,7 @@ class FaultTest extends TestCase
 		$this->assertStringContainsString('no batch', $tester->getDisplay());
 	}
 
-	public function test_the_list_shows_each_batch_and_whether_faults_are_enabled()
+	public function test_the_list_shows_each_batch_and_whether_faults_are_enabled() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 		$this->plantRecord('listed', 'user', 1);

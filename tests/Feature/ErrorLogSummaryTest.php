@@ -105,7 +105,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->fail("no signature for $filename");
 	}
 
-	public function test_it_counts_only_the_window()
+	public function test_it_counts_only_the_window() : void
 	{
 		$summary = $this->summary();
 
@@ -117,7 +117,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(['rows' => 7, 'complete' => true], $summary['examined']);
 	}
 
-	public function test_it_groups_by_exception_type()
+	public function test_it_groups_by_exception_type() : void
 	{
 		$this->assertSame([
 			['exception_type' => 'TypeError', 'count' => 4, 'newest_date' => 1700],
@@ -125,7 +125,7 @@ class ErrorLogSummaryTest extends TestCase
 		], $this->summary()['by_type']);
 	}
 
-	public function test_it_groups_by_signature_with_the_install_root_removed()
+	public function test_it_groups_by_signature_with_the_install_root_removed() : void
 	{
 		$summary = $this->summary();
 
@@ -153,7 +153,7 @@ class ErrorLogSummaryTest extends TestCase
 		], $summary['signatures'][0]);
 	}
 
-	public function test_it_attributes_errors_to_where_they_surfaced()
+	public function test_it_attributes_errors_to_where_they_surfaced() : void
 	{
 		$this->assertSame([
 			['add_on_id' => 'Hampel/AdminApi', 'count' => 3, 'newest_date' => 1300],
@@ -166,7 +166,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * The core error reached through an add-on moves to that add-on. The one with no add-on on
 	 * the way has none, and so do the two outside the install.
 	 */
-	public function test_it_attributes_a_core_error_to_the_add_on_that_led_to_it()
+	public function test_it_attributes_a_core_error_to_the_add_on_that_led_to_it() : void
 	{
 		$summary = $this->summary();
 
@@ -185,7 +185,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * The two commonest ways an add-on takes a forum down fail inside the core before any of the
 	 * add-on's code has run, so their traces never name it. Their messages do.
 	 */
-	public function test_a_core_error_whose_trace_names_no_add_on_is_attributed_from_its_message()
+	public function test_a_core_error_whose_trace_names_no_add_on_is_attributed_from_its_message() : void
 	{
 		$coreTrace = "#0 src/XF/Extension.php(190): XF\\Extension->extendClass()\n#1 index.php(20): XF\\App->run()";
 
@@ -224,7 +224,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * The job row was logged during a web request. A job is a job however it was triggered.
 	 */
-	public function test_it_says_where_errors_came_from()
+	public function test_it_says_where_errors_came_from() : void
 	{
 		$summary = $this->summary();
 
@@ -242,7 +242,7 @@ class ErrorLogSummaryTest extends TestCase
 		);
 	}
 
-	public function test_it_reports_the_level_of_a_php_error()
+	public function test_it_reports_the_level_of_a_php_error() : void
 	{
 		$summary = $this->summary();
 
@@ -256,7 +256,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertNull($this->signature($summary, 'src/XF/Mvc/Dispatcher.php')['severity']);
 	}
 
-	public function test_a_signature_seen_at_more_than_one_level_says_so()
+	public function test_a_signature_seen_at_more_than_one_level_says_so() : void
 	{
 		$this->insertError(
 			1350, 'ErrorException', \XF::getRootDirectory() . '/src/addons/Hampel/AdminApi/Api/Controller/ErrorLog.php', 10,
@@ -269,7 +269,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * Every planted row so far belongs to one member, so the whole window has one.
 	 */
-	public function test_it_counts_the_members_affected_and_not_the_errors()
+	public function test_it_counts_the_members_affected_and_not_the_errors() : void
 	{
 		$summary = $this->summary();
 
@@ -277,7 +277,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(7, $summary['member_errors']);
 	}
 
-	public function test_a_guest_the_command_line_and_a_job_are_nobody()
+	public function test_a_guest_the_command_line_and_a_job_are_nobody() : void
 	{
 		$file = 'src/XF/Pub/Controller/Thing.php';
 		$this->insertError(1810, 'Error', $file, 5, 'SECRET-MESSAGE', self::NO_TRACE, self::WEB, 0);
@@ -301,7 +301,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * One file stored relative by one request and in full by another is one signature, and a
 	 * member behind both is one member.
 	 */
-	public function test_a_member_is_counted_once_across_a_file_stored_two_ways()
+	public function test_a_member_is_counted_once_across_a_file_stored_two_ways() : void
 	{
 		$signature = $this->signature($this->summary(), 'src/XF/Mvc/Dispatcher.php');
 
@@ -325,7 +325,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * Three errors at one line of the templater, reached from two templates, and one raised
 	 * inside a compiled template itself. The innermost template is the one named.
 	 */
-	public function test_it_names_the_template_that_was_being_rendered()
+	public function test_it_names_the_template_that_was_being_rendered() : void
 	{
 		$compiled = 'internal_data/code_cache/templates/l1/s0/public/';
 		$wrapper = "#0 src/XF/Template/Templater.php(1285): handle('SECRET')\n"
@@ -356,7 +356,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * A compiled-template path that names no template the forum has is somebody's text.
 	 */
-	public function test_a_template_the_forum_does_not_have_is_not_named()
+	public function test_a_template_the_forum_does_not_have_is_not_named() : void
 	{
 		$trace = "#0 internal_data/code_cache/templates/l1/s0/public/SECRET_no_such_template.php(4): x()\n#1 {main}";
 		$this->insertError(1810, 'ErrorException', 'src/XF/Template/Templater.php', 1285, 'SECRET-MESSAGE', $trace, self::WEB);
@@ -370,7 +370,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * A bundled library and a test run are raised in an add-on's directory and are not its code.
 	 */
-	public function test_it_says_what_kind_of_code_an_error_was_raised_in()
+	public function test_it_says_what_kind_of_code_an_error_was_raised_in() : void
 	{
 		$base = 'src/addons/Hampel/AdminApi/';
 		$this->insertError(1810, 'Error', $base . 'vendor/phpunit/phpunit/src/Thing.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::CLI);
@@ -399,7 +399,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * A directory outside the install is the server's layout and can name an account. Two such
 	 * files that differ only by directory become one signature once it is dropped.
 	 */
-	public function test_a_file_outside_the_install_keeps_only_its_name()
+	public function test_a_file_outside_the_install_keeps_only_its_name() : void
 	{
 		$outside = array_values(array_filter($this->summary()['signatures'], function ($signature)
 		{
@@ -420,7 +420,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * A window reaching back past the oldest entry counts nothing there, which looks the same as
 	 * a quiet day unless the response says so.
 	 */
-	public function test_it_says_when_the_window_starts_before_the_log_does()
+	public function test_it_says_when_the_window_starts_before_the_log_does() : void
 	{
 		$this->assertTrue($this->summary(['since' => 10, 'until' => 20])['window']['precedes_log']);
 		$this->assertFalse($this->summary(['since' => 999, 'until' => 2000])['window']['precedes_log']);
@@ -429,7 +429,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * Every row here falls on 1 January 1970. The series runs from there to the end of the window.
 	 */
-	public function test_it_counts_each_day_and_includes_the_quiet_ones()
+	public function test_it_counts_each_day_and_includes_the_quiet_ones() : void
 	{
 		$this->insertError(86400 * 2 + 5, 'ErrorException', 'src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
 
@@ -440,14 +440,14 @@ class ErrorLogSummaryTest extends TestCase
 		], $this->summary(['since' => 999, 'until' => 86400 * 3 - 1])['by_day']);
 	}
 
-	public function test_the_days_start_where_the_log_does_and_not_before()
+	public function test_the_days_start_where_the_log_does_and_not_before() : void
 	{
 		$days = $this->summary(['since' => 0, 'until' => 86400 * 2 - 1])['by_day'];
 
 		$this->assertSame(['1970-01-01', '1970-01-02'], array_column($days, 'day'));
 	}
 
-	public function test_a_series_cut_to_the_most_recent_days_says_so()
+	public function test_a_series_cut_to_the_most_recent_days_says_so() : void
 	{
 		$this->assertTrue($this->summary(['since' => 0, 'until' => 86400 * 2 - 1])['by_day_complete']);
 
@@ -457,7 +457,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertCount(366, $summary['by_day']);
 	}
 
-	public function test_the_limit_trims_signatures_but_not_the_counts()
+	public function test_the_limit_trims_signatures_but_not_the_counts() : void
 	{
 		$summary = $this->summary(['limit' => 1]);
 
@@ -468,7 +468,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(7, array_sum($summary['by_origin']));
 	}
 
-	public function test_an_empty_window_is_a_result_and_not_an_error()
+	public function test_an_empty_window_is_a_result_and_not_an_error() : void
 	{
 		$summary = $this->summary(['since' => 10, 'until' => 20]);
 
@@ -487,7 +487,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertGreaterThanOrEqual(9, $summary['log']['total']);
 	}
 
-	public function test_the_window_defaults_to_the_last_24_hours()
+	public function test_the_window_defaults_to_the_last_24_hours() : void
 	{
 		$reply = $this->dispatch(self::ROUTE, 'api');
 		$window = $this->replyApiResult($reply)['window'];
@@ -502,7 +502,7 @@ class ErrorLogSummaryTest extends TestCase
 	 * field, so a column added to the query later is caught wherever it surfaces - and the three
 	 * columns that are read in part are the ones most likely to leak.
 	 */
-	public function test_nothing_from_the_personal_or_request_columns_is_returned()
+	public function test_nothing_from_the_personal_or_request_columns_is_returned() : void
 	{
 		$json = str_replace('\\/', '/', json_encode($this->summary(['since' => 0, 'limit' => 100])));
 
@@ -518,7 +518,7 @@ class ErrorLogSummaryTest extends TestCase
 	/**
 	 * Whatever the real log holds, each derived field can only be a value from its own fixed list.
 	 */
-	public function test_every_derived_value_comes_from_a_fixed_list()
+	public function test_every_derived_value_comes_from_a_fixed_list() : void
 	{
 		$summary = $this->summary(['since' => 0, 'limit' => 100]);
 

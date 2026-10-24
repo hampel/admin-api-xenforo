@@ -25,7 +25,7 @@ class AuthorisationTest extends TestCase
 		parent::tearDown();
 	}
 
-	public function test_an_administrator_with_the_permission_and_the_scope_is_let_in()
+	public function test_an_administrator_with_the_permission_and_the_scope_is_let_in() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
 
@@ -37,7 +37,7 @@ class AuthorisationTest extends TestCase
 
 	// gate 1 - the key
 
-	public function test_a_super_user_key_is_refused_even_acting_as_a_super_administrator()
+	public function test_a_super_user_key_is_refused_even_acting_as_a_super_administrator() : void
 	{
 		$this->actingAsAdminWithKey(
 			['hampelAdminApiErrorLog'],
@@ -54,7 +54,7 @@ class AuthorisationTest extends TestCase
 	 * api_bypass_permissions on the request is what makes core's own admin assertions return
 	 * early for a super user key. It must buy nothing here.
 	 */
-	public function test_a_super_user_key_bypassing_permissions_is_still_refused()
+	public function test_a_super_user_key_bypassing_permissions_is_still_refused() : void
 	{
 		$this->actingAsAdminWithKey([], ['is_super_user' => true, 'allow_all_scopes' => true]);
 		\XF::setApiBypassPermissions(true);
@@ -68,7 +68,7 @@ class AuthorisationTest extends TestCase
 	/**
 	 * XF::apiKey() is never null - with no key it is a fallback of type guest.
 	 */
-	public function test_a_request_with_no_key_is_refused()
+	public function test_a_request_with_no_key_is_refused() : void
 	{
 		$user = $this->actingAsBoardMember(['is_admin' => true]);
 		$this->setVisitorAdminPermissions($user, ['hampelAdminApiErrorLog' => true]);
@@ -82,7 +82,7 @@ class AuthorisationTest extends TestCase
 	 * With a bearer token core makes the token's user the visitor and leaves the key as the
 	 * fallback, so an administrator's token would otherwise arrive looking like an administrator.
 	 */
-	public function test_an_oauth_access_token_is_refused_even_alongside_a_valid_key()
+	public function test_an_oauth_access_token_is_refused_even_alongside_a_valid_key() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
 		\XF::setAccessToken($this->makeEntity('XF:OAuthToken', ['user_id' => self::USER_ID]));
@@ -94,7 +94,7 @@ class AuthorisationTest extends TestCase
 
 	// gate 2 - the scope
 
-	public function test_a_key_without_the_scope_is_refused()
+	public function test_a_key_without_the_scope_is_refused() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog'], ['scopes' => ['user:read' => true]]);
 
@@ -109,7 +109,7 @@ class AuthorisationTest extends TestCase
 	 * The reason scopes are not the boundary: allow_all_scopes satisfies every scope check, and
 	 * anyone can be handed such a key.
 	 */
-	public function test_a_member_whose_key_allows_all_scopes_is_refused()
+	public function test_a_member_whose_key_allows_all_scopes_is_refused() : void
 	{
 		$this->actingAsBoardMember();
 		$this->actingAsUserKey(['allow_all_scopes' => true]);
@@ -119,7 +119,7 @@ class AuthorisationTest extends TestCase
 		$this->assertReplyIsError($reply, 403, self::NO_PERMISSION);
 	}
 
-	public function test_an_administrator_without_the_permission_is_refused()
+	public function test_an_administrator_without_the_permission_is_refused() : void
 	{
 		$this->actingAsAdminWithKey(['option', 'addOn'], ['allow_all_scopes' => true]);
 
@@ -128,7 +128,7 @@ class AuthorisationTest extends TestCase
 		$this->assertReplyIsError($reply, 403, self::NO_PERMISSION);
 	}
 
-	public function test_a_user_key_cannot_use_the_permission_bypass()
+	public function test_a_user_key_cannot_use_the_permission_bypass() : void
 	{
 		$this->actingAsAdminWithKey([]);
 		\XF::setApiBypassPermissions(true);
@@ -138,7 +138,7 @@ class AuthorisationTest extends TestCase
 		$this->assertReplyIsError($reply, 403, self::NO_PERMISSION);
 	}
 
-	public function test_each_endpoint_asks_for_its_own_permission()
+	public function test_each_endpoint_asks_for_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiAddOns']);
 
@@ -150,7 +150,7 @@ class AuthorisationTest extends TestCase
 	 * Admin::hasAdminPermission() answers true for a super administrator whatever is granted, so
 	 * the per-endpoint permissions constrain ordinary administrators only.
 	 */
-	public function test_a_super_administrator_reaches_every_endpoint_through_their_own_key()
+	public function test_a_super_administrator_reaches_every_endpoint_through_their_own_key() : void
 	{
 		$this->actingAsAdminWithKey([], [], ['is_super_admin' => true]);
 

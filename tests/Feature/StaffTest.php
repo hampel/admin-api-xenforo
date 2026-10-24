@@ -100,7 +100,7 @@ class StaffTest extends TestCase
 
 	// moderators
 
-	public function test_a_moderator_with_what_they_have_been_granted()
+	public function test_a_moderator_with_what_they_have_been_granted() : void
 	{
 		$result = $this->get(self::MODERATORS, ['user_id' => $this->moderator->user_id]);
 
@@ -122,7 +122,7 @@ class StaffTest extends TestCase
 		], $moderator['permissions']);
 	}
 
-	public function test_each_piece_of_content_has_its_own_permissions_and_a_title_where_core_has_one()
+	public function test_each_piece_of_content_has_its_own_permissions_and_a_title_where_core_has_one() : void
 	{
 		$content = $this->get(self::MODERATORS, ['user_id' => $this->moderator->user_id])['moderators'][0]['content'];
 
@@ -140,7 +140,7 @@ class StaffTest extends TestCase
 		$this->assertSame(['forum' => ['stickUnstickThread']], $node['permissions']);
 	}
 
-	public function test_without_a_member_every_moderator_is_listed()
+	public function test_without_a_member_every_moderator_is_listed() : void
 	{
 		$result = $this->get(self::MODERATORS);
 
@@ -149,14 +149,14 @@ class StaffTest extends TestCase
 		$this->assertSame(count($result['moderators']), $result['total']);
 	}
 
-	public function test_a_member_who_is_not_a_moderator_gets_nobody()
+	public function test_a_member_who_is_not_a_moderator_gets_nobody() : void
 	{
 		$result = $this->get(self::MODERATORS, ['user_id' => $this->admin->user_id]);
 
 		$this->assertSame(['total' => 0, 'complete' => true, 'moderators' => []], $result);
 	}
 
-	public function test_moderators_need_the_user_admin_permission_as_well()
+	public function test_moderators_need_the_user_admin_permission_as_well() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY);
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'do not have permission');
@@ -167,7 +167,7 @@ class StaffTest extends TestCase
 
 	// administrators
 
-	public function test_an_administrator_with_the_permissions_they_hold()
+	public function test_an_administrator_with_the_permissions_they_hold() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
 
@@ -184,7 +184,7 @@ class StaffTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_a_super_administrator_holds_every_permission_so_none_is_listed()
+	public function test_a_super_administrator_holds_every_permission_so_none_is_listed() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
 
@@ -199,7 +199,7 @@ class StaffTest extends TestCase
 	 * Only a super administrator sees the control panel's administrators, so only theirs sees
 	 * them here, whatever else the key's user holds.
 	 */
-	public function test_administrators_need_a_super_administrator()
+	public function test_administrators_need_a_super_administrator() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ADMINISTRATORS, 'api'), 403, 'super administrator');
 	}
@@ -214,7 +214,7 @@ class StaffTest extends TestCase
 		);
 	}
 
-	public function test_every_lookup_is_written_to_the_admin_log()
+	public function test_every_lookup_is_written_to_the_admin_log() : void
 	{
 		$this->get(self::MODERATORS, ['user_id' => $this->moderator->user_id]);
 		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
@@ -226,7 +226,7 @@ class StaffTest extends TestCase
 		$this->assertSame((string) $this->moderator->user_id, (string) json_decode($rows[0]['request_data'], true)['user_id']);
 	}
 
-	public function test_a_refused_request_is_not_written()
+	public function test_a_refused_request_is_not_written() : void
 	{
 		$this->dispatch(self::ADMINISTRATORS, 'api');
 		$this->actingAsAdminWithKey(['user'], self::KEY);
@@ -235,7 +235,7 @@ class StaffTest extends TestCase
 		$this->assertSame([], $this->adminLogRows());
 	}
 
-	public function test_the_staff_scope_is_needed_and_reaches_nothing_else()
+	public function test_the_staff_scope_is_needed_and_reaches_nothing_else() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS, [], self::SUPER);
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'hampel_admin_api:staff');
@@ -245,7 +245,7 @@ class StaffTest extends TestCase
 		$this->assertReplyIsError($this->dispatch('admin-api/ip-users/', 'api', ['ip' => '192.0.2.1']), 403, 'hampel_admin_api:ips');
 	}
 
-	public function test_a_super_user_key_is_refused_even_for_a_super_administrator()
+	public function test_a_super_user_key_is_refused_even_for_a_super_administrator() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], self::SUPER);
 

@@ -15,7 +15,7 @@ class AddOnInventoryTest extends TestCase
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
 
-	public function test_it_reports_the_xenforo_and_php_versions()
+	public function test_it_reports_the_xenforo_and_php_versions() : void
 	{
 		$inventory = $this->inventory();
 
@@ -24,7 +24,7 @@ class AddOnInventoryTest extends TestCase
 		$this->assertSame(PHP_VERSION, $inventory['php_version']);
 	}
 
-	public function test_it_lists_this_add_on_with_its_installed_and_on_disk_versions()
+	public function test_it_lists_this_add_on_with_its_installed_and_on_disk_versions() : void
 	{
 		$json = json_decode(file_get_contents(__DIR__ . '/../../addon.json'), true);
 
@@ -42,7 +42,7 @@ class AddOnInventoryTest extends TestCase
 		$this->assertSame($json['version_string'], $addOn['files_version_string']);
 	}
 
-	public function test_every_entry_has_the_same_fields()
+	public function test_every_entry_has_the_same_fields() : void
 	{
 		$expected = [
 			'addon_id', 'title', 'is_installed', 'active', 'is_legacy', 'version_id', 'version_string',
@@ -56,7 +56,7 @@ class AddOnInventoryTest extends TestCase
 		}
 	}
 
-	public function test_an_add_on_at_rest_has_nothing_pending()
+	public function test_an_add_on_at_rest_has_nothing_pending() : void
 	{
 		$addOns = array_column($this->inventory()['add_ons'], null, 'addon_id');
 
@@ -69,7 +69,7 @@ class AddOnInventoryTest extends TestCase
 	 * never finished is not installed, and still has a record saying what it was doing.
 	 */
 	#[\PHPUnit\Framework\Attributes\DataProvider('pendingActions')]
-	public function test_an_unfinished_action_is_reported($stored, $processing, $expected)
+	public function test_an_unfinished_action_is_reported($stored, $processing, $expected) : void
 	{
 		$this->app()->db()->insert('xf_addon', [
 			'addon_id' => 'Tests/Pending',

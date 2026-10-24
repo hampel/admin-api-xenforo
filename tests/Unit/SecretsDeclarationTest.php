@@ -32,7 +32,7 @@ class SecretsDeclarationTest extends TestCase
 		return dirname(__DIR__, 2);
 	}
 
-	public function test_it_declares_this_add_on_and_no_other()
+	public function test_it_declares_this_add_on_and_no_other() : void
 	{
 		$this->assertSame(['Hampel/AdminApi'], array_keys($this->declaration()));
 	}
@@ -41,13 +41,13 @@ class SecretsDeclarationTest extends TestCase
 	 * The add-on has no options, so it declares none. An option added later fails this until its
 	 * declaration has been thought about.
 	 */
-	public function test_it_declares_no_secret_options_because_the_add_on_has_no_options()
+	public function test_it_declares_no_secret_options_because_the_add_on_has_no_options() : void
 	{
 		$this->assertSame([], $this->declaration()['Hampel/AdminApi']['options']);
 		$this->assertSame([], glob($this->root() . '/_output/options/*.json'));
 	}
 
-	public function test_it_claims_its_config_key_and_calls_nothing_under_it_a_secret()
+	public function test_it_claims_its_config_key_and_calls_nothing_under_it_a_secret() : void
 	{
 		$this->assertSame(['hampelAdminApi' => []], $this->declaration()['Hampel/AdminApi']['config']);
 	}
@@ -56,7 +56,7 @@ class SecretsDeclarationTest extends TestCase
 	 * The claim above is only true while nothing secret is kept under the key. Code that starts
 	 * reading it somewhere new fails this, which is the moment to ask whether what it reads is one.
 	 */
-	public function test_every_reader_of_the_config_key_is_one_that_has_been_looked_at()
+	public function test_every_reader_of_the_config_key_is_one_that_has_been_looked_at() : void
 	{
 		$readers = [];
 		$files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root(), \FilesystemIterator::SKIP_DOTS));

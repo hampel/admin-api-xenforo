@@ -60,7 +60,7 @@ class LogEntriesTest extends TestCase
 		]);
 	}
 
-	public function test_moderator_entries_say_who_did_what_to_whose_content()
+	public function test_moderator_entries_say_who_did_what_to_whose_content() : void
 	{
 		$this->moderatorLog(1000, 'post', 5, 'edit');
 		$newest = $this->moderatorLog(2000, 'post', 6, 'SECRET_made_up');
@@ -90,7 +90,7 @@ class LogEntriesTest extends TestCase
 		$this->assertStringNotContainsString('203.0.113.5', json_encode($result));
 	}
 
-	public function test_entries_can_be_narrowed_to_a_member_or_a_piece_of_content()
+	public function test_entries_can_be_narrowed_to_a_member_or_a_piece_of_content() : void
 	{
 		$this->moderatorLog(1000, 'post', 5, 'edit');
 		$this->moderatorLog(1100, 'thread', 9, 'lock');
@@ -102,7 +102,7 @@ class LogEntriesTest extends TestCase
 		$this->assertSame(0, $this->entries(['log' => 'moderator', 'user_id' => $this->member->user_id])['total']);
 	}
 
-	public function test_a_filter_the_log_has_nothing_for_is_refused()
+	public function test_a_filter_the_log_has_nothing_for_is_refused() : void
 	{
 		$this->assertReplyIsError(
 			$this->dispatch(self::ROUTE, 'api', ['log' => 'email_bounce', 'user_id' => 1]),
@@ -116,7 +116,7 @@ class LogEntriesTest extends TestCase
 		);
 	}
 
-	public function test_a_user_change_says_which_field_changed_and_never_the_values()
+	public function test_a_user_change_says_which_field_changed_and_never_the_values() : void
 	{
 		foreach (['email', 'custom_fields:SECRET_not_a_field', 'SECRET_column'] AS $i => $field)
 		{
@@ -148,7 +148,7 @@ class LogEntriesTest extends TestCase
 		]);
 	}
 
-	public function test_a_user_changes_values_are_returned_only_when_asked_for()
+	public function test_a_user_changes_values_are_returned_only_when_asked_for() : void
 	{
 		$this->userChange(1000, 'email', 'before@example.com', 'after@example.com');
 
@@ -161,7 +161,7 @@ class LogEntriesTest extends TestCase
 		$this->assertFalse($entry['values_truncated']);
 	}
 
-	public function test_a_protected_change_never_gives_its_values()
+	public function test_a_protected_change_never_gives_its_values() : void
 	{
 		$this->userChange(1000, 'data', 'SECRET-hash', 'SECRET-new-hash', 1);
 
@@ -173,7 +173,7 @@ class LogEntriesTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_a_value_is_scrubbed_and_cut_without_splitting_a_character()
+	public function test_a_value_is_scrubbed_and_cut_without_splitting_a_character() : void
 	{
 		$token = 'sk_live_' . str_repeat('a1B2', 6);
 		$this->userChange(1000, 'signature', "api_key=$token", str_repeat('é', LogEntries::MAX_VALUE_LENGTH + 5));
@@ -188,7 +188,7 @@ class LogEntriesTest extends TestCase
 		$this->assertTrue($entry['values_truncated']);
 	}
 
-	public function test_values_from_any_other_log_are_refused_and_asking_is_recorded()
+	public function test_values_from_any_other_log_are_refused_and_asking_is_recorded() : void
 	{
 		$this->assertReplyIsError(
 			$this->dispatch(self::ROUTE, 'api', ['log' => 'moderator', 'values' => 1] + self::WINDOW),
@@ -203,7 +203,7 @@ class LogEntriesTest extends TestCase
 		$this->assertSame('1', (string) json_decode($rows[0]['request_data'], true)['values']);
 	}
 
-	public function test_username_changes_spam_cleaning_and_rejections_name_both_members()
+	public function test_username_changes_spam_cleaning_and_rejections_name_both_members() : void
 	{
 		$this->insert('xf_username_change', [
 			'user_id' => $this->member->user_id, 'old_username' => 'Before', 'new_username' => 'After',
@@ -240,7 +240,7 @@ class LogEntriesTest extends TestCase
 		}
 	}
 
-	public function test_spam_triggers_and_bounces_return_only_closed_values()
+	public function test_spam_triggers_and_bounces_return_only_closed_values() : void
 	{
 		$this->insert('xf_spam_trigger_log', [
 			'content_type' => 'post', 'content_id' => 4000000000, 'log_date' => 1000, 'user_id' => 0,
@@ -269,7 +269,7 @@ class LogEntriesTest extends TestCase
 		}
 	}
 
-	public function test_the_limit_says_the_answer_is_cut_short()
+	public function test_the_limit_says_the_answer_is_cut_short() : void
 	{
 		$this->moderatorLog(1000, 'post', 5, 'edit');
 		$this->moderatorLog(1100, 'post', 6, 'edit');
@@ -285,7 +285,7 @@ class LogEntriesTest extends TestCase
 	 * Every declared log is read, so a misspelt table or column fails here rather than on a
 	 * forum.
 	 */
-	public function test_every_log_can_be_read()
+	public function test_every_log_can_be_read() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY, self::SUPER);
 
@@ -297,7 +297,7 @@ class LogEntriesTest extends TestCase
 
 	// the admin log
 
-	public function test_the_admin_log_needs_a_super_administrator_and_its_urls_are_scrubbed()
+	public function test_the_admin_log_needs_a_super_administrator_and_its_urls_are_scrubbed() : void
 	{
 		$token = 'sk_live_' . str_repeat('a1B2', 6);
 		$this->insert('xf_admin_log', [
@@ -328,7 +328,7 @@ class LogEntriesTest extends TestCase
 		);
 	}
 
-	public function test_every_lookup_is_written_to_the_admin_log()
+	public function test_every_lookup_is_written_to_the_admin_log() : void
 	{
 		$this->entries(['log' => 'moderator', 'user_id' => $this->staff->user_id]);
 
@@ -338,7 +338,7 @@ class LogEntriesTest extends TestCase
 		$this->assertSame('moderator', json_decode($rows[0]['request_data'], true)['log']);
 	}
 
-	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_written()
+	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_written() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:log_entries');
@@ -359,7 +359,7 @@ class LogEntriesTest extends TestCase
 		$this->assertSame([], $this->adminLogRows());
 	}
 
-	public function test_the_entries_scope_reaches_nothing_else()
+	public function test_the_entries_scope_reaches_nothing_else() : void
 	{
 		$this->actingAsAdminWithKey(array_merge(self::PERMISSIONS, ['hampelAdminApiLogs', 'hampelAdminApiErrorDetail']), self::KEY);
 

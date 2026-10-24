@@ -68,7 +68,7 @@ class OnlineTest extends TestCase
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
 
-	public function test_it_counts_members_guests_and_robots_apart()
+	public function test_it_counts_members_guests_and_robots_apart() : void
 	{
 		$state = $this->state();
 		$action = array_values(array_filter($state['by_action'], function ($row)
@@ -94,7 +94,7 @@ class OnlineTest extends TestCase
 	 * Only the busiest actions are named. The rest are one entry with no name, so that the list
 	 * adds up to the total and a reader can see how much it leaves out.
 	 */
-	public function test_it_counts_the_actions_past_the_busiest_together()
+	public function test_it_counts_the_actions_past_the_busiest_together() : void
 	{
 		$now = \XF::$time;
 		for ($i = 1; $i <= Online::MAX_ACTIONS + 5; $i++)
@@ -123,7 +123,7 @@ class OnlineTest extends TestCase
 		$this->assertSame($state['total'], array_sum(array_column($state['by_action'], 'count')));
 	}
 
-	public function test_it_names_each_robot()
+	public function test_it_names_each_robot() : void
 	{
 		$robots = array_column($this->state()['by_robot'], 'count', 'robot_key');
 
@@ -134,7 +134,7 @@ class OnlineTest extends TestCase
 	 * A robot key is chosen by code from a fixed list, so one that is not shaped like a key did not
 	 * come from that list. It is counted with the remainder and never named.
 	 */
-	public function test_a_robot_key_not_shaped_like_one_is_counted_and_not_named()
+	public function test_a_robot_key_not_shaped_like_one_is_counted_and_not_named() : void
 	{
 		$this->insertSession(0, '203.0.113.50', 'SECRET bot/1.0 <x>', \XF::$time - 30);
 
@@ -147,7 +147,7 @@ class OnlineTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($state));
 	}
 
-	public function test_the_robots_past_the_busiest_are_counted_together()
+	public function test_the_robots_past_the_busiest_are_counted_together() : void
 	{
 		for ($i = 1; $i <= Online::MAX_ROBOTS + 5; $i++)
 		{
@@ -167,7 +167,7 @@ class OnlineTest extends TestCase
 	 * Forty guests in one /24 is one visitor with forty addresses. The figure that says so is the
 	 * size of the largest network, and it is given without the network.
 	 */
-	public function test_it_shows_how_concentrated_the_guests_are_without_saying_where()
+	public function test_it_shows_how_concentrated_the_guests_are_without_saying_where() : void
 	{
 		$networks = $this->state()['guest_networks'];
 
@@ -181,7 +181,7 @@ class OnlineTest extends TestCase
 		);
 	}
 
-	public function test_robots_have_their_own_network_figures()
+	public function test_robots_have_their_own_network_figures() : void
 	{
 		$networks = $this->state()['robot_networks'];
 
@@ -189,7 +189,7 @@ class OnlineTest extends TestCase
 		$this->assertGreaterThanOrEqual(3, $networks['largest_24']);
 	}
 
-	public function test_no_address_member_or_request_detail_is_returned()
+	public function test_no_address_member_or_request_detail_is_returned() : void
 	{
 		$json = json_encode($this->state());
 
@@ -199,7 +199,7 @@ class OnlineTest extends TestCase
 		}
 	}
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'viewOnlineStaff']);
 

@@ -49,7 +49,7 @@ class CronStateTest extends TestCase
 		return array_column($this->state()['entries'], null, 'entry_id');
 	}
 
-	public function test_an_entry_is_reported_with_its_schedule()
+	public function test_an_entry_is_reported_with_its_schedule() : void
 	{
 		$this->assertSame([
 			'entry_id' => 'adminApiTestDue',
@@ -64,7 +64,7 @@ class CronStateTest extends TestCase
 		], $this->entries()['adminApiTestDue']);
 	}
 
-	public function test_an_entry_is_overdue_only_after_an_hour()
+	public function test_an_entry_is_overdue_only_after_an_hour() : void
 	{
 		$entries = $this->entries();
 
@@ -75,7 +75,7 @@ class CronStateTest extends TestCase
 	/**
 	 * Neither will ever run, so a next run in the past is expected and not a fault.
 	 */
-	public function test_a_disabled_entry_and_one_whose_add_on_is_inactive_are_never_overdue()
+	public function test_a_disabled_entry_and_one_whose_add_on_is_inactive_are_never_overdue() : void
 	{
 		$entries = $this->entries();
 
@@ -87,7 +87,7 @@ class CronStateTest extends TestCase
 		$this->assertFalse($entries['adminApiTestOrphan']['overdue']);
 	}
 
-	public function test_the_counts_follow_the_entries()
+	public function test_the_counts_follow_the_entries() : void
 	{
 		$state = $this->state();
 		$entries = $state['entries'];
@@ -104,7 +104,7 @@ class CronStateTest extends TestCase
 	 * Compared with the forum's own cron job rather than a planted one: there is only ever one
 	 * row under that key, and replacing it would mean deleting a job the forum needs.
 	 */
-	public function test_the_runner_is_reported_from_the_cron_job()
+	public function test_the_runner_is_reported_from_the_cron_job() : void
 	{
 		$job = $this->app()->db()->fetchRow(
 			'SELECT trigger_date, last_run_date FROM xf_job WHERE unique_key = ?',
@@ -123,7 +123,7 @@ class CronStateTest extends TestCase
 		], $this->state()['runner']);
 	}
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiAddOns', 'cron']);
 

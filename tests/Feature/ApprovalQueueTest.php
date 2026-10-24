@@ -45,7 +45,7 @@ class ApprovalQueueTest extends TestCase
 		return 0;
 	}
 
-	public function test_items_are_counted_by_age_and_by_content_type()
+	public function test_items_are_counted_by_age_and_by_content_type() : void
 	{
 		$before = $this->state();
 		$now = \XF::$time;
@@ -68,7 +68,7 @@ class ApprovalQueueTest extends TestCase
 		$this->assertSame($after['total'], array_sum(array_column($after['by_content_type'], 'count')));
 	}
 
-	public function test_the_oldest_item_is_the_oldest_in_the_queue_and_its_type()
+	public function test_the_oldest_item_is_the_oldest_in_the_queue_and_its_type() : void
 	{
 		$this->queue('profile_post', 1);
 
@@ -81,7 +81,7 @@ class ApprovalQueueTest extends TestCase
 		);
 	}
 
-	public function test_a_type_nothing_can_approve_is_counted_unnamed()
+	public function test_a_type_nothing_can_approve_is_counted_unnamed() : void
 	{
 		$before = $this->countFor($this->state(), null);
 
@@ -92,7 +92,7 @@ class ApprovalQueueTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($state));
 	}
 
-	public function test_the_count_moderators_are_shown_is_returned_beside_it()
+	public function test_the_count_moderators_are_shown_is_returned_beside_it() : void
 	{
 		$state = $this->state();
 
@@ -100,7 +100,7 @@ class ApprovalQueueTest extends TestCase
 		$this->assertSame(isset($cached['total']) ? (int) $cached['total'] : null, $state['cached_total']);
 	}
 
-	public function test_it_needs_its_own_permission_and_writes_nothing_to_the_admin_log()
+	public function test_it_needs_its_own_permission_and_writes_nothing_to_the_admin_log() : void
 	{
 		$this->state();
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_admin_log WHERE user_id = ?', self::USER_ID));
@@ -109,7 +109,7 @@ class ApprovalQueueTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 	}
 
-	public function test_a_member_scope_does_not_reach_it()
+	public function test_a_member_scope_does_not_reach_it() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiApproval'], ['scopes' => ['hampel_admin_api:staff' => true]]);
 

@@ -32,7 +32,7 @@ class ConfigShapeTest extends TestCase
 		return array_column($this->shape($input)['settings'], null, 'key');
 	}
 
-	public function test_a_string_setting_says_only_that_it_is_set()
+	public function test_a_string_setting_says_only_that_it_is_set() : void
 	{
 		$this->assertSame([
 			'key' => 'adminApiTest.password',
@@ -47,7 +47,7 @@ class ConfigShapeTest extends TestCase
 		], $this->settings()['adminApiTest.password']);
 	}
 
-	public function test_a_flag_and_a_small_number_are_returned()
+	public function test_a_flag_and_a_small_number_are_returned() : void
 	{
 		$settings = $this->settings();
 
@@ -55,7 +55,7 @@ class ConfigShapeTest extends TestCase
 		$this->assertSame(6379, $settings['adminApiTest.port']['value']);
 	}
 
-	public function test_a_large_number_a_list_and_a_closure_are_withheld()
+	public function test_a_large_number_a_list_and_a_closure_are_withheld() : void
 	{
 		$settings = $this->settings();
 
@@ -71,7 +71,7 @@ class ConfigShapeTest extends TestCase
 	/**
 	 * The database password is the reason this endpoint is built the way it is.
 	 */
-	public function test_the_real_database_credentials_are_present_by_key_and_absent_by_value()
+	public function test_the_real_database_credentials_are_present_by_key_and_absent_by_value() : void
 	{
 		$settings = $this->settings();
 		$db = $this->app()->config('db');
@@ -93,7 +93,7 @@ class ConfigShapeTest extends TestCase
 		$this->assertStringNotContainsString($this->app()->config('globalSalt'), $json);
 	}
 
-	public function test_no_value_other_than_a_flag_or_a_small_number_is_returned()
+	public function test_no_value_other_than_a_flag_or_a_small_number_is_returned() : void
 	{
 		$result = $this->shape();
 
@@ -109,7 +109,7 @@ class ConfigShapeTest extends TestCase
 		}
 	}
 
-	public function test_a_setting_left_at_xenforos_default_is_marked_and_can_be_left_out()
+	public function test_a_setting_left_at_xenforos_default_is_marked_and_can_be_left_out() : void
 	{
 		$all = $this->shape();
 		$changed = $this->shape(['changed' => 1]);
@@ -127,7 +127,7 @@ class ConfigShapeTest extends TestCase
 		$this->assertTrue($settings['enableApi']['has_default']);
 	}
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'hampelAdminApiJobs', 'option']);
 

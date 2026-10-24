@@ -38,7 +38,7 @@ class ValueShapeTest extends TestCase
 	}
 
 	#[DataProvider('disclosed')]
-	public function test_a_boolean_a_null_and_a_small_number_are_returned($value, $type)
+	public function test_a_boolean_a_null_and_a_small_number_are_returned($value, $type) : void
 	{
 		$shape = (new ValueShape())->describe($value);
 
@@ -48,7 +48,7 @@ class ValueShapeTest extends TestCase
 	}
 
 	#[DataProvider('withheld')]
-	public function test_everything_else_is_withheld($value, $type)
+	public function test_everything_else_is_withheld($value, $type) : void
 	{
 		if ($type === 'closure')
 		{
@@ -71,7 +71,7 @@ class ValueShapeTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($shape));
 	}
 
-	public function test_set_means_not_null_and_not_empty()
+	public function test_set_means_not_null_and_not_empty() : void
 	{
 		$shape = new ValueShape();
 
@@ -85,7 +85,7 @@ class ValueShapeTest extends TestCase
 		$this->assertTrue($shape->describe(['x'])['set']);
 	}
 
-	public function test_an_array_reports_its_size_and_nothing_else_does()
+	public function test_an_array_reports_its_size_and_nothing_else_does() : void
 	{
 		$shape = new ValueShape();
 
@@ -94,7 +94,7 @@ class ValueShapeTest extends TestCase
 		$this->assertNull($shape->describe('ab')['count']);
 	}
 
-	public function test_a_map_is_flattened_to_dotted_keys()
+	public function test_a_map_is_flattened_to_dotted_keys() : void
 	{
 		$flat = (new ValueShape())->flatten([
 			'debug' => true,
@@ -111,7 +111,7 @@ class ValueShapeTest extends TestCase
 	/**
 	 * A list's members are values. Following it would turn each into a key of its own.
 	 */
-	public function test_a_list_and_an_empty_array_are_leaves()
+	public function test_a_list_and_an_empty_array_are_leaves() : void
 	{
 		$flat = (new ValueShape())->flatten([
 			'skip' => ['One', 'Two'],
@@ -122,7 +122,7 @@ class ValueShapeTest extends TestCase
 		$this->assertSame(['skip', 'mixed', 'empty'], array_keys($flat));
 	}
 
-	public function test_flattening_stops_at_a_depth()
+	public function test_flattening_stops_at_a_depth() : void
 	{
 		$flat = (new ValueShape())->flatten(
 			['a' => ['b' => ['c' => ['d' => ['e' => ['f' => ['g' => ['h' => 1]]]]]]]]
@@ -131,7 +131,7 @@ class ValueShapeTest extends TestCase
 		$this->assertSame(['a.b.c.d.e.f'], array_keys($flat));
 	}
 
-	public function test_sameness_is_strict_except_between_arrays()
+	public function test_sameness_is_strict_except_between_arrays() : void
 	{
 		$shape = new ValueShape();
 
@@ -143,7 +143,7 @@ class ValueShapeTest extends TestCase
 		$this->assertFalse($shape->isSame(['a' => 1], ['a' => 2]));
 	}
 
-	public function test_a_string_on_its_list_of_choices_is_returned()
+	public function test_a_string_on_its_list_of_choices_is_returned() : void
 	{
 		$shape = (new ValueShape())->describeChoice('smtp', ['sendmail', 'smtp']);
 
@@ -155,7 +155,7 @@ class ValueShapeTest extends TestCase
 	/**
 	 * The comparison is exact. Nothing is trimmed, lowered or loosely compared into matching.
 	 */
-	public function test_a_string_not_on_its_list_is_withheld()
+	public function test_a_string_not_on_its_list_is_withheld() : void
 	{
 		$shape = new ValueShape();
 
@@ -170,12 +170,12 @@ class ValueShapeTest extends TestCase
 		$this->assertFalse($shape->describeChoice('anything', [])['disclosed']);
 	}
 
-	public function test_a_choice_given_as_a_number_matches_its_string()
+	public function test_a_choice_given_as_a_number_matches_its_string() : void
 	{
 		$this->assertSame('7', (new ValueShape())->describeChoice('7', [7, 'a'])['value']);
 	}
 
-	public function test_a_value_that_is_not_a_string_keeps_the_ordinary_rule()
+	public function test_a_value_that_is_not_a_string_keeps_the_ordinary_rule() : void
 	{
 		$shape = new ValueShape();
 

@@ -72,7 +72,7 @@ class ValuesTest extends TestCase
 
 	// the gate
 
-	public function test_a_key_with_only_the_read_scope_gets_shape_and_is_told_why()
+	public function test_a_key_with_only_the_read_scope_gets_shape_and_is_told_why() : void
 	{
 		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], []);
 
@@ -86,7 +86,7 @@ class ValuesTest extends TestCase
 	 * The option page in the control panel is where these values are otherwise seen, so the API
 	 * asks for the permission that page asks for.
 	 */
-	public function test_the_values_scope_is_not_enough_without_the_option_admin_permission()
+	public function test_the_values_scope_is_not_enough_without_the_option_admin_permission() : void
 	{
 		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues']);
 
@@ -100,7 +100,7 @@ class ValuesTest extends TestCase
 	 * they are set to is a permission of its own, on both endpoints - and for config.php it is
 	 * the only one there is, since XenForo has no permission of its own for that file.
 	 */
-	public function test_the_values_scope_is_not_enough_without_the_values_admin_permission()
+	public function test_the_values_scope_is_not_enough_without_the_values_admin_permission() : void
 	{
 		$options = $this->options([], ['hampelAdminApiOptions', 'option']);
 
@@ -122,7 +122,7 @@ class ValuesTest extends TestCase
 	/**
 	 * Holding the values permission does not open an endpoint its holder cannot otherwise reach.
 	 */
-	public function test_the_values_admin_permission_alone_does_not_reach_an_endpoint()
+	public function test_the_values_admin_permission_alone_does_not_reach_an_endpoint() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiValues', 'option'], self::BOTH_SCOPES);
 
@@ -130,7 +130,7 @@ class ValuesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch('admin-api/config/', 'api'), 403, 'do not have permission');
 	}
 
-	public function test_the_values_scope_alone_does_not_reach_the_endpoint()
+	public function test_the_values_scope_alone_does_not_reach_the_endpoint() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'option'], ['scopes' => ['hampel_admin_api:values' => true]]);
 
@@ -139,7 +139,7 @@ class ValuesTest extends TestCase
 
 	// options
 
-	public function test_an_ordinary_option_is_returned_as_its_value()
+	public function test_an_ordinary_option_is_returned_as_its_value() : void
 	{
 		$result = $this->options(['add_on_id' => self::TRUSTED]);
 		$option = $this->byId($result)['adminApiTestGreeting'];
@@ -151,7 +151,7 @@ class ValuesTest extends TestCase
 		$this->assertSame([], $option['redactions']);
 	}
 
-	public function test_a_secret_is_withheld_by_its_name_by_its_value_and_inside_a_url()
+	public function test_a_secret_is_withheld_by_its_name_by_its_value_and_inside_a_url() : void
 	{
 		$options = $this->byId($this->options(['add_on_id' => self::TRUSTED]));
 
@@ -171,7 +171,7 @@ class ValuesTest extends TestCase
 		$this->assertSame(Redactor::URL, $options['adminApiTestSocket']['redactions'][0]['reason']);
 	}
 
-	public function test_an_array_option_is_returned_whole_except_for_its_secrets()
+	public function test_an_array_option_is_returned_whole_except_for_its_secrets() : void
 	{
 		$option = $this->byId($this->options(['add_on_id' => self::TRUSTED]))['adminApiTestMail'];
 
@@ -183,7 +183,7 @@ class ValuesTest extends TestCase
 	/**
 	 * Reported from a real session: a blank SMTP password came back as "", which reads as shown.
 	 */
-	public function test_an_empty_secret_inside_an_option_is_withheld_and_marked_unset()
+	public function test_an_empty_secret_inside_an_option_is_withheld_and_marked_unset() : void
 	{
 		$this->insertOption('adminApiTestBlank', self::TRUSTED, 'array', json_encode(['host' => 'h.example.com', 'password' => '']));
 
@@ -201,7 +201,7 @@ class ValuesTest extends TestCase
 	 * Only XenForo and its official add-ons are trusted without saying so; this add-on is
 	 * trusted because it answers its own event, like any other.
 	 */
-	public function test_no_add_on_but_the_official_ones_is_trusted_without_declaring()
+	public function test_no_add_on_but_the_official_ones_is_trusted_without_declaring() : void
 	{
 		$registry = new Registry($this->app());
 
@@ -218,7 +218,7 @@ class ValuesTest extends TestCase
 	 * XenForo 2.3.0 hands a flag back as "1" and a number as "25". Judged as they arrive they are
 	 * text, and an undeclared add-on's text is withheld - so its switches and limits would be too.
 	 */
-	public function test_a_flag_or_a_number_stored_as_a_string_is_returned_as_its_own_type()
+	public function test_a_flag_or_a_number_stored_as_a_string_is_returned_as_its_own_type() : void
 	{
 		$this->insertOption('adminApiTestStoredFlag', self::UNTRUSTED, 'boolean', '1');
 		$this->insertOption('adminApiTestStoredOff', self::UNTRUSTED, 'boolean', '0');
@@ -237,7 +237,7 @@ class ValuesTest extends TestCase
 		}
 	}
 
-	public function test_text_from_an_add_on_nobody_has_declared_is_withheld()
+	public function test_text_from_an_add_on_nobody_has_declared_is_withheld() : void
 	{
 		$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED]));
 
@@ -249,7 +249,7 @@ class ValuesTest extends TestCase
 	/**
 	 * The hook: an add-on that says which of its settings are secrets has the rest shown.
 	 */
-	public function test_an_add_on_that_declares_its_secrets_is_trusted_with_the_rest()
+	public function test_an_add_on_that_declares_its_secrets_is_trusted_with_the_rest() : void
 	{
 		$this->insertOption('adminApiTestForeignPin', self::UNTRUSTED, 'string', 'SECRET-declared');
 
@@ -265,7 +265,7 @@ class ValuesTest extends TestCase
 		$this->assertSame(Redactor::KNOWN, $options['adminApiTestForeignPin']['redactions'][0]['reason']);
 	}
 
-	public function test_a_declaration_of_the_wrong_shape_trusts_nobody()
+	public function test_a_declaration_of_the_wrong_shape_trusts_nobody() : void
 	{
 		$this->app()->extension()->addListener(Registry::EVENT, function (array &$declarations)
 		{
@@ -276,7 +276,7 @@ class ValuesTest extends TestCase
 		$this->assertFalse((new Registry($this->app()))->isTrustedAddOn(self::UNTRUSTED));
 	}
 
-	public function test_the_forums_own_list_can_hide_a_value_and_show_one()
+	public function test_the_forums_own_list_can_hide_a_value_and_show_one() : void
 	{
 		$this->setConfig('hampelAdminApi', [
 			'redact' => ['options' => ['adminApiTestGreeting']],
@@ -294,7 +294,7 @@ class ValuesTest extends TestCase
 	 * Over every option the forum really has. Every secret anybody has declared is withheld, and
 	 * nothing that was returned trips a rule when looked at again from outside.
 	 */
-	public function test_no_declared_secret_and_nothing_that_looks_like_one_is_returned_for_any_real_option()
+	public function test_no_declared_secret_and_nothing_that_looks_like_one_is_returned_for_any_real_option() : void
 	{
 		$result = $this->options();
 		$options = $this->byId($result);
@@ -367,7 +367,7 @@ class ValuesTest extends TestCase
 	 * "Is this switched on?" is one value. Without a way to ask for it, the answer for an option
 	 * still at its default is an inference from its absence, which only works for a boolean.
 	 */
-	public function test_an_option_asked_for_by_id_is_returned_whether_or_not_it_was_changed()
+	public function test_an_option_asked_for_by_id_is_returned_whether_or_not_it_was_changed() : void
 	{
 		$this->insertOption('adminApiTestDefaulted', self::TRUSTED, 'string', '');
 
@@ -380,7 +380,7 @@ class ValuesTest extends TestCase
 		$this->assertSame([], $result['not_found']);
 	}
 
-	public function test_an_option_id_this_forum_does_not_have_is_said_to_be_missing()
+	public function test_an_option_id_this_forum_does_not_have_is_said_to_be_missing() : void
 	{
 		$asArray = $this->options(['option_id' => ['adminApiTestGreeting', 'adminApiTestNoSuchOption']]);
 
@@ -395,7 +395,7 @@ class ValuesTest extends TestCase
 	/**
 	 * Asking by id is not a way round anything: the same gates and the same redaction apply.
 	 */
-	public function test_asking_by_id_shows_no_more_than_the_list_would()
+	public function test_asking_by_id_shows_no_more_than_the_list_would() : void
 	{
 		$values = $this->byId($this->options(['option_id' => 'adminApiTestApiKey,adminApiTestForeign']));
 		$this->assertNull($values['adminApiTestApiKey']['value']);
@@ -406,7 +406,7 @@ class ValuesTest extends TestCase
 		$this->assertNull($this->byId($shape)['adminApiTestGreeting']['value']);
 	}
 
-	public function test_without_an_id_the_list_is_as_it_was_and_reports_nothing_missing()
+	public function test_without_an_id_the_list_is_as_it_was_and_reports_nothing_missing() : void
 	{
 		$result = $this->options(['add_on_id' => self::TRUSTED]);
 
@@ -417,7 +417,7 @@ class ValuesTest extends TestCase
 	/**
 	 * A key names itself and everything beneath it.
 	 */
-	public function test_config_settings_can_be_asked_for_by_key()
+	public function test_config_settings_can_be_asked_for_by_key() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiConfig', 'hampelAdminApiValues'], self::BOTH_SCOPES);
 		$get = function (array $input)
@@ -450,7 +450,7 @@ class ValuesTest extends TestCase
 
 	// config.php
 
-	public function test_config_is_shape_without_the_scope_and_values_with_it()
+	public function test_config_is_shape_without_the_scope_and_values_with_it() : void
 	{
 		$shape = $this->config([]);
 		$this->assertSame('shape', $shape['mode']);
@@ -462,7 +462,7 @@ class ValuesTest extends TestCase
 	/**
 	 * The reason this add-on was careful about config.php in the first place.
 	 */
-	public function test_the_database_login_is_withheld_and_where_it_points_is_not()
+	public function test_the_database_login_is_withheld_and_where_it_points_is_not() : void
 	{
 		$db = $this->app()->config('db');
 		$result = $this->config();
@@ -489,7 +489,7 @@ class ValuesTest extends TestCase
 		}
 	}
 
-	public function test_a_config_key_nobody_has_claimed_is_untrusted_and_one_an_add_on_owns_is_not()
+	public function test_a_config_key_nobody_has_claimed_is_untrusted_and_one_an_add_on_owns_is_not() : void
 	{
 		$this->setConfig('someOtherAddOn', ['endpoint' => 'SECRET-unclaimed', 'enabled' => true]);
 		$this->setConfig('hampelAdminApi', ['label' => 'ours to show', 'apiKey' => 'SECRET-ours']);
@@ -507,7 +507,7 @@ class ValuesTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_a_secret_name_part_way_down_withholds_everything_beneath_it()
+	public function test_a_secret_name_part_way_down_withholds_everything_beneath_it() : void
 	{
 		$this->setConfig('hampelAdminApi', ['service' => ['oauth' => ['client' => 'SECRET-a', 'refresh' => 'SECRET-b'], 'host' => 'h.example.com']]);
 
@@ -525,7 +525,7 @@ class ValuesTest extends TestCase
 		$this->assertNull($settings['hampelAdminApi.service.oauth.client']['value']);
 	}
 
-	public function test_a_config_url_with_a_login_and_no_host_keeps_only_its_scheme()
+	public function test_a_config_url_with_a_login_and_no_host_keeps_only_its_scheme() : void
 	{
 		$this->setConfig('hampelAdminApi', ['cacheTarget' => 'redis://user:SECRETpassw0rd1234@/0']);
 
@@ -538,7 +538,7 @@ class ValuesTest extends TestCase
 	/**
 	 * A setting is a leaf, so the only redaction with a path is one member of a list it holds.
 	 */
-	public function test_a_config_redaction_has_a_path_only_inside_a_list()
+	public function test_a_config_redaction_has_a_path_only_inside_a_list() : void
 	{
 		$this->setConfig('hampelAdminApi', ['mirrors' => ['https://a.example.com/', 'k3J9xQ2mP7vL4nR8tW6yB1cD5fG0hZ']]);
 

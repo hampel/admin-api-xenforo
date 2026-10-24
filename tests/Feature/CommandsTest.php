@@ -60,7 +60,7 @@ class CommandsTest extends TestCase
 	/**
 	 * A command class that cannot load stops every command on the forum, not only this one.
 	 */
-	public function test_both_commands_are_ones_xenforo_can_load()
+	public function test_both_commands_are_ones_xenforo_can_load() : void
 	{
 		foreach ([Config::class => 'admin-api:config', Validate::class => 'admin-api:validate'] AS $class => $name)
 		{
@@ -77,7 +77,7 @@ class CommandsTest extends TestCase
 	 * XenForo 2.2's console throws on a grey tag, and this add-on runs on 2.2. The report trait is
 	 * also shared with other add-ons, and is only ever copied whole.
 	 */
-	public function test_no_grey_tag_is_written_directly()
+	public function test_no_grey_tag_is_written_directly() : void
 	{
 		foreach (glob(__DIR__ . '/../../Cli/Command/*.php') AS $file)
 		{
@@ -85,7 +85,7 @@ class CommandsTest extends TestCase
 		}
 	}
 
-	public function test_a_clean_forum_passes()
+	public function test_a_clean_forum_passes() : void
 	{
 		$this->plantKey(['hampelAdminApiErrorLog']);
 
@@ -127,7 +127,7 @@ class CommandsTest extends TestCase
 	 * Nothing is broken and the add-on does nothing. That is a warning, and still exits 0 so that
 	 * a fresh install is not a failed one.
 	 */
-	public function test_nobody_being_able_to_read_is_a_warning_and_exits_zero()
+	public function test_nobody_being_able_to_read_is_a_warning_and_exits_zero() : void
 	{
 		[$exit, $display] = $this->validateWithNoKeys();
 
@@ -136,7 +136,7 @@ class CommandsTest extends TestCase
 		$this->assertStringNotContainsString('[fail]', $display);
 	}
 
-	public function test_strict_turns_a_warning_into_two_and_changes_nothing_else()
+	public function test_strict_turns_a_warning_into_two_and_changes_nothing_else() : void
 	{
 		[$plainExit, $plain] = $this->validateWithNoKeys();
 		[$strictExit, $strict] = $this->validateWithNoKeys(['--unattended' => true, '--strict' => true]);
@@ -178,7 +178,7 @@ class CommandsTest extends TestCase
 		return [$exit, $tester->getDisplay()];
 	}
 
-	public function test_strict_with_nothing_to_warn_about_exits_zero()
+	public function test_strict_with_nothing_to_warn_about_exits_zero() : void
 	{
 		$this->plantKey(['hampelAdminApiErrorLog']);
 
@@ -192,7 +192,7 @@ class CommandsTest extends TestCase
 	 * A key can be handed the values scope without its user being allowed to see values. That is
 	 * a key that does less than whoever issued it thinks, which is a warning and not a failure.
 	 */
-	public function test_a_values_key_whose_user_lacks_the_values_permission_is_a_warning()
+	public function test_a_values_key_whose_user_lacks_the_values_permission_is_a_warning() : void
 	{
 		$scopes = ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values']];
 
@@ -208,7 +208,7 @@ class CommandsTest extends TestCase
 		$this->assertStringContainsString('keys that see values           1', $display);
 	}
 
-	public function test_the_api_being_off_fails_with_or_without_strict()
+	public function test_the_api_being_off_fails_with_or_without_strict() : void
 	{
 		$this->setConfig('enableApi', false);
 
@@ -224,7 +224,7 @@ class CommandsTest extends TestCase
 	 * A scope, a permission or a route this add-on depends on and the forum does not have. Each
 	 * list is named once, on the class, so a subclass can add one that is not there.
 	 */
-	public function test_a_missing_scope_permission_or_route_fails_by_name()
+	public function test_a_missing_scope_permission_or_route_fails_by_name() : void
 	{
 		$check = new class(\XF::app()) extends HealthCheck
 		{
@@ -249,7 +249,7 @@ class CommandsTest extends TestCase
 	/**
 	 * No check may end the run: the rest of the list is wanted most when one thing is broken.
 	 */
-	public function test_a_check_that_throws_fails_its_row_and_every_later_check_still_reports()
+	public function test_a_check_that_throws_fails_its_row_and_every_later_check_still_reports() : void
 	{
 		$this->fakesErrors();
 
@@ -283,7 +283,7 @@ class CommandsTest extends TestCase
 	 * Every row this add-on writes to the server error log begins with its prefix, so that
 	 * something mirroring that log can tell this add-on's own trouble from the forum's.
 	 */
-	public function test_every_error_this_add_on_logs_carries_its_prefix()
+	public function test_every_error_this_add_on_logs_carries_its_prefix() : void
 	{
 		$root = realpath(__DIR__ . '/../..');
 		$files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
@@ -313,7 +313,7 @@ class CommandsTest extends TestCase
 		}
 	}
 
-	public function test_a_key_that_can_never_work_is_named_with_the_reason()
+	public function test_a_key_that_can_never_work_is_named_with_the_reason() : void
 	{
 		$key = $this->plantKey([], [], false);
 
@@ -327,7 +327,7 @@ class CommandsTest extends TestCase
 	/**
 	 * Each reason a key holding a scope can still never use it, on the key's own line.
 	 */
-	public function test_every_reason_a_key_cannot_work_is_given()
+	public function test_every_reason_a_key_cannot_work_is_given() : void
 	{
 		$reasons = [
 			'the key is inactive' => $this->plantKey(['hampelAdminApiErrorLog'], ['active' => false]),
@@ -361,7 +361,7 @@ class CommandsTest extends TestCase
 	 * A super administrator holds every admin permission without any being listed, so a key of
 	 * theirs is not reported as lacking one.
 	 */
-	public function test_a_super_administrators_key_can_use_every_scope_it_holds()
+	public function test_a_super_administrators_key_can_use_every_scope_it_holds() : void
 	{
 		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail', 'hampel_admin_api:ips', 'hampel_admin_api:upgrades']], true, true);
 
@@ -371,7 +371,7 @@ class CommandsTest extends TestCase
 		$this->assertStringNotContainsString("key #{$key->api_key_id}", $display);
 	}
 
-	public function test_a_detail_key_needs_view_logs_as_well()
+	public function test_a_detail_key_needs_view_logs_as_well() : void
 	{
 		$this->plantKey(['hampelAdminApiErrorDetail'], ['scopes' => ['hampel_admin_api:error_detail']]);
 
@@ -384,7 +384,7 @@ class CommandsTest extends TestCase
 	 * A member scope is counted on its own row, and its key is checked for core's permission as
 	 * well as the add-on's, as the endpoint checks them.
 	 */
-	public function test_an_ip_key_is_counted_and_needs_the_user_permission_as_well()
+	public function test_an_ip_key_is_counted_and_needs_the_user_permission_as_well() : void
 	{
 		$this->assertMatchesRegularExpression('/keys for IP lookups\s+none/', $this->validate()[1]);
 
@@ -396,7 +396,7 @@ class CommandsTest extends TestCase
 		$this->assertStringContainsString('its user lacks user', $this->validate()[1]);
 	}
 
-	public function test_faults_being_enabled_is_a_warning_wherever_it_is()
+	public function test_faults_being_enabled_is_a_warning_wherever_it_is() : void
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 
@@ -409,7 +409,7 @@ class CommandsTest extends TestCase
 	 * Planted faults left on a forum are reported by batch, every run, whether or not faults are
 	 * still enabled there.
 	 */
-	public function test_a_planted_batch_is_a_warning_and_is_named()
+	public function test_a_planted_batch_is_a_warning_and_is_named() : void
 	{
 		$this->setConfig('hampelAdminApi', null);
 		$this->app()->db()->insert(\Hampel\AdminApi\Fault\Manager::TABLE, [
@@ -426,7 +426,7 @@ class CommandsTest extends TestCase
 		$this->assertStringContainsString('[ ok ] fault commands', $display);
 	}
 
-	public function test_unattended_writes_nothing_to_the_error_log()
+	public function test_unattended_writes_nothing_to_the_error_log() : void
 	{
 		$db = $this->app()->db();
 		$before = (int) $db->fetchOne('SELECT COALESCE(MAX(error_id), 0) FROM xf_error_log');
@@ -440,7 +440,7 @@ class CommandsTest extends TestCase
 	 * Whether the probe's error is logged depends on the forum, so this asserts only what must
 	 * hold either way: it never fails the run for want of a log entry, and it leaves none behind.
 	 */
-	public function test_the_probe_leaves_nothing_behind()
+	public function test_the_probe_leaves_nothing_behind() : void
 	{
 		$this->plantKey(['hampelAdminApiErrorLog']);
 
@@ -454,7 +454,7 @@ class CommandsTest extends TestCase
 		));
 	}
 
-	public function test_config_describes_a_key_and_never_shows_it()
+	public function test_config_describes_a_key_and_never_shows_it() : void
 	{
 		$key = $this->plantKey(['hampelAdminApiErrorLog']);
 
@@ -471,7 +471,7 @@ class CommandsTest extends TestCase
 	 * An empty value reads as "not set": a blank reads as a setting that is fine. The trait every
 	 * row goes through is what guarantees it, so that is what is asked.
 	 */
-	public function test_an_empty_value_prints_not_set_and_never_a_blank()
+	public function test_an_empty_value_prints_not_set_and_never_a_blank() : void
 	{
 		$command = new class extends Config
 		{
@@ -488,7 +488,7 @@ class CommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('/keys \.+ not set/', $output->fetch());
 	}
 
-	public function test_config_changes_nothing()
+	public function test_config_changes_nothing() : void
 	{
 		$db = $this->app()->db();
 		$state = function () use ($db)
@@ -512,7 +512,7 @@ class CommandsTest extends TestCase
 	 * stops cmd.php on the forum for every add-on. Nothing else in the suite loads the fault
 	 * commands' classes at all.
 	 */
-	public function test_every_command_this_add_on_ships_is_one_xenforo_can_load()
+	public function test_every_command_this_add_on_ships_is_one_xenforo_can_load() : void
 	{
 		$classes = $this->assertConsoleCommandsLoad();
 		sort($classes);

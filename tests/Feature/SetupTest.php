@@ -20,7 +20,7 @@ class SetupTest extends TestCase
 	/**
 	 * Importing a release leaves every scope on the column default, which is usable.
 	 */
-	public function test_every_scope_is_withheld_from_oauth_clients_after_a_release_import()
+	public function test_every_scope_is_withheld_from_oauth_clients_after_a_release_import() : void
 	{
 		$this->app()->db()->update('xf_api_scope', ['usable_with_oauth_clients' => 1], 'addon_id = ?', 'Hampel/AdminApi');
 
@@ -39,7 +39,7 @@ class SetupTest extends TestCase
 	 * XenForo deletes every listener for an event when the event goes, so uninstalling this
 	 * add-on takes other add-ons' declarations with it. Installing it again puts them back.
 	 */
-	public function test_another_add_ons_lost_declaration_listener_is_put_back_once()
+	public function test_another_add_ons_lost_declaration_listener_is_put_back_once() : void
 	{
 		$path = tempnam(sys_get_temp_dir(), 'adminapi-listeners-');
 		file_put_contents($path, '<?xml version="1.0" encoding="utf-8"?>

@@ -67,7 +67,7 @@ class ErrorEntriesTest extends TestCase
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}
 
-	public function test_it_returns_the_entry_asked_for_with_its_message_and_trace()
+	public function test_it_returns_the_entry_asked_for_with_its_message_and_trace() : void
 	{
 		$result = $this->entries(['error_id' => $this->ids[2], 'limit' => 1]);
 
@@ -97,7 +97,7 @@ class ErrorEntriesTest extends TestCase
 	 * a real forum: an HTTP client's exception carrying a webhook URL whole, which the options
 	 * endpoint withholds as a known secret.
 	 */
-	public function test_a_secret_quoted_in_an_entry_is_taken_out_of_everything_it_returns()
+	public function test_a_secret_quoted_in_an_entry_is_taken_out_of_everything_it_returns() : void
 	{
 		$this->setOption('akismetKey', 'forum-held-SECRET-value');
 
@@ -140,7 +140,7 @@ class ErrorEntriesTest extends TestCase
 	 * The one asked for comes first, then the rest newest first - and the same file stored in full
 	 * by another request is the same place.
 	 */
-	public function test_it_adds_the_most_recent_others_from_the_same_place()
+	public function test_it_adds_the_most_recent_others_from_the_same_place() : void
 	{
 		$result = $this->entries(['error_id' => $this->ids[0]]);
 
@@ -151,7 +151,7 @@ class ErrorEntriesTest extends TestCase
 		$this->assertSame([self::FILE], array_values(array_unique(array_column($result['entries'], 'filename'))));
 	}
 
-	public function test_the_limit_counts_the_entry_asked_for_and_is_capped()
+	public function test_the_limit_counts_the_entry_asked_for_and_is_capped() : void
 	{
 		$this->assertCount(2, $this->entries(['error_id' => $this->ids[0], 'limit' => 2])['entries']);
 
@@ -166,7 +166,7 @@ class ErrorEntriesTest extends TestCase
 		$this->assertSame(29, $result['signature_total']);
 	}
 
-	public function test_the_request_the_user_and_the_ip_address_are_left_out_unless_asked_for()
+	public function test_the_request_the_user_and_the_ip_address_are_left_out_unless_asked_for() : void
 	{
 		$json = json_encode($this->entries(['error_id' => $this->ids[0]]));
 
@@ -176,7 +176,7 @@ class ErrorEntriesTest extends TestCase
 		$this->assertStringNotContainsString('user_id', $json);
 	}
 
-	public function test_they_are_included_when_asked_for()
+	public function test_they_are_included_when_asked_for() : void
 	{
 		$entry = $this->entries(['error_id' => $this->ids[0], 'request' => 1])['entries'][0];
 
@@ -192,7 +192,7 @@ class ErrorEntriesTest extends TestCase
 	 * An error raised from the command line has no address. It comes back as null, not as an
 	 * empty string or as whatever converting nothing to an address would give.
 	 */
-	public function test_an_entry_with_no_address_says_so()
+	public function test_an_entry_with_no_address_says_so() : void
 	{
 		$db = $this->app()->db();
 		$db->insert('xf_error_log', [
@@ -218,20 +218,20 @@ class ErrorEntriesTest extends TestCase
 	/**
 	 * Without an entry to start from there is nothing to return: the log cannot be paged through.
 	 */
-	public function test_an_entry_has_to_be_named()
+	public function test_an_entry_has_to_be_named() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'error_id');
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['limit' => 20]), 400, 'error_id');
 	}
 
-	public function test_an_entry_that_does_not_exist_is_not_found()
+	public function test_an_entry_that_does_not_exist_is_not_found() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['error_id' => 4000000000]), 404);
 	}
 
 	// access
 
-	public function test_the_read_scope_does_not_reach_it()
+	public function test_the_read_scope_does_not_reach_it() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS);
 
@@ -246,7 +246,7 @@ class ErrorEntriesTest extends TestCase
 	 * and a key with it is told the parameter is missing. A consumer can rely on that to check
 	 * its keys without ever fetching an entry.
 	 */
-	public function test_the_scope_is_checked_before_the_parameter()
+	public function test_the_scope_is_checked_before_the_parameter() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:error_detail');
@@ -259,7 +259,7 @@ class ErrorEntriesTest extends TestCase
 	 * The same for the other gates. A request that names no entry is refused for the reason a real
 	 * one would be, so the answer to it says what the key can do without an entry being read.
 	 */
-	public function test_every_other_gate_is_checked_before_the_parameter_too()
+	public function test_every_other_gate_is_checked_before_the_parameter_too() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs'], self::KEY);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
@@ -271,14 +271,14 @@ class ErrorEntriesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 	}
 
-	public function test_the_detail_scope_does_not_reach_the_summaries()
+	public function test_the_detail_scope_does_not_reach_the_summaries() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiErrorDetail', 'viewLogs'], self::KEY);
 
 		$this->assertReplyIsError($this->dispatch('admin-api/error-log/', 'api'), 403, 'hampel_admin_api:read');
 	}
 
-	public function test_the_summary_permission_does_not_reach_it()
+	public function test_the_summary_permission_does_not_reach_it() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs'], self::KEY);
 
@@ -291,7 +291,7 @@ class ErrorEntriesTest extends TestCase
 	 * An administrator who cannot open the server error log in the control panel cannot read it
 	 * here either.
 	 */
-	public function test_it_also_needs_permission_to_view_logs()
+	public function test_it_also_needs_permission_to_view_logs() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
 
@@ -300,7 +300,7 @@ class ErrorEntriesTest extends TestCase
 		$this->assertReplyIsError($reply, 403, 'do not have permission');
 	}
 
-	public function test_a_super_user_key_is_refused_here_too()
+	public function test_a_super_user_key_is_refused_here_too() : void
 	{
 		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
 

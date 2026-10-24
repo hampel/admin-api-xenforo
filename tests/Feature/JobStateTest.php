@@ -66,7 +66,7 @@ class JobStateTest extends TestCase
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
 
-	public function test_it_counts_each_class()
+	public function test_it_counts_each_class() : void
 	{
 		$byClass = array_column($this->state()['by_class'], null, 'execute_class');
 
@@ -85,7 +85,7 @@ class JobStateTest extends TestCase
 		$this->assertSame(0, $byClass['Tests\Fake\Rebuild']['due']);
 	}
 
-	public function test_the_totals_are_the_sum_of_the_classes()
+	public function test_the_totals_are_the_sum_of_the_classes() : void
 	{
 		$state = $this->state();
 
@@ -103,7 +103,7 @@ class JobStateTest extends TestCase
 	 * A manual job waits for someone to run it, so its age says nothing about the queue. Dated at
 	 * the start of 1970 so no real job can be older than either.
 	 */
-	public function test_the_oldest_due_date_ignores_manual_jobs()
+	public function test_the_oldest_due_date_ignores_manual_jobs() : void
 	{
 		$this->insertJob('Tests\Fake\Mail', 1, ['manual_execute' => 1]);
 		$this->insertJob('Tests\Fake\Mail', 2);
@@ -111,7 +111,7 @@ class JobStateTest extends TestCase
 		$this->assertSame(2, $this->state()['oldest_due_date']);
 	}
 
-	public function test_failed_jobs_are_counted_by_class()
+	public function test_failed_jobs_are_counted_by_class() : void
 	{
 		$failed = $this->state()['failed'];
 		$byClass = array_column($failed['by_class'], null, 'execute_class');
@@ -134,7 +134,7 @@ class JobStateTest extends TestCase
 		}));
 	}
 
-	public function test_failed_jobs_are_grouped_by_where_they_failed()
+	public function test_failed_jobs_are_grouped_by_where_they_failed() : void
 	{
 		$exception = "RuntimeException: SECRET could not reach member@example.com in "
 			. \XF::getRootDirectory() . "/src/addons/Hampel/AdminApi/Repository/Job.php:40\n"
@@ -161,7 +161,7 @@ class JobStateTest extends TestCase
 	/**
 	 * PHP prints the cause first and what it led to after "Next". The cause is the one reported.
 	 */
-	public function test_the_cause_is_read_when_one_exception_led_to_another()
+	public function test_the_cause_is_read_when_one_exception_led_to_another() : void
 	{
 		$exception = "Vendor\\Lib\\NetworkException: SECRET timed out in /opt/SECRET-account/lib/Client.php:9\n"
 			. "Stack trace:\n#0 src/addons/Hampel/AdminApi/Repository/Cron.php(5): send()\n#1 {main}\n\n"
@@ -184,7 +184,7 @@ class JobStateTest extends TestCase
 	 * The message sits between the class and the file, and whoever caused the failure may have
 	 * written it. Nothing shaped like a location inside a message is taken for one.
 	 */
-	public function test_a_location_written_into_the_message_is_not_believed()
+	public function test_a_location_written_into_the_message_is_not_believed() : void
 	{
 		$forged = [
 			"RuntimeException: bad in src/addons/SECRET-member@example.com/x.php:5\nStack trace:\n#0 {main}",
@@ -216,7 +216,7 @@ class JobStateTest extends TestCase
 		$this->assertSame('b.php', $signature['filename']);
 	}
 
-	public function test_a_message_containing_the_word_in_does_not_hide_the_real_location()
+	public function test_a_message_containing_the_word_in_does_not_hide_the_real_location() : void
 	{
 		$exception = "RuntimeException: SECRET failed in step two of three in "
 			. \XF::getRootDirectory() . "/src/XF/Job/Manager.php:260\nStack trace:\n#0 {main}";
@@ -230,7 +230,7 @@ class JobStateTest extends TestCase
 		$this->assertNull($signature['origin_add_on_id']);
 	}
 
-	public function test_every_failed_job_is_examined_and_says_so()
+	public function test_every_failed_job_is_examined_and_says_so() : void
 	{
 		$failed = $this->state()['failed'];
 
@@ -242,7 +242,7 @@ class JobStateTest extends TestCase
 	 * Asserted over the whole encoded response, so a column added to a query later is caught
 	 * wherever it surfaces.
 	 */
-	public function test_no_job_data_unique_key_or_exception_text_is_returned()
+	public function test_no_job_data_unique_key_or_exception_text_is_returned() : void
 	{
 		$json = json_encode($this->state());
 
@@ -251,7 +251,7 @@ class JobStateTest extends TestCase
 		$this->assertStringNotContainsString('example.com', $json);
 	}
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiAddOns', 'cron']);
 
@@ -262,7 +262,7 @@ class JobStateTest extends TestCase
 	 * XenForo 2.2 has no table of failed jobs and keeps no count of attempts. The queue is still
 	 * reported; what that XenForo does not record comes back as not recorded, never as zero.
 	 */
-	public function test_on_a_xenforo_without_them_attempts_and_failed_jobs_are_not_recorded()
+	public function test_on_a_xenforo_without_them_attempts_and_failed_jobs_are_not_recorded() : void
 	{
 		$this->insertJob('Tests\Fake\Job\OnAnOlderXenForo', \XF::$time - 10);
 

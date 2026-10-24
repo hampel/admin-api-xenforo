@@ -149,7 +149,7 @@ class UserUpgradesTest extends TestCase
 
 	// the summary
 
-	public function test_each_upgrade_has_its_terms_and_counts()
+	public function test_each_upgrade_has_its_terms_and_counts() : void
 	{
 		$summary = $this->summary();
 
@@ -177,7 +177,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertNull($lifetime['length_unit']);
 	}
 
-	public function test_the_window_decides_what_is_ending_and_what_has_expired()
+	public function test_the_window_decides_what_is_ending_and_what_has_expired() : void
 	{
 		$summary = $this->summary(['days' => 7]);
 
@@ -188,7 +188,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame(1, array_sum(array_column($summary['ending_by_day'], 'count')));
 	}
 
-	public function test_payments_are_counted_by_provider_and_currency_and_nothing_else_is_read()
+	public function test_payments_are_counted_by_provider_and_currency_and_nothing_else_is_read() : void
 	{
 		$summary = $this->summary();
 
@@ -199,7 +199,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertStringNotContainsString((string) $this->users['alice']->user_id, json_encode($summary['upgrades']));
 	}
 
-	public function test_the_summary_needs_its_own_permission_and_the_read_scope()
+	public function test_the_summary_needs_its_own_permission_and_the_read_scope() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiUpgRecords', 'userUpgrade']);
 		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'do not have permission');
@@ -210,7 +210,7 @@ class UserUpgradesTest extends TestCase
 
 	// the records
 
-	public function test_active_records_come_soonest_ending_first_with_how_they_were_paid()
+	public function test_active_records_come_soonest_ending_first_with_how_they_were_paid() : void
 	{
 		$result = $this->records();
 
@@ -242,12 +242,12 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame([], $bob['payments']);
 	}
 
-	public function test_nothing_a_provider_passed_in_is_returned()
+	public function test_nothing_a_provider_passed_in_is_returned() : void
 	{
 		$this->assertStringNotContainsString('SECRET', json_encode($this->records()));
 	}
 
-	public function test_a_permanent_upgrade_comes_last_with_no_end_date()
+	public function test_a_permanent_upgrade_comes_last_with_no_end_date() : void
 	{
 		$result = $this->records(['user_upgrade_id' => $this->lifetime]);
 
@@ -256,7 +256,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertNull($result['records'][0]['length_unit']);
 	}
 
-	public function test_days_answers_which_upgrades_end_soon()
+	public function test_days_answers_which_upgrades_end_soon() : void
 	{
 		$result = $this->records(['days' => 7]);
 
@@ -264,14 +264,14 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame([$this->users['alice']->user_id], array_column($result['records'], 'user_id'));
 	}
 
-	public function test_one_members_upgrades()
+	public function test_one_members_upgrades() : void
 	{
 		$result = $this->records(['user_id' => $this->users['bob']->user_id, 'user_upgrade_id' => 0]);
 
 		$this->assertSame([$this->users['bob']->user_id], array_column($result['records'], 'user_id'));
 	}
 
-	public function test_expired_records_say_when_they_were_due_to_end()
+	public function test_expired_records_say_when_they_were_due_to_end() : void
 	{
 		$result = $this->records(['state' => 'expired', 'days' => 30]);
 
@@ -285,7 +285,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame(0, $this->records(['state' => 'expired', 'days' => 7])['total']);
 	}
 
-	public function test_the_limit_says_the_answer_is_cut_short()
+	public function test_the_limit_says_the_answer_is_cut_short() : void
 	{
 		$result = $this->records(['limit' => 1]);
 
@@ -294,14 +294,14 @@ class UserUpgradesTest extends TestCase
 		$this->assertFalse($result['complete']);
 	}
 
-	public function test_a_state_that_does_not_exist_is_refused()
+	public function test_a_state_that_does_not_exist_is_refused() : void
 	{
 		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS, self::RECORD_KEY);
 
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 400, 'active or expired');
 	}
 
-	public function test_every_lookup_is_written_to_the_admin_log()
+	public function test_every_lookup_is_written_to_the_admin_log() : void
 	{
 		$this->records(['days' => 7]);
 
@@ -312,7 +312,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame('7', (string) json_decode($rows[0]['request_data'], true)['days']);
 	}
 
-	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_logged()
+	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_logged() : void
 	{
 		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'hampel_admin_api:upgrades');
@@ -329,7 +329,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_admin_log WHERE user_id = ?', self::USER_ID));
 	}
 
-	public function test_the_upgrades_scope_does_not_reach_the_ip_lookup()
+	public function test_the_upgrades_scope_does_not_reach_the_ip_lookup() : void
 	{
 		$this->actingAsAdminWithKey(array_merge(self::RECORD_PERMISSIONS, ['hampelAdminApiIps', 'user']), self::RECORD_KEY);
 

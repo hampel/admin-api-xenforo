@@ -55,7 +55,7 @@ class OptionShapeTest extends TestCase
 		return array_column($this->shape($input)['options'], null, 'option_id');
 	}
 
-	public function test_a_string_option_says_only_that_it_is_set()
+	public function test_a_string_option_says_only_that_it_is_set() : void
 	{
 		$options = $this->options();
 
@@ -78,7 +78,7 @@ class OptionShapeTest extends TestCase
 		$this->assertTrue($options['adminApiTestBlank']['is_default']);
 	}
 
-	public function test_a_flag_and_a_small_number_are_returned()
+	public function test_a_flag_and_a_small_number_are_returned() : void
 	{
 		$options = $this->options();
 
@@ -90,7 +90,7 @@ class OptionShapeTest extends TestCase
 		$this->assertTrue($options['adminApiTestLimit']['is_default']);
 	}
 
-	public function test_a_large_number_and_an_array_are_withheld()
+	public function test_a_large_number_and_an_array_are_withheld() : void
 	{
 		$options = $this->options();
 
@@ -102,7 +102,7 @@ class OptionShapeTest extends TestCase
 		$this->assertNull($options['adminApiTestList']['value']);
 	}
 
-	public function test_it_filters_by_add_on_and_counts_what_changed()
+	public function test_it_filters_by_add_on_and_counts_what_changed() : void
 	{
 		$result = $this->shape(['add_on_id' => self::ADD_ON]);
 
@@ -112,7 +112,7 @@ class OptionShapeTest extends TestCase
 		$this->assertCount(6, $result['options']);
 	}
 
-	public function test_changed_leaves_out_defaults_but_not_out_of_the_counts()
+	public function test_changed_leaves_out_defaults_but_not_out_of_the_counts() : void
 	{
 		$result = $this->shape(['add_on_id' => self::ADD_ON, 'changed' => 1]);
 
@@ -128,7 +128,7 @@ class OptionShapeTest extends TestCase
 	 * A select or radio option lists what it can be set to, in a definition that ships with the
 	 * add-on. One of those values is not a secret; anything else in the same option still is.
 	 */
-	public function test_a_string_that_is_one_of_the_options_declared_choices_is_returned()
+	public function test_a_string_that_is_one_of_the_options_declared_choices_is_returned() : void
 	{
 		$choices = "compact={{ phrase('x') }}\nverbose={{ phrase('y') }}\n7={{ phrase('z') }}";
 		$this->insertOption('adminApiTestChoice', 'string', 'verbose', 'compact', 'select', $choices);
@@ -155,7 +155,7 @@ class OptionShapeTest extends TestCase
 	 * Only the members the definition names are listed, each under the ordinary rule. A member
 	 * allowed only by "*" has a key that is data, and is left out along with its value.
 	 */
-	public function test_an_array_option_reports_the_members_its_definition_declares()
+	public function test_an_array_option_reports_the_members_its_definition_declares() : void
 	{
 		$value = '{"enabled":true,"limit":25,"host":"SECRET-mail.example.com","inner":{"a":"SECRET"},'
 			. '"SECRET-undeclared-key":"SECRET-value","absent_is_fine":null}';
@@ -179,7 +179,7 @@ class OptionShapeTest extends TestCase
 		$this->assertNull($option['members']['inner']['value']);
 	}
 
-	public function test_an_array_option_that_declares_no_members_reports_none()
+	public function test_an_array_option_that_declares_no_members_reports_none() : void
 	{
 		$this->assertNull($this->options(['add_on_id' => self::ADD_ON])['adminApiTestList']['members']);
 	}
@@ -189,7 +189,7 @@ class OptionShapeTest extends TestCase
 	 * supplies, and otherwise withheld. The host, the login and the password are not members the
 	 * definition declares, so they are not listed at all.
 	 */
-	public function test_the_mail_transport_type_is_a_known_choice_and_nothing_else_about_it_is_listed()
+	public function test_the_mail_transport_type_is_a_known_choice_and_nothing_else_about_it_is_listed() : void
 	{
 		$options = $this->options(['add_on_id' => 'XF']);
 
@@ -211,7 +211,7 @@ class OptionShapeTest extends TestCase
 	 * the option's own definition lists it, and that is recomputed here from the table, not taken
 	 * from the endpoint.
 	 */
-	public function test_no_string_is_returned_for_any_option_unless_its_definition_lists_it()
+	public function test_no_string_is_returned_for_any_option_unless_its_definition_lists_it() : void
 	{
 		$result = $this->shape();
 		$json = json_encode($result);
@@ -272,7 +272,7 @@ class OptionShapeTest extends TestCase
 		$this->assertGreaterThan(0, $strings, 'no option on this forum exercised the choice rule');
 	}
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiConfig', 'hampelAdminApiJobs', 'option']);
 

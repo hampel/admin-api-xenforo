@@ -18,7 +18,7 @@ class TextScrubberTest extends TestCase
 	 * The report this exists for: an HTTP client's exception quotes the URL it called, and a
 	 * webhook's URL is its credential.
 	 */
-	public function test_a_webhook_url_in_a_message_keeps_only_where_it_points()
+	public function test_a_webhook_url_in_a_message_keeps_only_where_it_points() : void
 	{
 		$removed = 0;
 		$text = $this->scrubber()->scrub(
@@ -33,7 +33,7 @@ class TextScrubberTest extends TestCase
 		$this->assertSame(1, $removed);
 	}
 
-	public function test_a_url_with_a_login_or_a_secret_parameter_is_cut_down()
+	public function test_a_url_with_a_login_or_a_secret_parameter_is_cut_down() : void
 	{
 		$scrubber = $this->scrubber();
 
@@ -50,7 +50,7 @@ class TextScrubberTest extends TestCase
 		$this->assertSame('could not reach unix:///run/redis.sock', $scrubber->scrub('could not reach unix:///run/redis.sock'));
 	}
 
-	public function test_an_ordinary_url_and_ordinary_text_are_left_alone()
+	public function test_an_ordinary_url_and_ordinary_text_are_left_alone() : void
 	{
 		$removed = 0;
 
@@ -76,7 +76,7 @@ class TextScrubberTest extends TestCase
 	 * What the forum itself holds as a secret is removed wherever it turns up, whatever it looks
 	 * like - which is the only way to catch one that has no recognisable shape.
 	 */
-	public function test_a_value_the_forum_holds_as_a_secret_is_removed_wherever_it_appears()
+	public function test_a_value_the_forum_holds_as_a_secret_is_removed_wherever_it_appears() : void
 	{
 		$removed = 0;
 		$text = $this->scrubber(['plain-SECRET-words', 'short'])->scrub(
@@ -88,7 +88,7 @@ class TextScrubberTest extends TestCase
 		$this->assertSame(2, $removed);
 	}
 
-	public function test_a_secret_that_is_a_credentials_name_does_not_hide_the_value_after_it()
+	public function test_a_secret_that_is_a_credentials_name_does_not_hide_the_value_after_it() : void
 	{
 		// a sandbox's database password is "password", which took the name out of every
 		// "password: value" before the name rule could see it
@@ -101,14 +101,14 @@ class TextScrubberTest extends TestCase
 		$this->assertSame('the [withheld] was [withheld]', $this->scrubber(['password'])->scrub('the password was password'));
 	}
 
-	public function test_a_secret_that_contains_another_is_removed_whole()
+	public function test_a_secret_that_contains_another_is_removed_whole() : void
 	{
 		$text = $this->scrubber(['SECRET-inner', 'outer-SECRET-inner-outer'])->scrub('saw outer-SECRET-inner-outer here');
 
 		$this->assertSame('saw [withheld] here', $text);
 	}
 
-	public function test_a_credential_by_its_shape_or_its_parameter_name()
+	public function test_a_credential_by_its_shape_or_its_parameter_name() : void
 	{
 		$scrubber = $this->scrubber();
 
@@ -135,7 +135,7 @@ class TextScrubberTest extends TestCase
 	 * Credentials a message quotes by name rather than in a URL: a request's body or headers as an
 	 * HTTP client reports them, and a login written out.
 	 */
-	public function test_a_credential_written_as_a_name_and_a_value_or_a_header()
+	public function test_a_credential_written_as_a_name_and_a_value_or_a_header() : void
 	{
 		$scrubber = $this->scrubber();
 
@@ -171,7 +171,7 @@ class TextScrubberTest extends TestCase
 	 * Core records a query string's and a form's fields by name and masks only a password, so a
 	 * field named like a credential is withheld whatever its value looks like.
 	 */
-	public function test_a_request_field_named_like_a_credential_is_withheld_whole()
+	public function test_a_request_field_named_like_a_credential_is_withheld_whole() : void
 	{
 		$removed = 0;
 		$request = $this->scrubber()->scrubAll([
@@ -199,7 +199,7 @@ class TextScrubberTest extends TestCase
 		$this->assertSame(4, $removed);
 	}
 
-	public function test_every_string_in_a_request_is_scrubbed_and_its_keys_are_not()
+	public function test_every_string_in_a_request_is_scrubbed_and_its_keys_are_not() : void
 	{
 		$removed = 0;
 		$request = $this->scrubber(['plain-SECRET-words'])->scrubAll([
@@ -220,7 +220,7 @@ class TextScrubberTest extends TestCase
 	 * A pattern that cannot get through the text cannot say what it would have taken out, so none
 	 * of the text is returned - the URL's password included.
 	 */
-	public function test_text_past_pcres_limits_is_withheld_whole()
+	public function test_text_past_pcres_limits_is_withheld_whole() : void
 	{
 		$jit = ini_get('pcre.jit');
 		$limit = ini_get('pcre.backtrack_limit');
@@ -249,7 +249,7 @@ class TextScrubberTest extends TestCase
 	 * A marker is not itself taken for a credential, so text scrubbed twice comes out the same and
 	 * the second pass counts nothing - a caller adding up `scrubbed` would otherwise over-count.
 	 */
-	public function test_scrubbing_what_was_already_scrubbed_changes_and_counts_nothing()
+	public function test_scrubbing_what_was_already_scrubbed_changes_and_counts_nothing() : void
 	{
 		$scrubber = $this->scrubber(['plain-SECRET-words']);
 		$first = 0;

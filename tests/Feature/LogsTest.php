@@ -57,7 +57,7 @@ class LogsTest extends TestCase
 		]);
 	}
 
-	public function test_without_a_log_it_lists_every_one_with_its_count_in_the_window()
+	public function test_without_a_log_it_lists_every_one_with_its_count_in_the_window() : void
 	{
 		$this->insertAdminLog(1000, 1, 'options/');
 		$this->insertAdminLog(2000, 1, 'options/');
@@ -77,7 +77,7 @@ class LogsTest extends TestCase
 		$this->assertArrayNotHasKey('oldest_date', $admin);
 	}
 
-	public function test_a_series_cut_to_the_most_recent_days_says_so()
+	public function test_a_series_cut_to_the_most_recent_days_says_so() : void
 	{
 		$this->insertAdminLog(1000, 1, 'options/');
 
@@ -93,7 +93,7 @@ class LogsTest extends TestCase
 	 * Every declared log is read, so a misspelt table or column fails here rather than on a
 	 * forum.
 	 */
-	public function test_every_log_can_be_read_in_full()
+	public function test_every_log_can_be_read_in_full() : void
 	{
 		foreach (array_keys(Logs::LOGS) AS $logId)
 		{
@@ -104,7 +104,7 @@ class LogsTest extends TestCase
 		}
 	}
 
-	public function test_the_admin_log_is_counted_by_section_and_never_by_its_url()
+	public function test_the_admin_log_is_counted_by_section_and_never_by_its_url() : void
 	{
 		$this->insertAdminLog(1000, 1, 'options/groups/SECRET-group/update');
 		$this->insertAdminLog(1100, 2, 'options/');
@@ -125,7 +125,7 @@ class LogsTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_a_moderator_action_is_named_only_if_core_has_a_phrase_for_it()
+	public function test_a_moderator_action_is_named_only_if_core_has_a_phrase_for_it() : void
 	{
 		$this->insertModeratorLog(1000, 1, 'post', 'edit');
 		$this->insertModeratorLog(1100, 1, 'profile_post', 'edit');
@@ -146,7 +146,7 @@ class LogsTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_guests_are_counted_apart_from_members()
+	public function test_guests_are_counted_apart_from_members() : void
 	{
 		$db = $this->app()->db();
 		// the log is unique on content type and id
@@ -171,7 +171,7 @@ class LogsTest extends TestCase
 		$this->assertSame([['content_type' => 'user', 'count' => 3, 'newest_date' => 1200]], $result['by_content_type']);
 	}
 
-	public function test_a_bounce_with_no_action_is_counted_as_none()
+	public function test_a_bounce_with_no_action_is_counted_as_none() : void
 	{
 		$db = $this->app()->db();
 		foreach ([['bounce', 'hard'], ['delay', '']] AS $i => [$type, $action])
@@ -190,7 +190,7 @@ class LogsTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	public function test_a_log_has_a_series_by_day_and_its_whole_extent()
+	public function test_a_log_has_a_series_by_day_and_its_whole_extent() : void
 	{
 		$this->insertAdminLog(1000, 1, 'options/');
 		$this->insertAdminLog(86400 + 5, 1, 'options/');
@@ -210,28 +210,28 @@ class LogsTest extends TestCase
 		$this->assertTrue($result['window']['precedes_log']);
 	}
 
-	public function test_a_log_that_does_not_exist_is_refused_with_the_names_that_do()
+	public function test_a_log_that_does_not_exist_is_refused_with_the_names_that_do() : void
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['log' => 'nope']), 400, 'admin, moderator');
 	}
 
 	// access
 
-	public function test_it_needs_its_own_permission()
+	public function test_it_needs_its_own_permission() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs']);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 	}
 
-	public function test_a_member_scope_does_not_reach_it()
+	public function test_a_member_scope_does_not_reach_it() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiLogs'], ['scopes' => ['hampel_admin_api:ips' => true]]);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:read');
 	}
 
-	public function test_a_super_user_key_is_refused_here_too()
+	public function test_a_super_user_key_is_refused_here_too() : void
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiLogs'], ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
 
