@@ -68,7 +68,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
 	}
 
-	private function insertError($date, $type, $filename, $line, $message, $trace, $state, $userId = self::SECRET_USER)
+	private function insertError(int $date, string $type, string $filename, int $line, string $message, string $trace, string $state, ?int $userId = self::SECRET_USER) : void
 	{
 		$this->app()->db()->insert('xf_error_log', [
 			'exception_date' => $date,
@@ -85,14 +85,24 @@ class ErrorLogSummaryTest extends TestCase
 		$this->ids[$date] = (int) $this->app()->db()->lastInsertId();
 	}
 
-	private function summary(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function summary(array $input = []) : array
 	{
 		$reply = $this->dispatch(self::ROUTE, 'api', $input + ['since' => self::SINCE, 'until' => self::UNTIL]);
 
 		return $this->replyApiResult($reply);
 	}
 
-	private function signature(array $summary, $filename)
+	/**
+	 * @param array<string, mixed> $summary
+	 * 
+	 * @return array<string, mixed>|null
+	 */
+	private function signature(array $summary, string $filename) : ?array
 	{
 		foreach ($summary['signatures'] AS $signature)
 		{

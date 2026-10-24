@@ -9,6 +9,7 @@ class CronStateTest extends TestCase
 
 	private const ROUTE = 'admin-api/cron/';
 
+	/** @var int */
 	private $now;
 
 	protected function setUp() : void
@@ -26,7 +27,7 @@ class CronStateTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiJobs']);
 	}
 
-	private function insertEntry($id, $nextRun, $active, $addOnId)
+	private function insertEntry(string $id, int $nextRun, int $active, string $addOnId) : void
 	{
 		$this->app()->db()->insert('xf_cron_entry', [
 			'entry_id' => $id,
@@ -39,12 +40,14 @@ class CronStateTest extends TestCase
 		]);
 	}
 
-	private function state()
+	/** @return array<string, mixed> */
+	private function state() : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
 
-	private function entries()
+	/** @return array<string, array<string, mixed>> Keyed by entry id */
+	private function entries() : array
 	{
 		return array_column($this->state()['entries'], null, 'entry_id');
 	}

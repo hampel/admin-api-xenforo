@@ -20,19 +20,21 @@ class ApprovalQueueTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiApproval']);
 	}
 
-	private function state()
+	/** @return array<string, mixed> */
+	private function state() : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
 
-	private function queue($type, $date)
+	private function queue(string $type, int $date) : void
 	{
 		static $id = 4000000000;
 
 		$this->app()->db()->insert('xf_approval_queue', ['content_type' => $type, 'content_id' => $id--, 'content_date' => $date]);
 	}
 
-	private function countFor(array $state, $type)
+	/** @param array<string, mixed> $state */
+	private function countFor(array $state, ?string $type) : int
 	{
 		foreach ($state['by_content_type'] AS $group)
 		{

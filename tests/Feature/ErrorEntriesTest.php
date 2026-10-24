@@ -42,7 +42,7 @@ class ErrorEntriesTest extends TestCase
 		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
 	}
 
-	private function insertError($date, $type, $filename, $line)
+	private function insertError(int $date, string $type, string $filename, int $line) : int
 	{
 		$db = $this->app()->db();
 
@@ -62,7 +62,12 @@ class ErrorEntriesTest extends TestCase
 		return (int) $db->lastInsertId();
 	}
 
-	private function entries(array $input)
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function entries(array $input) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}

@@ -10,7 +10,14 @@ use Tests\TestCase;
  */
 class RedactorTest extends TestCase
 {
-	private function redact($path, $value, $trusted = true, array $known = [], array $hide = [], array $show = [])
+	/**
+	 * @param string[] $known
+	 * @param string[] $hide
+	 * @param string[] $show
+	 * 
+	 * @return array{value: mixed, redactions: list<array<string, mixed>>}
+	 */
+	private function redact(string $path, mixed $value, bool $trusted = true, array $known = [], array $hide = [], array $show = []) : array
 	{
 		return (new Redactor($known, $hide, $show))->redact($path, $value, $trusted);
 	}
@@ -34,7 +41,12 @@ class RedactorTest extends TestCase
 		$this->assertSame([['path' => '', 'segments' => [], 'reason' => Redactor::NAME, 'set' => true]], $this->redact('apiKey', 'SECRET')['redactions']);
 	}
 
-	private function reasons(array $result)
+	/**
+	 * @param array{value: mixed, redactions: list<array<string, mixed>>} $result
+	 * 
+	 * @return array<string, string> Path => reason
+	 */
+	private function reasons(array $result) : array
 	{
 		return array_column($result['redactions'], 'reason', 'path');
 	}
@@ -50,6 +62,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['value' => false, 'redactions' => []], $this->redact('enabled', false));
 	}
 
+	/** @return list<array{string}> */
 	public static function secretNames() : array
 	{
 		return array_map(function ($name) { return [$name]; }, [
@@ -60,7 +73,7 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('secretNames')]
-	public function test_a_name_that_reads_like_a_credential_is_withheld($name) : void
+	public function test_a_name_that_reads_like_a_credential_is_withheld(string $name) : void
 	{
 		$result = $this->redact($name, 'SECRET');
 
@@ -68,6 +81,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['' => Redactor::NAME], $this->reasons($result));
 	}
 
+	/** @return list<array{string}> */
 	public static function innocentNames() : array
 	{
 		return array_map(function ($name) { return [$name]; }, [
@@ -82,7 +96,7 @@ class RedactorTest extends TestCase
 	 * containing token is withheld, and that is the right way to be wrong.
 	 */
 	#[DataProvider('innocentNames')]
-	public function test_a_name_that_only_resembles_one_is_shown($name) : void
+	public function test_a_name_that_only_resembles_one_is_shown(string $name) : void
 	{
 		if ($name === 'tokenise')
 		{
@@ -208,6 +222,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['serviceValue' => Redactor::UNTRUSTED], $this->reasons($result));
 	}
 
+	/** @return array<string, array{string}> */
 	public static function secretValues() : array
 	{
 		return [
@@ -223,7 +238,7 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('secretValues')]
-	public function test_a_value_that_looks_like_a_credential_is_withheld_whatever_it_is_called($value) : void
+	public function test_a_value_that_looks_like_a_credential_is_withheld_whatever_it_is_called(string $value) : void
 	{
 		$result = $this->redact('harmlessLookingName', $value);
 
@@ -231,6 +246,7 @@ class RedactorTest extends TestCase
 		$this->assertSame(['' => Redactor::VALUE], $this->reasons($result));
 	}
 
+	/** @return array<string, array{string}> */
 	public static function ordinaryLongValues() : array
 	{
 		return [
@@ -245,7 +261,7 @@ class RedactorTest extends TestCase
 	}
 
 	#[DataProvider('ordinaryLongValues')]
-	public function test_a_long_ordinary_value_is_not_mistaken_for_one($value) : void
+	public function test_a_long_ordinary_value_is_not_mistaken_for_one(string $value) : void
 	{
 		$this->assertSame($value, $this->redact('harmlessLookingName', $value)['value']);
 	}

@@ -19,7 +19,8 @@ class SecretsDeclarationTest extends TestCase
 		'Redaction/Registry.php' => 'redact and show - names of settings to withhold or to show',
 	];
 
-	private function declaration()
+	/** @return array<string, mixed> Add-on id => what it declares */
+	private function declaration() : array
 	{
 		$declarations = [];
 		Listener::adminApiRedaction($declarations);
@@ -27,7 +28,7 @@ class SecretsDeclarationTest extends TestCase
 		return $declarations;
 	}
 
-	private function root()
+	private function root() : string
 	{
 		return dirname(__DIR__, 2);
 	}

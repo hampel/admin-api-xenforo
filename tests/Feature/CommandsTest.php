@@ -17,7 +17,12 @@ class CommandsTest extends TestCase
 {
 	use UsesDatabaseTransactions;
 
-	private function validate(array $input = ['--unattended' => true])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array{int, string} The exit code and what was printed
+	 */
+	private function validate(array $input = ['--unattended' => true]) : array
 	{
 		$tester = new CommandTester(new Validate());
 		$exit = $tester->execute($input);
@@ -25,7 +30,7 @@ class CommandsTest extends TestCase
 		return [$exit, $tester->getDisplay()];
 	}
 
-	private function config()
+	private function config() : string
 	{
 		$tester = new CommandTester(new Config());
 		$tester->execute([]);
@@ -33,8 +38,13 @@ class CommandsTest extends TestCase
 		return $tester->getDisplay();
 	}
 
-	/** A new administrator with the given permissions, or a plain member, and a key bound to them. */
-	private function plantKey(array $permissions, array $keyValues = [], $isAdmin = true, $isSuperAdmin = false)
+	/**
+	 * A new administrator with the given permissions, or a plain member, and a key bound to them.
+	 * 
+	 * @param string[] $permissions
+	 * @param array<string, mixed> $keyValues
+	 */
+	private function plantKey(array $permissions, array $keyValues = [], bool $isAdmin = true, bool $isSuperAdmin = false) : \XF\Entity\ApiKey
 	{
 		// a user of its own: an existing member is never altered, even inside the transaction
 		$user = $isAdmin
@@ -100,8 +110,12 @@ class CommandsTest extends TestCase
 	/**
 	 * A forum on which no key holds either scope, whatever keys the real one has: the check is
 	 * given none to look at, so no real key or grant is touched to arrange it.
+	 *
+	 * @param array<string, mixed> $input
+	 *
+	 * @return array{int, string}
 	 */
-	private function validateWithNoKeys(array $input = ['--unattended' => true])
+	private function validateWithNoKeys(array $input = ['--unattended' => true]) : array
 	{
 		$command = new class extends Validate
 		{
@@ -152,8 +166,12 @@ class CommandsTest extends TestCase
 	/**
 	 * Judged on the keys a test planted and no others: what the forum's own keys can or cannot do
 	 * is the forum's business, and changes under the suite.
+	 *
+	 * @param array<string, mixed> $input
+	 *
+	 * @return array{int, string}
 	 */
-	private function validateWithPlantedKeysOnly(array $input)
+	private function validateWithPlantedKeysOnly(array $input) : array
 	{
 		$command = new class extends Validate
 		{
@@ -475,7 +493,7 @@ class CommandsTest extends TestCase
 	{
 		$command = new class extends Config
 		{
-			public function render($output)
+			public function render(\Symfony\Component\Console\Output\OutputInterface $output) : void
 			{
 				$this->report = $output;
 				$this->detail('keys', '');

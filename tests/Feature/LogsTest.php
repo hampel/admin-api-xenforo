@@ -22,12 +22,17 @@ class LogsTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiLogs']);
 	}
 
-	private function logs(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function logs(array $input = []) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input + self::WINDOW));
 	}
 
-	private function insertAdminLog($date, $userId, $url)
+	private function insertAdminLog(int $date, int $userId, string $url) : void
 	{
 		$this->app()->db()->insert('xf_admin_log', [
 			'user_id' => $userId,
@@ -38,7 +43,7 @@ class LogsTest extends TestCase
 		]);
 	}
 
-	private function insertModeratorLog($date, $userId, $contentType, $action)
+	private function insertModeratorLog(int $date, int $userId, string $contentType, string $action) : void
 	{
 		$this->app()->db()->insert('xf_moderator_log', [
 			'log_date' => $date,
@@ -238,7 +243,12 @@ class LogsTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 	}
 
-	private function sortByCountThenDate(array $groups)
+	/**
+	 * @param list<array<string, mixed>> $groups
+	 * 
+	 * @return list<array<string, mixed>>
+	 */
+	private function sortByCountThenDate(array $groups) : array
 	{
 		usort($groups, function ($a, $b)
 		{

@@ -61,7 +61,7 @@ class IpUsersTest extends TestCase
 		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
 	}
 
-	private function logIp($user, $ip, $date)
+	private function logIp(\XF\Entity\User|int $user, string $ip, int $date) : void
 	{
 		$this->app()->db()->insert('xf_ip', [
 			'user_id' => is_int($user) ? $user : $user->user_id,
@@ -73,12 +73,22 @@ class IpUsersTest extends TestCase
 		]);
 	}
 
-	private function lookup(array $input)
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function lookup(array $input) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}
 
-	private function userIds(array $result)
+	/**
+	 * @param array<string, mixed> $result
+	 * 
+	 * @return list<int>
+	 */
+	private function userIds(array $result) : array
 	{
 		return array_column($result['users'], 'user_id');
 	}
@@ -178,7 +188,8 @@ class IpUsersTest extends TestCase
 
 	// the admin log
 
-	private function adminLogRows()
+	/** @return list<array<string, mixed>> */
+	private function adminLogRows() : array
 	{
 		return $this->app()->db()->fetchAll(
 			'SELECT user_id, request_url, request_data FROM xf_admin_log WHERE user_id = ? ORDER BY admin_log_id',

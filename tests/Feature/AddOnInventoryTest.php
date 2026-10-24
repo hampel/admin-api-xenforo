@@ -8,7 +8,8 @@ class AddOnInventoryTest extends TestCase
 
 	private const ROUTE = 'admin-api/add-ons/';
 
-	private function inventory()
+	/** @return array<string, mixed> */
+	private function inventory() : array
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiAddOns']);
 
@@ -69,7 +70,7 @@ class AddOnInventoryTest extends TestCase
 	 * never finished is not installed, and still has a record saying what it was doing.
 	 */
 	#[\PHPUnit\Framework\Attributes\DataProvider('pendingActions')]
-	public function test_an_unfinished_action_is_reported($stored, $processing, $expected) : void
+	public function test_an_unfinished_action_is_reported(?string $stored, int $processing, ?string $expected) : void
 	{
 		$this->app()->db()->insert('xf_addon', [
 			'addon_id' => 'Tests/Pending',
@@ -90,6 +91,7 @@ class AddOnInventoryTest extends TestCase
 		$this->assertSame($expected, $addOns['Tests/Pending']['pending_action']);
 	}
 
+	/** @return array<string, array{?string, int, ?string}> */
 	public static function pendingActions() : array
 	{
 		return [

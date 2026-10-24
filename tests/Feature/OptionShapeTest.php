@@ -28,7 +28,7 @@ class OptionShapeTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiOptions']);
 	}
 
-	private function insertOption($id, $dataType, $value, $default, $format = 'textbox', $params = '', $subOptions = null)
+	private function insertOption(string $id, string $dataType, string $value, string $default, string $format = 'textbox', string $params = '', ?string $subOptions = null) : void
 	{
 		$this->app()->db()->insert('xf_option', [
 			'option_id' => $id,
@@ -45,12 +45,22 @@ class OptionShapeTest extends TestCase
 		]);
 	}
 
-	private function shape(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function shape(array $input = []) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}
 
-	private function options(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, array<string, mixed>> Keyed by option id
+	 */
+	private function options(array $input = []) : array
 	{
 		return array_column($this->shape($input)['options'], null, 'option_id');
 	}

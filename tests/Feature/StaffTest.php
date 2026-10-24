@@ -93,7 +93,12 @@ class StaffTest extends TestCase
 		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
 	}
 
-	private function get($route, array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function get(string $route, array $input = []) : array
 	{
 		return $this->replyApiResult($this->dispatch($route, 'api', $input));
 	}
@@ -206,7 +211,8 @@ class StaffTest extends TestCase
 
 	// both
 
-	private function adminLogRows()
+	/** @return list<array<string, mixed>> */
+	private function adminLogRows() : array
 	{
 		return $this->app()->db()->fetchAll(
 			'SELECT request_url, request_data FROM xf_admin_log WHERE user_id = ? ORDER BY admin_log_id',

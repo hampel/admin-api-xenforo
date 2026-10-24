@@ -37,19 +37,25 @@ class LogEntriesTest extends TestCase
 		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
 	}
 
-	private function entries(array $input)
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function entries(array $input) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input + self::WINDOW));
 	}
 
-	private function insert($table, array $row)
+	/** @param array<string, mixed> $row */
+	private function insert(string $table, array $row) : int
 	{
 		$this->app()->db()->insert($table, $row);
 
 		return (int) $this->app()->db()->lastInsertId();
 	}
 
-	private function moderatorLog($date, $contentType, $contentId, $action)
+	private function moderatorLog(int $date, string $contentType, int $contentId, string $action) : int
 	{
 		return $this->insert('xf_moderator_log', [
 			'log_date' => $date, 'user_id' => $this->staff->user_id, 'ip_address' => inet_pton('203.0.113.5'),
@@ -140,7 +146,7 @@ class LogEntriesTest extends TestCase
 		$this->assertStringNotContainsString('SECRET', json_encode($result));
 	}
 
-	private function userChange($date, $field, $old, $new, $protected = 0)
+	private function userChange(int $date, string $field, string $old, string $new, int $protected = 0) : int
 	{
 		return $this->insert('xf_change_log', [
 			'content_type' => 'user', 'content_id' => $this->member->user_id, 'edit_user_id' => $this->staff->user_id,
@@ -320,7 +326,8 @@ class LogEntriesTest extends TestCase
 
 	// access and the admin log line
 
-	private function adminLogRows()
+	/** @return list<array<string, mixed>> */
+	private function adminLogRows() : array
 	{
 		return $this->app()->db()->fetchAll(
 			'SELECT request_url, request_data FROM xf_admin_log WHERE user_id = ? ORDER BY admin_log_id',

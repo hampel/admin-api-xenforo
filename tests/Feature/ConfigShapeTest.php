@@ -22,12 +22,22 @@ class ConfigShapeTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiConfig']);
 	}
 
-	private function shape(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function shape(array $input = []) : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}
 
-	private function settings(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, array<string, mixed>> Keyed by the setting's key
+	 */
+	private function settings(array $input = []) : array
 	{
 		return array_column($this->shape($input)['settings'], null, 'key');
 	}

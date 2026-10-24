@@ -21,6 +21,7 @@ class JobStateTest extends TestCase
 	private const SECRET_KEY = 'SECRETuserRename424242';
 	private const SECRET_EXCEPTION = 'SECRET-EXCEPTION could not mail member@example.com';
 
+	/** @var int */
 	private $now;
 
 	protected function setUp() : void
@@ -41,7 +42,8 @@ class JobStateTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiJobs']);
 	}
 
-	private function insertJob($class, $triggerDate, array $values = [])
+	/** @param array<string, mixed> $values */
+	private function insertJob(string $class, int $triggerDate, array $values = []) : void
 	{
 		$this->app()->db()->insert('xf_job', $values + [
 			'execute_class' => $class,
@@ -51,7 +53,7 @@ class JobStateTest extends TestCase
 		]);
 	}
 
-	private function insertFailed($class, $failDate, $exception = self::SECRET_EXCEPTION)
+	private function insertFailed(string $class, int $failDate, string $exception = self::SECRET_EXCEPTION) : void
 	{
 		$this->app()->db()->insert('xf_failed_job', [
 			'execute_class' => $class,
@@ -61,7 +63,8 @@ class JobStateTest extends TestCase
 		]);
 	}
 
-	private function state()
+	/** @return array<string, mixed> */
+	private function state() : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}
@@ -126,7 +129,8 @@ class JobStateTest extends TestCase
 		$this->assertLessThanOrEqual($this->now - 500, $failed['oldest_date']);
 	}
 
-	private function failedSignatures($class)
+	/** @return list<array<string, mixed>> */
+	private function failedSignatures(string $class) : array
 	{
 		return array_values(array_filter($this->state()['failed']['signatures'], function ($signature) use ($class)
 		{

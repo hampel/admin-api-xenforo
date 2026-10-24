@@ -23,12 +23,12 @@ class FaultTest extends TestCase
 	private const NODE = 987650001;
 	private const OTHER_NODE = 987650002;
 
-	private function manager()
+	private function manager() : Manager
 	{
 		return new Manager($this->app());
 	}
 
-	private function plantRecord($batch, $type, $id)
+	private function plantRecord(string $batch, string $type, int|string $id) : void
 	{
 		$this->app()->db()->insert(Manager::TABLE, [
 			'batch' => $batch,
@@ -38,12 +38,12 @@ class FaultTest extends TestCase
 		]);
 	}
 
-	private function recordCount()
+	private function recordCount() : int
 	{
 		return (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM ' . Manager::TABLE);
 	}
 
-	private function plantError($nodeId)
+	private function plantError(int $nodeId) : int
 	{
 		$this->app()->db()->insert('xf_error_log', [
 			'exception_date' => 1500,
@@ -61,7 +61,7 @@ class FaultTest extends TestCase
 		return (int) $this->app()->db()->lastInsertId();
 	}
 
-	private function errorExists($errorId)
+	private function errorExists(int $errorId) : bool
 	{
 		return (bool) $this->app()->db()->fetchOne('SELECT 1 FROM xf_error_log WHERE error_id = ?', $errorId);
 	}
@@ -209,14 +209,20 @@ class FaultTest extends TestCase
 
 	// the faults that are rows and nothing else, which can be planted here and rolled back
 
-	private function armRows($batch = 'rows')
+	/** @return array<string, mixed> */
+	private function armRows(string $batch = 'rows') : array
 	{
 		$this->setConfig('hampelAdminApi', ['faults' => true]);
 
 		return $this->manager()->arm($batch, 0, ['jobs', 'cron', 'add-on']);
 	}
 
-	private function endpoint($route, array $permissions)
+	/**
+	 * @param string[] $permissions
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function endpoint(string $route, array $permissions) : array
 	{
 		$this->actingAsAdminWithKey($permissions);
 

@@ -9,7 +9,8 @@ use Tests\TestCase;
  */
 class TextScrubberTest extends TestCase
 {
-	private function scrubber(array $known = [])
+	/** @param string[] $known */
+	private function scrubber(array $known = []) : TextScrubber
 	{
 		return new TextScrubber(new Redactor(), $known);
 	}

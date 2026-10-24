@@ -6,6 +6,7 @@ use Tests\TestCase;
 
 class ValueShapeTest extends TestCase
 {
+	/** @return array<string, array{mixed, string}> */
 	public static function disclosed() : array
 	{
 		return [
@@ -20,6 +21,7 @@ class ValueShapeTest extends TestCase
 		];
 	}
 
+	/** @return array<string, array{mixed, string}> */
 	public static function withheld() : array
 	{
 		return [
@@ -38,7 +40,7 @@ class ValueShapeTest extends TestCase
 	}
 
 	#[DataProvider('disclosed')]
-	public function test_a_boolean_a_null_and_a_small_number_are_returned($value, $type) : void
+	public function test_a_boolean_a_null_and_a_small_number_are_returned(mixed $value, string $type) : void
 	{
 		$shape = (new ValueShape())->describe($value);
 
@@ -48,7 +50,7 @@ class ValueShapeTest extends TestCase
 	}
 
 	#[DataProvider('withheld')]
-	public function test_everything_else_is_withheld($value, $type) : void
+	public function test_everything_else_is_withheld(mixed $value, string $type) : void
 	{
 		if ($type === 'closure')
 		{

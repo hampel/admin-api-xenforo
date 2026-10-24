@@ -226,9 +226,11 @@ The rules that hold in every tier, and the aggregate tier's own:
   the reason, as the `accessToken()` guard is, rather than removing the guard. Types are
   declared in docblocks, not in signatures: a native type on a method XenForo or Symfony
   declares untyped is a fatal on load, and 7.4 has no `mixed` or union types.
-- **The suite is analysed apart, at level 5**: `vendor/bin/phpstan analyse -c phpstan-tests.neon`.
+- **The suite is analysed apart, at level 6**: `vendor/bin/phpstan analyse -c phpstan-tests.neon`.
   Read as 7.4, PHPUnit 12 cannot be parsed, so `tests/` has a config without the floor, and with
-  the test framework's fragment, which types the entities a test builds.
+  the test framework's fragment, which types the entities a test builds. The suite only runs on
+  PHP 8, so a test's own methods take native types; a method overriding the add-on's, or
+  XenForo's, still follows the parent.
 - **`Seed/` holds seeders for `Hampel/Seeder`, which is not a dependency.** They are analysed with
   the add-on, kept to 7.4 like it, and removed from a release by `build.json`. They seed the
   server error log, so they run in a sandbox: `TESTING.md` has how.

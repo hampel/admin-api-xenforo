@@ -46,7 +46,7 @@ class OnlineTest extends TestCase
 		$this->actingAsAdminWithKey(['hampelAdminApiOnline']);
 	}
 
-	private function insertSession($userId, $ip, $robot, $viewDate, $state = 'valid')
+	private function insertSession(int $userId, string $ip, string $robot, int $viewDate, string $state = 'valid') : void
 	{
 		$binary = inet_pton($ip);
 
@@ -63,7 +63,8 @@ class OnlineTest extends TestCase
 		]);
 	}
 
-	private function state()
+	/** @return array<string, mixed> */
+	private function state() : array
 	{
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}

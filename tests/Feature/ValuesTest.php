@@ -34,7 +34,7 @@ class ValuesTest extends TestCase
 		$this->insertOption('adminApiTestForeignFlag', self::UNTRUSTED, 'boolean', '1');
 	}
 
-	private function insertOption($id, $addOnId, $dataType, $value)
+	private function insertOption(string $id, string $addOnId, string $dataType, string $value) : void
 	{
 		$this->app()->db()->insert('xf_option', [
 			'option_id' => $id,
@@ -51,21 +51,39 @@ class ValuesTest extends TestCase
 		]);
 	}
 
-	private function options(array $input = [], array $permissions = ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], array $key = self::BOTH_SCOPES)
+	/**
+	 * @param array<string, mixed> $input
+	 * @param string[] $permissions
+	 * @param array<string, mixed> $key
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function options(array $input = [], array $permissions = ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], array $key = self::BOTH_SCOPES) : array
 	{
 		$this->actingAsAdminWithKey($permissions, $key);
 
 		return $this->replyApiResult($this->dispatch('admin-api/options/', 'api', $input));
 	}
 
-	private function config(array $key = self::BOTH_SCOPES, array $permissions = ['hampelAdminApiConfig', 'hampelAdminApiValues'])
+	/**
+	 * @param array<string, mixed> $key
+	 * @param string[] $permissions
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function config(array $key = self::BOTH_SCOPES, array $permissions = ['hampelAdminApiConfig', 'hampelAdminApiValues']) : array
 	{
 		$this->actingAsAdminWithKey($permissions, $key);
 
 		return $this->replyApiResult($this->dispatch('admin-api/config/', 'api'));
 	}
 
-	private function byId(array $result)
+	/**
+	 * @param array<string, mixed> $result
+	 * 
+	 * @return array<string, array<string, mixed>> Keyed by option id
+	 */
+	private function byId(array $result) : array
 	{
 		return array_column($result['options'], null, 'option_id');
 	}

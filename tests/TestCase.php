@@ -26,10 +26,10 @@ abstract class TestCase extends BaseTestCase
 	 * through that, so the two are set side by side here and kept on the same user_id.
 	 *
 	 * @param string[] $permissions - admin permission ids held
-	 * @param array $keyValues - overrides for the key's columns
-	 * @param array $adminValues - overrides for the administrator record
+	 * @param array<string, mixed> $keyValues - overrides for the key's columns
+	 * @param array<string, mixed> $adminValues - overrides for the administrator record
 	 */
-	protected function actingAsAdminWithKey(array $permissions, array $keyValues = [], array $adminValues = [])
+	protected function actingAsAdminWithKey(array $permissions, array $keyValues = [], array $adminValues = []) : \XF\Entity\ApiKey
 	{
 		$user = $this->actingAsBoardMember(['is_admin' => true]);
 		$this->setVisitorAdminPermissions($user, array_fill_keys($permissions, true), $adminValues);
@@ -41,8 +41,10 @@ abstract class TestCase extends BaseTestCase
 	 * A member who can view the board. Core's API controller refuses anyone who cannot, ahead of
 	 * this add-on's gates and with the same message the third gate uses - so without the grant a
 	 * test of that gate passes on core's refusal and would keep passing with the gate deleted.
+	 *
+	 * @param array<string, mixed> $values
 	 */
-	protected function actingAsBoardMember(array $values = [])
+	protected function actingAsBoardMember(array $values = []) : \XF\Entity\User
 	{
 		return $this->actingAsMember(
 			$values + ['user_id' => self::USER_ID],
@@ -52,8 +54,10 @@ abstract class TestCase extends BaseTestCase
 
 	/**
 	 * A key bound to the acting user and holding this add-on's scope and no other.
+	 *
+	 * @param array<string, mixed> $keyValues
 	 */
-	protected function actingAsUserKey(array $keyValues = [])
+	protected function actingAsUserKey(array $keyValues = []) : \XF\Entity\ApiKey
 	{
 		return $this->actingAsApiKey($keyValues + [
 			'is_super_user' => false,

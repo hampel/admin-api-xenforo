@@ -74,7 +74,7 @@ class UserUpgradesTest extends TestCase
 		$this->insertPaymentLog('adminapi-test-other', 'payment', $now - 2 * self::DAY, 'TXN-OTHER');
 	}
 
-	private function insertUpgrade($title, $amount, $currency, $length, $unit, $recurring)
+	private function insertUpgrade(string $title, string $amount, string $currency, int $length, string $unit, bool $recurring) : int
 	{
 		$db = $this->app()->db();
 		$db->insert('xf_user_upgrade', [
@@ -87,7 +87,7 @@ class UserUpgradesTest extends TestCase
 		return (int) $db->lastInsertId();
 	}
 
-	private function insertPurchase($key, $user, $provider, $type, $amount, $currency)
+	private function insertPurchase(string $key, \XF\Entity\User $user, string $provider, string $type, string $amount, string $currency) : void
 	{
 		$this->app()->db()->insert('xf_purchase_request', [
 			'request_key' => $key, 'user_id' => $user->user_id, 'provider_id' => $provider, 'payment_profile_id' => 7,
@@ -96,7 +96,8 @@ class UserUpgradesTest extends TestCase
 		]);
 	}
 
-	private function insertActive($user, $upgradeId, $start, $end, $key, array $extra, $cancelled = false)
+	/** @param array<string, mixed> $extra */
+	private function insertActive(\XF\Entity\User $user, int $upgradeId, int $start, int $end, ?string $key, array $extra, bool $cancelled = false) : void
 	{
 		$values = [
 			'user_id' => $user->user_id, 'purchase_request_key' => $key, 'user_upgrade_id' => $upgradeId,
@@ -110,7 +111,7 @@ class UserUpgradesTest extends TestCase
 		$this->app()->db()->insert('xf_user_upgrade_active', $values);
 	}
 
-	private function insertPaymentLog($key, $type, $date, $transactionId)
+	private function insertPaymentLog(string $key, string $type, int $date, string $transactionId) : void
 	{
 		$this->app()->db()->insert('xf_payment_provider_log', [
 			'purchase_request_key' => $key, 'provider_id' => 'paypal', 'transaction_id' => $transactionId,
@@ -120,21 +121,36 @@ class UserUpgradesTest extends TestCase
 		]);
 	}
 
-	private function summary(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function summary(array $input = []) : array
 	{
 		$this->actingAsAdminWithKey(['hampelAdminApiUpgrades']);
 
 		return $this->replyApiResult($this->dispatch(self::SUMMARY, 'api', $input));
 	}
 
-	private function records(array $input = [])
+	/**
+	 * @param array<string, mixed> $input
+	 * 
+	 * @return array<string, mixed>
+	 */
+	private function records(array $input = []) : array
 	{
 		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS, self::RECORD_KEY);
 
 		return $this->replyApiResult($this->dispatch(self::RECORDS, 'api', $input + ['user_upgrade_id' => $this->gold]));
 	}
 
-	private function upgrade(array $summary, $id)
+	/**
+	 * @param array<string, mixed> $summary
+	 * 
+	 * @return array<string, mixed>|null
+	 */
+	private function upgrade(array $summary, int $id) : ?array
 	{
 		foreach ($summary['upgrades'] AS $upgrade)
 		{

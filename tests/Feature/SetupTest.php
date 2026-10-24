@@ -9,7 +9,8 @@ class SetupTest extends TestCase
 {
 	use UsesDatabaseTransactions;
 
-	private function usableWithOAuth()
+	/** @return array<string, int|string> Scope id => usable_with_oauth_clients */
+	private function usableWithOAuth() : array
 	{
 		return $this->app()->db()->fetchPairs(
 			'SELECT api_scope_id, usable_with_oauth_clients FROM xf_api_scope WHERE addon_id = ? ORDER BY api_scope_id',
@@ -51,6 +52,7 @@ class SetupTest extends TestCase
 
 		$setup = new class($this->app()->addOnManager()->getById('Hampel/AdminApi'), $this->app()) extends \Hampel\AdminApi\Setup
 		{
+			/** @var array<string, string> */
 			public $files = [];
 
 			protected function getListenerDataFiles()
