@@ -403,6 +403,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
   the most sensitive part. With `request=1` each entry gains `user_id`, `ip_address` and
   `request` — the URL, referrer and submitted data of a web request, or the command line.
   XenForo removes passwords from the submitted data before logging it, and nothing else.
+  **A request with `request=1` is written to the admin log**, found or not, as a member lookup is;
+  one without it, or refused at a gate, writes nothing.
 - **Secrets quoted in an entry are taken out before it is returned**, from the message, the trace
   and the request alike, and replaced with `[withheld]`. An HTTP client's exception quotes the
   URL it called, and a webhook's URL is its credential. Three things are removed: any value this

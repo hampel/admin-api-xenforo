@@ -48,7 +48,7 @@ class ErrorEntries extends AbstractController
 	 *
 	 * @api-in int $error_id <req> The entry to return, as given by last_error_id in the error log summary
 	 * @api-in int $limit How many entries to return, counting the one asked for. Default 5, maximum 20.
-	 * @api-in bool $request Include the recorded request, user id and IP address of each entry
+	 * @api-in bool $request Include the recorded request, user id and IP address of each entry. Such a read is written to the admin log.
 	 *
 	 * @api-out int $signature_total How many entries the log holds for this type, file and line
 	 * @api-out array $entries The entry asked for, then the others, newest first
@@ -66,10 +66,17 @@ class ErrorEntries extends AbstractController
 		$limit = $this->filter('limit', 'uint') ?: self::DEFAULT_LIMIT;
 		$limit = min($limit, self::MAX_LIMIT);
 
+		// the request names a member and their address, so reading it is a member lookup
+		$withRequest = $this->filter('request', 'bool');
+		if ($withRequest)
+		{
+			$this->logMemberLookup();
+		}
+
 		/** @var ErrorLogRepository $repo */
 		$repo = $this->repository('Hampel\AdminApi:ErrorLog');
 
-		$result = $repo->getEntries($errorId, $limit, $this->filter('request', 'bool'));
+		$result = $repo->getEntries($errorId, $limit, $withRequest);
 		if ($result === null)
 		{
 			return $this->notFound(\XF::phrase('requested_log_entry_not_found'));

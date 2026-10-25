@@ -416,7 +416,8 @@ vendor/bin/phpunit
 - `tests/Feature/ErrorEntriesTest.php` covers the detail endpoint: what an entry returns, which
   others come with it, the cap, the request data being absent unless asked for, and each of the
   ways in being refused — the wrong scope in both directions, the summary's permission, a missing
-  `viewLogs`, a super user key.
+  `viewLogs`, a super user key. And the admin log line: written for `request=1`, found or not;
+  none without it, and none for a refusal or a missing `error_id`.
 - `tests/Feature/FaultTest.php` covers the three commands loading, the config guard in each
   state, `arm` refusing and planting nothing, batch names, `clean` clearing records whose content
   has gone, one batch leaving another, cleaning with the guard off, and the error log clean-up

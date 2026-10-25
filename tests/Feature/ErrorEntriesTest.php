@@ -193,6 +193,44 @@ class ErrorEntriesTest extends TestCase
 		);
 	}
 
+	/** @return list<array<string, mixed>> */
+	private function adminLogRows() : array
+	{
+		return $this->app()->db()->fetchAll(
+			'SELECT request_url, request_data FROM xf_admin_log WHERE user_id = ? ORDER BY admin_log_id',
+			self::USER_ID
+		);
+	}
+
+	/**
+	 * The request names a member and their address, so asking for it is recorded, as any member
+	 * lookup is - even when there turns out to be no such entry. The message and trace are not.
+	 */
+	public function test_asking_for_the_request_is_written_to_the_admin_log() : void
+	{
+		$this->entries(['error_id' => $this->ids[0]]);
+		$this->assertSame([], $this->adminLogRows());
+
+		$this->entries(['error_id' => $this->ids[0], 'request' => 1]);
+		$this->dispatch(self::ROUTE, 'api', ['error_id' => 4000000000, 'request' => 1]);
+
+		$rows = $this->adminLogRows();
+		$this->assertSame(['api/admin-api/error-entries/', 'api/admin-api/error-entries/'], array_column($rows, 'request_url'));
+		$this->assertSame(
+			(string) $this->ids[0],
+			(string) json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['error_id']
+		);
+	}
+
+	public function test_a_refused_or_unnamed_request_is_not_written() : void
+	{
+		$this->dispatch(self::ROUTE, 'api', ['request' => 1]);
+		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
+		$this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0], 'request' => 1]);
+
+		$this->assertSame([], $this->adminLogRows());
+	}
+
 	/**
 	 * An error raised from the command line has no address. It comes back as null, not as an
 	 * empty string or as whatever converting nothing to an address would give.

@@ -15,7 +15,9 @@ endpoint changes the forum, and none may.** The add-on has no options.
 **The one row an endpoint writes is a line in the admin log, for each member lookup** — decided on
 2026-10-24. Who looked up whom is the record an administrator wants afterwards, and the control
 panel keeps the same record of its own actions. It goes through core's `logAdminRequest()`, so it
-is pruned with the rest of the log; the aggregate endpoints write nothing.
+is pruned with the rest of the log; the aggregate endpoints write nothing. Asking the error
+entries endpoint for an entry's request, user and IP address (`request=1`) is a member lookup too,
+and written the same way - decided on 2026-10-25; its message and trace name nobody, and are not.
 
 **The one thing that changes the forum is the fault commands, kept away from everything else**:
 command line only, refused without a key in the forum's own `config.php`, and recording each thing
