@@ -35,8 +35,10 @@ parameters:
             message: '#^Call to function method_exists\(\) with ''XF'' and ''accessToken'' will always evaluate to true\.$#'
             path: Api/Controller/AbstractController.php
             count: 1
-        # An option is a magic property. A read each of two core options does not justify making
-        # every XF\Options property a crate.
+        # An option is a magic property. XenForo's xf-dev:generate-options-stub would type them all,
+        # and is declined (2026-10-25): it is generated from 2.3, so an option 2.2 lacks would pass
+        # unseen, where an ignore per option makes each new read a deliberate check against 2.2's
+        # source. It would also type numbers as int, which 2.3.0 hands back as strings.
         -
             identifier: property.notFound
             message: '#^Access to an undefined property XF\\Options::\$onlineStatusTimeout\.$#'
