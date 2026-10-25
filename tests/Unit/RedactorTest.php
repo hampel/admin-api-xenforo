@@ -190,7 +190,7 @@ class RedactorTest extends TestCase
 			['smtpLoginUsername' => Redactor::NAME, 'smtpLoginPassword' => Redactor::NAME],
 			$this->reasons($result)
 		);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -339,7 +339,7 @@ class RedactorTest extends TestCase
 
 		$result = $this->redact('nested', $value);
 
-		$this->assertStringNotContainsString('SECRET', json_encode($result['value']));
+		$this->assertStringNotContainsString('SECRET', json_encode($result['value'], JSON_THROW_ON_ERROR));
 		$this->assertSame(['l7.l6.l5.l4.l3.l2' => Redactor::UNREPRESENTABLE], $this->reasons($result));
 		$this->assertNull($result['value']['l7']['l6']['l5']['l4']['l3']['l2']);
 	}

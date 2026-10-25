@@ -248,7 +248,7 @@ class JobStateTest extends TestCase
 	 */
 	public function test_no_job_data_unique_key_or_exception_text_is_returned() : void
 	{
-		$json = json_encode($this->state());
+		$json = json_encode($this->state(), JSON_THROW_ON_ERROR);
 
 		$this->assertStringContainsString('Tests\\\\Fake\\\\Mail', $json);
 		$this->assertStringNotContainsString('SECRET', $json);

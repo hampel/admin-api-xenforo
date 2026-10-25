@@ -92,8 +92,8 @@ class LogEntriesTest extends TestCase
 			'discussion_content_id' => 9,
 		], $result['entries'][0]);
 		$this->assertSame('edit', $result['entries'][1]['action']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
-		$this->assertStringNotContainsString('203.0.113.5', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
+		$this->assertStringNotContainsString('203.0.113.5', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_entries_can_be_narrowed_to_a_member_or_a_piece_of_content() : void
@@ -143,7 +143,7 @@ class LogEntriesTest extends TestCase
 		$this->assertSame([null, null, 'email'], array_column($result['entries'], 'field'));
 		$this->assertSame($this->member->username, $result['entries'][2]['about_username']);
 		$this->assertFalse($result['entries'][2]['protected']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	private function userChange(int $date, string $field, string $old, string $new, int $protected = 0) : int
@@ -176,7 +176,7 @@ class LogEntriesTest extends TestCase
 		$this->assertTrue($result['entries'][0]['protected']);
 		$this->assertNull($result['entries'][0]['old_value']);
 		$this->assertNull($result['entries'][0]['new_value']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_value_is_scrubbed_and_cut_without_splitting_a_character() : void
@@ -187,7 +187,7 @@ class LogEntriesTest extends TestCase
 		$result = $this->entries(['log' => 'user_change', 'values' => 1]);
 		$entry = $result['entries'][0];
 
-		$this->assertStringNotContainsString($token, json_encode($result));
+		$this->assertStringNotContainsString($token, json_encode($result, JSON_THROW_ON_ERROR));
 		$this->assertStringStartsWith('api_key=', $entry['old_value']);
 		$this->assertGreaterThan(0, $result['scrubbed']);
 		$this->assertSame(str_repeat('é', LogEntries::MAX_VALUE_LENGTH), $entry['new_value']);
@@ -206,7 +206,7 @@ class LogEntriesTest extends TestCase
 
 		$rows = $this->adminLogRows();
 		$this->assertCount(1, $rows);
-		$this->assertSame('1', (string) json_decode($rows[0]['request_data'], true)['values']);
+		$this->assertSame('1', (string) json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['values']);
 	}
 
 	public function test_username_changes_spam_cleaning_and_rejections_name_both_members() : void
@@ -242,7 +242,7 @@ class LogEntriesTest extends TestCase
 
 		foreach (['username_change', 'spam_cleaner', 'rejected_user'] AS $log)
 		{
-			$this->assertStringNotContainsString('SECRET', json_encode($this->entries(['log' => $log])), $log);
+			$this->assertStringNotContainsString('SECRET', json_encode($this->entries(['log' => $log]), JSON_THROW_ON_ERROR), $log);
 		}
 	}
 
@@ -271,7 +271,7 @@ class LogEntriesTest extends TestCase
 
 		foreach (['spam_trigger', 'email_bounce'] AS $log)
 		{
-			$this->assertStringNotContainsString('SECRET', json_encode($this->entries(['log' => $log])), $log);
+			$this->assertStringNotContainsString('SECRET', json_encode($this->entries(['log' => $log]), JSON_THROW_ON_ERROR), $log);
 		}
 	}
 
@@ -319,9 +319,9 @@ class LogEntriesTest extends TestCase
 		$entry = $result['entries'][0];
 		$this->assertSame('users', $entry['section']);
 		$this->assertStringStartsWith('users/edit?api_key=', $entry['request_url']);
-		$this->assertStringNotContainsString($token, json_encode($result));
+		$this->assertStringNotContainsString($token, json_encode($result, JSON_THROW_ON_ERROR));
 		$this->assertGreaterThan(0, $result['scrubbed']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	// access and the admin log line
@@ -342,7 +342,7 @@ class LogEntriesTest extends TestCase
 		$rows = $this->adminLogRows();
 
 		$this->assertSame(['api/admin-api/log-entries/'], array_column($rows, 'request_url'));
-		$this->assertSame('moderator', json_decode($rows[0]['request_data'], true)['log']);
+		$this->assertSame('moderator', json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['log']);
 	}
 
 	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_written() : void

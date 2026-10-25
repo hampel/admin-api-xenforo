@@ -227,8 +227,8 @@ class ErrorLogSummaryTest extends TestCase
 
 		// where it was raised is still the core, and no part of a message is returned
 		$this->assertSame('core', $this->signature($summary, 'src/XF/ComposerAutoload.php')['location']);
-		$this->assertStringNotContainsString('autoload_namespaces', json_encode($summary));
-		$this->assertStringNotContainsString('Stranger', json_encode($summary));
+		$this->assertStringNotContainsString('autoload_namespaces', json_encode($summary, JSON_THROW_ON_ERROR));
+		$this->assertStringNotContainsString('Stranger', json_encode($summary, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -514,7 +514,7 @@ class ErrorLogSummaryTest extends TestCase
 	 */
 	public function test_nothing_from_the_personal_or_request_columns_is_returned() : void
 	{
-		$json = str_replace('\\/', '/', json_encode($this->summary(['since' => 0, 'limit' => 100])));
+		$json = str_replace('\\/', '/', json_encode($this->summary(['since' => 0, 'limit' => 100]), JSON_THROW_ON_ERROR));
 
 		$this->assertStringNotContainsString('SECRET', $json);
 		$this->assertStringNotContainsString('example.com', $json);

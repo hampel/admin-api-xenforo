@@ -65,7 +65,7 @@ class UserUpgradesTest extends TestCase
 		$db->insert('xf_user_upgrade_expired', [
 			'user_upgrade_record_id' => 4000000001,
 			'user_id' => $this->users['dave']->user_id, 'purchase_request_key' => null, 'user_upgrade_id' => $this->gold,
-			'extra' => json_encode(['cost_amount' => '10.00', 'cost_currency' => 'USD', 'length_amount' => 1, 'length_unit' => 'month']),
+			'extra' => json_encode(['cost_amount' => '10.00', 'cost_currency' => 'USD', 'length_amount' => 1, 'length_unit' => 'month'], JSON_THROW_ON_ERROR),
 			'start_date' => $now - 40 * self::DAY, 'end_date' => $now - 10 * self::DAY, 'original_end_date' => $now - 5 * self::DAY,
 		]);
 
@@ -101,7 +101,7 @@ class UserUpgradesTest extends TestCase
 	{
 		$values = [
 			'user_id' => $user->user_id, 'purchase_request_key' => $key, 'user_upgrade_id' => $upgradeId,
-			'extra' => json_encode($extra), 'start_date' => $start, 'end_date' => $end,
+			'extra' => json_encode($extra, JSON_THROW_ON_ERROR), 'start_date' => $start, 'end_date' => $end,
 		];
 		if ($cancelled)
 		{
@@ -211,8 +211,8 @@ class UserUpgradesTest extends TestCase
 		$this->assertSame(1, $summary['payments']['total']);
 		$this->assertSame([['provider' => 'paypal', 'payments' => 1, 'newest_date' => \XF::$time - 5 * self::DAY]], $summary['payments']['by_provider']);
 		$this->assertSame([['currency' => 'USD', 'payments' => 1, 'amount' => '10.00']], $summary['payments']['by_currency']);
-		$this->assertStringNotContainsString('SECRET', json_encode($summary));
-		$this->assertStringNotContainsString((string) $this->users['alice']->user_id, json_encode($summary['upgrades']));
+		$this->assertStringNotContainsString('SECRET', json_encode($summary, JSON_THROW_ON_ERROR));
+		$this->assertStringNotContainsString((string) $this->users['alice']->user_id, json_encode($summary['upgrades'], JSON_THROW_ON_ERROR));
 	}
 
 	public function test_the_summary_needs_its_own_permission_and_the_read_scope() : void
@@ -260,7 +260,7 @@ class UserUpgradesTest extends TestCase
 
 	public function test_nothing_a_provider_passed_in_is_returned() : void
 	{
-		$this->assertStringNotContainsString('SECRET', json_encode($this->records()));
+		$this->assertStringNotContainsString('SECRET', json_encode($this->records(), JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_permanent_upgrade_comes_last_with_no_end_date() : void
@@ -325,7 +325,7 @@ class UserUpgradesTest extends TestCase
 
 		$this->assertCount(1, $rows);
 		$this->assertSame('api/admin-api/user-upgrade-records/', $rows[0]['request_url']);
-		$this->assertSame('7', (string) json_decode($rows[0]['request_data'], true)['days']);
+		$this->assertSame('7', (string) json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['days']);
 	}
 
 	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_logged() : void

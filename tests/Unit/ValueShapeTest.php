@@ -70,7 +70,7 @@ class ValueShapeTest extends TestCase
 		$this->assertSame($type, $shape['type']);
 		$this->assertFalse($shape['disclosed']);
 		$this->assertNull($shape['value']);
-		$this->assertStringNotContainsString('SECRET', json_encode($shape));
+		$this->assertStringNotContainsString('SECRET', json_encode($shape, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_set_means_not_null_and_not_empty() : void

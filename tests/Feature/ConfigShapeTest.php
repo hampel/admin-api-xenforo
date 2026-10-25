@@ -90,7 +90,7 @@ class ConfigShapeTest extends TestCase
 		$this->assertNull($settings['db.password']['value']);
 		$this->assertNull($settings['db.username']['value']);
 
-		$json = json_encode($this->shape());
+		$json = json_encode($this->shape(), JSON_THROW_ON_ERROR);
 
 		foreach (['password', 'username', 'dbname'] AS $key)
 		{
@@ -107,7 +107,7 @@ class ConfigShapeTest extends TestCase
 	{
 		$result = $this->shape();
 
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 
 		foreach ($result['settings'] AS $setting)
 		{

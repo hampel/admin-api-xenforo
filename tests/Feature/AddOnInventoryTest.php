@@ -27,7 +27,7 @@ class AddOnInventoryTest extends TestCase
 
 	public function test_it_lists_this_add_on_with_its_installed_and_on_disk_versions() : void
 	{
-		$json = json_decode(file_get_contents(__DIR__ . '/../../addon.json'), true);
+		$json = json_decode(file_get_contents(__DIR__ . '/../../addon.json'), true, 512, JSON_THROW_ON_ERROR);
 
 		$addOns = array_column($this->inventory()['add_ons'], null, 'addon_id');
 

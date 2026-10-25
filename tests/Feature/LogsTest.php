@@ -127,7 +127,7 @@ class LogsTest extends TestCase
 			['section' => 'api', 'count' => 1, 'newest_date' => 1300],
 			['section' => null, 'count' => 1, 'newest_date' => 1400],
 		], $this->sortByCountThenDate($result['by_section']));
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_moderator_action_is_named_only_if_core_has_a_phrase_for_it() : void
@@ -148,7 +148,7 @@ class LogsTest extends TestCase
 			['content_type' => 'post', 'count' => 1, 'newest_date' => 1000],
 			['content_type' => 'profile_post', 'count' => 2, 'newest_date' => 1200],
 		], $result['by_content_type']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_guests_are_counted_apart_from_members() : void
@@ -192,7 +192,7 @@ class LogsTest extends TestCase
 
 		$this->assertEqualsCanonicalizing(['hard', 'none'], array_column($result['by_action'], 'action'));
 		$this->assertEqualsCanonicalizing(['bounce', 'delay'], array_column($result['by_message_type'], 'message_type'));
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_log_has_a_series_by_day_and_its_whole_extent() : void

@@ -126,7 +126,7 @@ class ErrorEntriesTest extends TestCase
 			'Client error: `POST https://hooks.slack.com/[withheld]` resulted in a `404 Not Found` response: no_service (key [withheld])',
 			$entry['message']
 		);
-		$this->assertStringNotContainsString('SECRET', json_encode($entry));
+		$this->assertStringNotContainsString('SECRET', json_encode($entry, JSON_THROW_ON_ERROR));
 		$this->assertStringContainsString('https://api.example.com/[withheld]', $entry['trace']);
 		$this->assertStringContainsString("connect('redis:///[withheld]')", $entry['trace']);
 		$this->assertSame('[withheld]', $entry['request']['_POST']['note']);
@@ -173,7 +173,7 @@ class ErrorEntriesTest extends TestCase
 
 	public function test_the_request_the_user_and_the_ip_address_are_left_out_unless_asked_for() : void
 	{
-		$json = json_encode($this->entries(['error_id' => $this->ids[0]]));
+		$json = json_encode($this->entries(['error_id' => $this->ids[0]]), JSON_THROW_ON_ERROR);
 
 		$this->assertStringNotContainsString(self::IP, $json);
 		$this->assertStringNotContainsString((string) self::USER, $json);

@@ -206,8 +206,8 @@ class IpUsersTest extends TestCase
 
 		$this->assertCount(2, $rows);
 		$this->assertSame('api/admin-api/ip-users/', $rows[0]['request_url']);
-		$this->assertSame(self::SHARED, json_decode($rows[0]['request_data'], true)['ip']);
-		$this->assertSame('4000000000', (string) json_decode($rows[1]['request_data'], true)['user_id']);
+		$this->assertSame(self::SHARED, json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['ip']);
+		$this->assertSame('4000000000', (string) json_decode($rows[1]['request_data'], true, 512, JSON_THROW_ON_ERROR)['user_id']);
 	}
 
 	public function test_a_request_that_is_refused_or_invalid_is_not_written() : void

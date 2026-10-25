@@ -91,7 +91,7 @@ class ApprovalQueueTest extends TestCase
 
 		$state = $this->state();
 		$this->assertSame($before + 1, $this->countFor($state, null));
-		$this->assertStringNotContainsString('SECRET', json_encode($state));
+		$this->assertStringNotContainsString('SECRET', json_encode($state, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_the_count_moderators_are_shown_is_returned_beside_it() : void

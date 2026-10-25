@@ -29,7 +29,7 @@ class ValuesTest extends TestCase
 		$this->insertOption('adminApiTestSocket', self::TRUSTED, 'string', 'redis://user:SECRETpassw0rd1234@/0');
 		$this->insertOption('adminApiTestMail', self::TRUSTED, 'array', json_encode([
 			'type' => 'smtp', 'host' => 'mail.example.com', 'port' => 587, 'password' => 'SECRET-in-array',
-		]));
+		], JSON_THROW_ON_ERROR));
 		$this->insertOption('adminApiTestForeign', self::UNTRUSTED, 'string', 'SECRET-untrusted-letmein');
 		$this->insertOption('adminApiTestForeignFlag', self::UNTRUSTED, 'boolean', '1');
 	}
@@ -97,7 +97,7 @@ class ValuesTest extends TestCase
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('hampel_admin_api:values', $result['mode_reason']);
 		$this->assertNull($this->byId($result)['adminApiTestGreeting']['value']);
-		$this->assertStringNotContainsString('Welcome to the forum', json_encode($result));
+		$this->assertStringNotContainsString('Welcome to the forum', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -110,7 +110,7 @@ class ValuesTest extends TestCase
 
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('option admin permission', $result['mode_reason']);
-		$this->assertStringNotContainsString('Welcome to the forum', json_encode($result));
+		$this->assertStringNotContainsString('Welcome to the forum', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -124,7 +124,7 @@ class ValuesTest extends TestCase
 
 		$this->assertSame('shape', $options['mode']);
 		$this->assertStringContainsString('hampelAdminApiValues admin permission', $options['mode_reason']);
-		$this->assertStringNotContainsString('Welcome to the forum', json_encode($options));
+		$this->assertStringNotContainsString('Welcome to the forum', json_encode($options, JSON_THROW_ON_ERROR));
 
 		$db = $this->app()->config('db');
 		$config = $this->config(self::BOTH_SCOPES, ['hampelAdminApiConfig']);
@@ -134,7 +134,7 @@ class ValuesTest extends TestCase
 		$this->assertStringContainsString('hampelAdminApiValues admin permission', $config['mode_reason']);
 		$this->assertNull($settings['db.host']['value']);
 		$this->assertNull($settings['db.host']['redactions']);
-		$this->assertStringNotContainsString('"' . $db['dbname'] . '"', json_encode($config));
+		$this->assertStringNotContainsString('"' . $db['dbname'] . '"', json_encode($config, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -203,7 +203,7 @@ class ValuesTest extends TestCase
 	 */
 	public function test_an_empty_secret_inside_an_option_is_withheld_and_marked_unset() : void
 	{
-		$this->insertOption('adminApiTestBlank', self::TRUSTED, 'array', json_encode(['host' => 'h.example.com', 'password' => '']));
+		$this->insertOption('adminApiTestBlank', self::TRUSTED, 'array', json_encode(['host' => 'h.example.com', 'password' => ''], JSON_THROW_ON_ERROR));
 
 		$option = $this->byId($this->options(['add_on_id' => self::TRUSTED]))['adminApiTestBlank'];
 
@@ -319,7 +319,7 @@ class ValuesTest extends TestCase
 		$registry = new Registry($this->app());
 		$redactor = new Redactor();
 
-		$json = json_encode($result);
+		$json = json_encode($result, JSON_THROW_ON_ERROR);
 		$this->assertStringNotContainsString('SECRET-by-name', $json);
 		$this->assertStringNotContainsString('SECRET-in-array', $json);
 		$this->assertStringNotContainsString('SECRET-untrusted', $json);
@@ -497,7 +497,7 @@ class ValuesTest extends TestCase
 			$this->assertNotEmpty($settings[$key]['redactions'], $key);
 		}
 
-		$json = json_encode($result);
+		$json = json_encode($result, JSON_THROW_ON_ERROR);
 		foreach ([$db['password'], $db['username'], $this->app()->config('globalSalt')] AS $secret)
 		{
 			if (strlen((string) $secret) >= 6)
@@ -522,7 +522,7 @@ class ValuesTest extends TestCase
 		$this->assertSame('ours to show', $settings['hampelAdminApi.label']['value']);
 		$this->assertNull($settings['hampelAdminApi.apiKey']['value']);
 
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_secret_name_part_way_down_withholds_everything_beneath_it() : void
@@ -533,7 +533,7 @@ class ValuesTest extends TestCase
 		$settings = array_column($result['settings'], null, 'key');
 
 		$this->assertSame('h.example.com', $settings['hampelAdminApi.service.host']['value']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 
 		// the whole setting is withheld, and it says which key above it is the reason
 		$this->assertSame(

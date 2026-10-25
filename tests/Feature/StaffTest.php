@@ -186,7 +186,7 @@ class StaffTest extends TestCase
 		$this->assertSame([], $admin['extra_user_group_ids']);
 		// an entry for a permission no longer defined is not one
 		$this->assertSame(['option', 'user'], $admin['permissions']);
-		$this->assertStringNotContainsString('SECRET', json_encode($result));
+		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_a_super_administrator_holds_every_permission_so_none_is_listed() : void
@@ -229,7 +229,7 @@ class StaffTest extends TestCase
 		$rows = $this->adminLogRows();
 
 		$this->assertSame(['api/admin-api/moderators/', 'api/admin-api/administrators/'], array_column($rows, 'request_url'));
-		$this->assertSame((string) $this->moderator->user_id, (string) json_decode($rows[0]['request_data'], true)['user_id']);
+		$this->assertSame((string) $this->moderator->user_id, (string) json_decode($rows[0]['request_data'], true, 512, JSON_THROW_ON_ERROR)['user_id']);
 	}
 
 	public function test_a_refused_request_is_not_written() : void

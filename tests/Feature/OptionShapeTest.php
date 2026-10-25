@@ -224,7 +224,7 @@ class OptionShapeTest extends TestCase
 	public function test_no_string_is_returned_for_any_option_unless_its_definition_lists_it() : void
 	{
 		$result = $this->shape();
-		$json = json_encode($result);
+		$json = json_encode($result, JSON_THROW_ON_ERROR);
 
 		$this->assertStringNotContainsString('SECRET', $json);
 		$this->assertStringNotContainsString('example.com', $json);

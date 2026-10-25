@@ -145,7 +145,7 @@ class OnlineTest extends TestCase
 		$this->assertNull($last['robot_key']);
 		$this->assertGreaterThanOrEqual(1, $last['count']);
 		$this->assertSame($state['robots'], array_sum(array_column($state['by_robot'], 'count')));
-		$this->assertStringNotContainsString('SECRET', json_encode($state));
+		$this->assertStringNotContainsString('SECRET', json_encode($state, JSON_THROW_ON_ERROR));
 	}
 
 	public function test_the_robots_past_the_busiest_are_counted_together() : void
@@ -192,7 +192,7 @@ class OnlineTest extends TestCase
 
 	public function test_no_address_member_or_request_detail_is_returned() : void
 	{
-		$json = json_encode($this->state());
+		$json = json_encode($this->state(), JSON_THROW_ON_ERROR);
 
 		foreach (['198.51.100', '198.51.77', '203.0.113', '192.0.2', '990001', '990002', '424242', 'SECRET', 'thread_id'] AS $absent)
 		{

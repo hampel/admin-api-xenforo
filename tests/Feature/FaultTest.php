@@ -366,7 +366,7 @@ class FaultTest extends TestCase
 			try
 			{
 				$this->manager()->arm('other', 0, $kinds);
-				$this->fail('accepted: ' . json_encode($kinds));
+				$this->fail('accepted: ' . json_encode($kinds, JSON_THROW_ON_ERROR));
 			}
 			catch (\InvalidArgumentException $e)
 			{
@@ -395,7 +395,7 @@ class FaultTest extends TestCase
 		$this->assertSame(0, $exit, $tester->getErrorOutput());
 		$this->assertStringContainsString('Batch viacommand planted: cron', $tester->getErrorOutput());
 		$this->assertStringContainsString('admin-api:fault-clean viacommand', $tester->getErrorOutput());
-		$this->assertSame(['batch', 'cron'], array_keys(json_decode($tester->getDisplay(), true)));
+		$this->assertSame(['batch', 'cron'], array_keys(json_decode($tester->getDisplay(), true, 512, JSON_THROW_ON_ERROR)));
 		$this->assertSame(['cron' => 1], $this->manager()->getBatches()['viacommand']['records']);
 	}
 
