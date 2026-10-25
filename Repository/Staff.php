@@ -234,11 +234,12 @@ class Staff extends Repository
 	/**
 	 * Granted permissions by group, each group's sorted. Anything that is not a moderator
 	 * permission is left out: a member's own permissions can be set apart from being a moderator.
+	 * None is an empty object, so that the answer is an object in JSON whether or not it is empty.
 	 *
 	 * @param list<array<string, mixed>> $entries
 	 * @param array<string, true> $known
 	 *
-	 * @return array<string, list<string>>
+	 * @return array<string, list<string>>|\stdClass
 	 */
 	protected function groupPermissions(array $entries, array $known)
 	{
@@ -258,7 +259,7 @@ class Staff extends Repository
 		}
 		unset($permissions);
 
-		return $grouped;
+		return $grouped ?: new \stdClass();
 	}
 
 	/**

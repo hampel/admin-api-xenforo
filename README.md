@@ -851,7 +851,8 @@ It takes three things to reach it:
   control panel's moderator page sets them: globally, and under `content` for each forum or other
   piece of content they moderate. A permission the member has from a user group, including one
   in `extra_user_group_ids`, is the group's and is not listed.
-- Only permissions the forum defines as moderator permissions are listed, by group and id.
+- Only permissions the forum defines as moderator permissions are listed, by group and id. With
+  none, `permissions` is an empty object, `{}`.
 - `uses_tfa` is whether the member has two-step verification switched on. `username`, `is_staff`
   and `last_activity` are `null` for an account that has gone.
 - `notify_report` and `notify_approval` are `null` on XenForo 2.2, which has neither setting.

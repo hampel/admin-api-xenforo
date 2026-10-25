@@ -135,7 +135,7 @@ class StaffTest extends TestCase
 
 		[$unknown, $node] = $content;
 		$this->assertNull($unknown['content_title']);
-		$this->assertSame([], $unknown['permissions']);
+		$this->assertSame('{}', json_encode($unknown['permissions'], JSON_THROW_ON_ERROR));
 
 		$this->assertSame($this->nodeId, $node['content_id']);
 		$this->assertStringContainsString(
