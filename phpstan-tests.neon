@@ -10,7 +10,7 @@ includes:
     - vendor/hampel/xenforo-test-framework/extension.neon
 
 parameters:
-    level: 6
+    level: 7
 
     paths:
         - tests

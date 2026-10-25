@@ -71,7 +71,10 @@ class SecretsDeclarationTest extends TestCase
 				continue;
 			}
 
-			if (preg_match('/config\(\s*[\'"]hampelAdminApi[\'"]/', file_get_contents($file->getPathname())))
+			$source = file_get_contents($file->getPathname());
+			$this->assertNotFalse($source, $path);
+
+			if (preg_match('/config\(\s*[\'"]hampelAdminApi[\'"]/', $source))
 			{
 				$readers[] = $path;
 			}

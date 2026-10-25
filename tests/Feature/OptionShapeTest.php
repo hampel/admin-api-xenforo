@@ -265,7 +265,9 @@ class OptionShapeTest extends TestCase
 
 			foreach ((array) $option['members'] AS $key => $member)
 			{
-				$this->assertContains($key, preg_split('/\R/', $definition['sub_options']), $option['option_id']);
+				$subOptions = preg_split('/\R/', $definition['sub_options']);
+				$this->assertNotFalse($subOptions, $option['option_id']);
+				$this->assertContains($key, $subOptions, $option['option_id']);
 
 				if (is_string($member['value']))
 				{

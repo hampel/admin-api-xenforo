@@ -89,9 +89,14 @@ class CommandsTest extends TestCase
 	 */
 	public function test_no_grey_tag_is_written_directly() : void
 	{
-		foreach (glob(__DIR__ . '/../../Cli/Command/*.php') AS $file)
+		$files = glob(__DIR__ . '/../../Cli/Command/*.php');
+		$this->assertNotFalse($files);
+
+		foreach ($files AS $file)
 		{
-			$this->assertDoesNotMatchRegularExpression('/<fg=gr[ae]y/', file_get_contents($file), basename($file));
+			$source = file_get_contents($file);
+			$this->assertNotFalse($source, basename($file));
+			$this->assertDoesNotMatchRegularExpression('/<fg=gr[ae]y/', $source, basename($file));
 		}
 	}
 
@@ -304,6 +309,7 @@ class CommandsTest extends TestCase
 	public function test_every_error_this_add_on_logs_carries_its_prefix() : void
 	{
 		$root = realpath(__DIR__ . '/../..');
+		$this->assertNotFalse($root);
 		$files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
 
 		foreach ($files AS $file)
@@ -315,6 +321,7 @@ class CommandsTest extends TestCase
 			}
 
 			$source = file_get_contents($path);
+			$this->assertNotFalse($source, $path);
 			if (!preg_match_all('/\\XF::log(?:Error|Exception)\((.{0,120})/s', $source, $matches))
 			{
 				continue;

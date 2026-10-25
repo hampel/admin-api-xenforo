@@ -363,6 +363,8 @@ class ErrorLogRepositoryTest extends TestCase
 	{
 		$trace = "#0 /var/cache/forum/templates/l1/s0/public/app.less.php(3): x()\n"
 			. "#1 C:\\cache\\templates\\l1\\s0\\email\\made_in_a_style.php(3): x()\n#2 {main}";
+		$second = strpos($trace, '#1');
+		$this->assertNotFalse($second);
 
 		$this->assertSame(
 			['template' => 'public:app.less', 'add_on_id' => 'XF'],
@@ -371,7 +373,7 @@ class ErrorLogRepositoryTest extends TestCase
 
 		$this->assertSame(
 			['template' => 'email:made_in_a_style', 'add_on_id' => null],
-			$this->repo()->getTemplateFromTrace('', substr($trace, strpos($trace, '#1')), self::TEMPLATES)
+			$this->repo()->getTemplateFromTrace('', substr($trace, $second), self::TEMPLATES)
 		);
 	}
 

@@ -9,7 +9,7 @@ class SetupTest extends TestCase
 {
 	use UsesDatabaseTransactions;
 
-	/** @return array<string, int|string> Scope id => usable_with_oauth_clients */
+	/** @return array<int|string, mixed> Scope id => usable_with_oauth_clients */
 	private function usableWithOAuth() : array
 	{
 		return $this->app()->db()->fetchPairs(
