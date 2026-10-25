@@ -504,6 +504,10 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
   so a series summing to less than `total` is not taken for pruning.
 - **A name beginning `log_` always means the whole log**, in both forms of the answer; `total`,
   `oldest_date` and `newest_date` always mean the window.
+- **A long window on a large log is slow, and the IP log is the largest.** Each part of the
+  answer reads every entry in the window, so the cost grows with the window, not with what is
+  returned. In a test with 2.7 million IP log rows, `log=ip` took 1 s for the default day and 14 s
+  with `since=0`. Ask for the window you need; `log_total` already gives the size of the whole log.
 
 ## Log entries
 

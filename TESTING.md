@@ -685,6 +685,8 @@ in `xf_moderator`, so `moderators/` listed only the installer's own.
 rows were Seeder's 21,000 copied onto themselves seven times, for timing only. `log=ip` took 1.0 s
 for the default day and 14.3 s with `since=0`: its summary, day series and content-type
 breakdown each read the whole table. A `/24` in `ip-users/` took 2.3 s, a single address 58 ms.
+Decided the same day: no cap on how far back `since` may reach. The README says a long window on
+the IP log is slow, and a client should not send `since=0` for it.
 
 ## Needs a human
 
