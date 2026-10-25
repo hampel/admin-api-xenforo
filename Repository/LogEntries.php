@@ -60,7 +60,7 @@ class LogEntries extends Repository
 			'actor' => 'user_id', 'content' => ['content_type', 'content_id'],
 			'fields' => [
 				'content_type' => ['content_type', 'content_type'],
-				'content_id' => ['content_id', 'int'],
+				'content_id' => ['content_id', 'id'],
 				'result' => ['result', 'spam_result'],
 			]],
 		'spam_cleaner' => ['table' => 'xf_spam_cleaner_log', 'id' => 'spam_cleaner_log_id', 'date' => 'application_date',
@@ -225,6 +225,10 @@ class LogEntries extends Repository
 		{
 			case 'int':
 				return (int) $value;
+
+			case 'id':
+				// null where there is none, as for a reply the spam checker refused outright
+				return $value !== null ? (int) $value : null;
 
 			case 'date':
 				return (int) $value ?: null;

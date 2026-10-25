@@ -594,6 +594,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/log-entries/
   URL can carry a token, and `scrubbed` counts what was taken out. Its input is never read.
 - `username` and `about_username` are the member's name now, `null` for an account that has
   gone; a name the log stored itself, such as `old_username`, is as it was then.
+- A spam trigger entry's `content_id` is `null` when the content was refused outright and so
+  never saved, as XenForo records it.
 
 ## Members by IP address
 

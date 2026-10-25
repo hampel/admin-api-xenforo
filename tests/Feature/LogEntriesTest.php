@@ -261,9 +261,16 @@ class LogEntriesTest extends TestCase
 			]);
 		}
 
-		$trigger = $this->entries(['log' => 'spam_trigger'])['entries'][0];
+		// a reply refused outright was never saved, and core records it with no content id
+		$this->insert('xf_spam_trigger_log', [
+			'content_type' => 'post', 'content_id' => null, 'log_date' => 1001, 'user_id' => $this->member->user_id,
+			'ip_address' => inet_pton('203.0.113.5'), 'result' => 'denied', 'details' => 'SECRET', 'request_state' => 'SECRET',
+		]);
+
+		[$refused, $trigger] = $this->entries(['log' => 'spam_trigger'])['entries'];
 		$this->assertNull($trigger['user_id']);
 		$this->assertSame(['post', 4000000000, 'denied'], [$trigger['content_type'], $trigger['content_id'], $trigger['result']]);
+		$this->assertSame(['post', null, 'denied'], [$refused['content_type'], $refused['content_id'], $refused['result']]);
 
 		$bounces = $this->entries(['log' => 'email_bounce', 'about_user_id' => $this->member->user_id])['entries'];
 		$this->assertSame(['delay', 'none', null], [$bounces[0]['message_type'], $bounces[0]['action'], $bounces[0]['status_code']]);
