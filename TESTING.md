@@ -658,6 +658,34 @@ suite plants a handful of rows; this is what showed the caps and the cost.
   nor `example.com`, nor the path outside the install, anywhere in the answer**. The queue rows
   counted as 5 manual and 5 retrying, with nothing due or stalled.
 
+### Against seeded content, 2026-10-25
+
+On XenForo 2.3.13 with PHP 8.3.36, the working copy mounted and `Hampel/Seeder` `1.0.0b10` from
+its zip, nothing else installed. Seeded: members with IP logs, changes, renames, rejections,
+bans and moderated registrations, six of them through the registration service; three upgrades
+held by 16 members; 201 moderator log and 300 admin log entries; 20 threads, some awaiting
+approval; 12 warnings; 60 failed jobs; 300 server errors and `Seed/ErrorSecretsSeeder`'s 26; who
+is online. Every endpoint was asked over HTTP by a non-super administrator holding every
+permission, and by a super administrator.
+
+| checked | result |
+|---|---|
+| every count | agreed with the tables: 18 waiting in four content types, 8 and 8 upgrade records, 9 administrators, each log's total |
+| `log-entries/` | each of the eight logs, with `complete: false` past 200; `values=1` on the user change log |
+| `ip-users/` | an address, a member and a `/24`, each matching the members the IP log holds |
+| the 26 secret entries, with `request=1` | no `zSEED` in any answer; 32 values withheld |
+| refusals | the administrators and the admin log for the non-super key; a member's key with every scope |
+| the admin log | one line per member lookup, none for a refusal |
+
+**Seeder made nothing for three logs and no moderator record.** The spam trigger, spam cleaner
+and email bounce logs stayed empty, and the moderators it makes carry `is_moderator` with no row
+in `xf_moderator`, so `moderators/` listed only the installer's own.
+
+**At 2.7 million IP log rows the overview answered in 0.4 s; the IP log's own view did not.** The
+rows were Seeder's 21,000 copied onto themselves seven times, for timing only. `log=ip` took 1.0 s
+for the default day and 14.3 s with `since=0`: its summary, day series and content-type
+breakdown each read the whole table. A `/24` in `ip-users/` took 2.3 s, a single address 58 ms.
+
 ## Needs a human
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
@@ -693,7 +721,8 @@ suite plants a handful of rows; this is what showed the caps and the cost.
   suite and in a 2.2 sandbox; a forum with real staff, upgrades and logs has not been asked.
 - **How long the logs overview takes on a large forum.** Without `log` it counts every row of
   all 18 log tables for `log_total` on each call, the IP log among them, which can hold millions
-  of rows. On the development forum each count takes under a millisecond, which says nothing.
+  of rows. On the development forum each count takes under a millisecond, which says nothing;
+  in a sandbox with 2.7 million copied IP log rows the overview took 0.4 s (2026-10-25, above).
   Kept on purpose, decided 2026-10-24; time it against a production forum's tables, and watch
   it wherever monitoring polls the overview.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
