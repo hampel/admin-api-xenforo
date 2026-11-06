@@ -1,4 +1,10 @@
 {
+    "admin_permission.hampelAdminApiActivity.txt": {
+        "global_cache": false,
+        "version_id": 1000020,
+        "version_string": "1.0.0a10",
+        "hash": "a501e946bcaead4ca92e85f1c858c6f6"
+    },
     "admin_permission.hampelAdminApiAddOns.txt": {
         "global_cache": false,
         "version_id": 1000013,
@@ -178,5 +184,11 @@
         "version_id": 1000018,
         "version_string": "1.0.0a8",
         "hash": "ddd6a2717909953111270476f0bb8495"
+    },
+    "hampel_adminapi_window_too_long.txt": {
+        "global_cache": false,
+        "version_id": 1000020,
+        "version_string": "1.0.0a10",
+        "hash": "26e558a2f57a0bfec1c06c64d6cdb87d"
     }
 }

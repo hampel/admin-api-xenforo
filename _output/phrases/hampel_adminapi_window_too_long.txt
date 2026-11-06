@@ -1,0 +1,1 @@
+The window may be at most {days} days long.

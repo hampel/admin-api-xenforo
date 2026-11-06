@@ -30,6 +30,7 @@ checked. For whoever changes it next.
 | API route | `admin-api/approval-queue/` → `Api\Controller\ApprovalQueue` |
 | API route | `admin-api/log-entries/` → `Api\Controller\LogEntries` |
 | API route | `admin-api/reports/` → `Api\Controller\Reports` |
+| API route | `admin-api/activity/` → `Api\Controller\Activity` |
 | API scope | `hampel_admin_api:log_entries`, not usable with OAuth clients |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
@@ -48,10 +49,11 @@ checked. For whoever changes it next.
 | admin permission | `hampelAdminApiUpgRecords` — with core's `userUpgrade`; an id is capped at 25 characters |
 | admin permission | `hampelAdminApiApproval` |
 | admin permission | `hampelAdminApiReports` |
+| admin permission | `hampelAdminApiActivity` |
 | admin permission | `hampelAdminApiLogEntries` — with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
 | admin permission | `hampelAdminApiStaff` — with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 30 — the seven scope descriptions, the sixteen permission titles, seven errors |
+| phrases | 32 — the seven scope descriptions, the seventeen permission titles, eight errors |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -405,6 +407,10 @@ vendor/bin/phpunit
   in each age bucket, resolved and rejected, and for a type nothing handles, and compares the
   answer before and after; and checks the oldest report apart from the longest without activity,
   that no content is read, the permission, the scope and that nothing is logged.
+- `tests/Feature/ActivityTest.php` plants members, threads and posts dated in 1970 in each state,
+  inside and outside a window nothing real falls in, and checks each count exactly, that no name,
+  title, message or address is returned, the default window, the 31-day cap, the permission, the
+  scope and that nothing is logged.
 - `tests/Feature/ResponseClockTest.php` asks every read endpoint and one member endpoint, and
   checks each answer begins with `now`, the forum's clock.
 - `tests/Feature/LogEntriesTest.php` reads every declared log, so a misspelt table or column

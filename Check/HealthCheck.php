@@ -43,6 +43,7 @@ class HealthCheck
 		'hampelAdminApiApproval',
 		'hampelAdminApiLogEntries',
 		'hampelAdminApiReports',
+		'hampelAdminApiActivity',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -57,9 +58,10 @@ class HealthCheck
 		'hampelAdminApiUpgrades',
 		'hampelAdminApiApproval',
 		'hampelAdminApiReports',
+		'hampelAdminApiActivity',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports', 'activity'];
 
 	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
 	const MEMBER_SCOPES = [
@@ -372,6 +374,7 @@ class HealthCheck
 		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
 		$queue = $this->app->repository('Hampel\AdminApi:ApprovalQueue')->getState($now);
 		$reports = $this->app->repository('Hampel\AdminApi:Report')->getState($now);
+		$activity = $this->app->repository('Hampel\AdminApi:Activity')->getSummary($now - 86400, $now);
 		// the newest entry of every log, read as the endpoint reads it
 		$entryLogs = $this->app->repository('Hampel\AdminApi:LogEntries');
 		$entryTotal = 0;
@@ -398,6 +401,7 @@ class HealthCheck
 			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
 			[self::OK, 'approval queue', "read: {$queue['total']} waiting"],
 			[self::OK, 'reports', "read: {$reports['total']} open"],
+			[self::OK, 'activity', "read: {$activity['registrations']['total']} registrations, {$activity['posts']['total']} posts in the last day"],
 			[self::OK, 'log entries', "read: $entryTotal entries in the logs that record members"],
 			[self::OK, 'staff', "read: {$moderators['total']} moderators, {$administrators['total']} administrators"],
 		];

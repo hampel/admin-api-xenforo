@@ -60,6 +60,7 @@ access*. The add-on creates one small table, for the commands under
    | `user-upgrades/` | Admin API: View user upgrade summary |
    | `approval-queue/` | Admin API: View approval queue summary |
    | `reports/` | Admin API: View report summary |
+   | `activity/` | Admin API: View activity summary |
    | `add-ons/` | Admin API: View add-ons |
    | `cron/`, `jobs/` | Admin API: View cron and jobs |
    | `online/` | Admin API: View who is online |
@@ -1002,6 +1003,47 @@ and dates are read, and never the content, the comments, who reported it or whom
 - **`cached_total` is the count XenForo keeps for moderators**, the number beside *Reports* in
   their navigation. One that differs from `total` means moderators are being shown the wrong
   number.
+
+## Activity
+
+`GET /api/admin-api/activity/`
+
+**How many members registered, and how many threads and posts were made, in a window, by the
+state each is in now** — the split the core `stats/` totals cannot give: registrations waiting for
+email confirmation or for approval, content waiting for approval or deleted. Counts only: a date
+and a state are read for each, never a name, an email address, a title or a message.
+
+| parameter | meaning |
+|---|---|
+| `since` | start of the window, as a Unix timestamp. Default 24 hours before `until` |
+| `until` | end of the window. Default now. At most 31 days after `since` |
+
+```json
+{
+    "window": {"since": 1792358701, "until": 1792445101},
+    "registrations": {
+        "total": 41,
+        "by_state": {"valid": 30, "email_confirm": 6, "email_confirm_edit": 0, "moderated": 3,
+            "email_bounce": 0, "rejected": 1, "disabled": 1, "other": 0}
+    },
+    "threads": {"total": 52, "by_state": {"visible": 49, "moderated": 2, "deleted": 1, "other": 0}},
+    "posts": {"total": 610, "by_state": {"visible": 598, "moderated": 4, "deleted": 8, "other": 0}}
+}
+```
+
+- **A state is the one each is in now**, not the one it was made in: a member who registered
+  yesterday and was approved this morning counts as `valid`.
+- **What was deleted outright is not counted at all.** A member, thread or post removed from the
+  forum is gone; only one deleted softly, still restorable, counts as `deleted`. A rejected
+  registration counts as `rejected` while XenForo keeps its record.
+- `email_confirm_edit` is a member confirming a changed email address, and `email_bounce` one
+  whose mail has bounced. `other` counts a state XenForo does not define, which only an add-on
+  changing core's tables could make; it is 0 on any other forum.
+- **Every thread's first post is a post as well**, so `posts` includes the opening post of each
+  thread in `threads`.
+- **The window is capped at 31 days**, because each count reads every row in it; a longer one is
+  refused with a 400. Every count reads its table's date index, so a day costs what a day's
+  registrations and posts cost to read.
 
 ## Add-on inventory
 
