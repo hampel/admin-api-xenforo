@@ -65,6 +65,12 @@
         "version_string": "1.0.0a3",
         "hash": "d5d5b330dbea4c2e462d24c4433f5a75"
     },
+    "admin_permission.hampelAdminApiReports.txt": {
+        "global_cache": false,
+        "version_id": 1000020,
+        "version_string": "1.0.0a10",
+        "hash": "ec3c5c7348c725c2129d4e8f57246d41"
+    },
     "admin_permission.hampelAdminApiStaff.txt": {
         "global_cache": false,
         "version_id": 1000018,

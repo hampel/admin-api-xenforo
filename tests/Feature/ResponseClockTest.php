@@ -17,7 +17,7 @@ class ResponseClockTest extends TestCase
 	public static function readRoutes() : array
 	{
 		$routes = [];
-		foreach (['error-log', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'logs', 'user-upgrades', 'approval-queue'] AS $route)
+		foreach (['error-log', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'logs', 'user-upgrades', 'approval-queue', 'reports'] AS $route)
 		{
 			$routes[$route] = ["admin-api/$route/"];
 		}

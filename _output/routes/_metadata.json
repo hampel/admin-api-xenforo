@@ -41,6 +41,9 @@
     "api_admin-api_options.json": {
         "hash": "cd8c90ab22e2429095bd367fa8158c8c"
     },
+    "api_admin-api_reports.json": {
+        "hash": "5b14027daf33a9ce318946f62f6d55bf"
+    },
     "api_admin-api_user-upgrade-records.json": {
         "hash": "9603ddb7a57fac4cdf8099db8ecfac27"
     },

@@ -59,6 +59,7 @@ access*. The add-on creates one small table, for the commands under
    | `logs/` | Admin API: View log summaries |
    | `user-upgrades/` | Admin API: View user upgrade summary |
    | `approval-queue/` | Admin API: View approval queue summary |
+   | `reports/` | Admin API: View report summary |
    | `add-ons/` | Admin API: View add-ons |
    | `cron/`, `jobs/` | Admin API: View cron and jobs |
    | `online/` | Admin API: View who is online |
@@ -959,6 +960,48 @@ and a date for each item, and nothing else is read.
   means moderators are being shown the wrong number.
 - An item whose content has since been deleted is still counted, as XenForo keeps it in the
   queue; XenForo's queue page skips it, and so skips an item a moderator cannot view.
+
+## Reports
+
+`GET /api/admin-api/reports/`
+
+**How many reports are waiting for a moderator, of what kind, and for how long** — for "is anyone
+working the reports?" without a moderator's account. Counts only: a report's content type, state
+and dates are read, and never the content, the comments, who reported it or whom it is about.
+
+```json
+{
+    "total": 6,
+    "open": 4,
+    "assigned": 2,
+    "oldest_date": 1791840601,
+    "newest_date": 1792445101,
+    "oldest_activity_date": 1792100001,
+    "by_age": {"under_hour": 1, "under_day": 2, "under_week": 2, "older": 1},
+    "by_content_type": [
+        {"content_type": "post", "count": 5, "assigned": 2, "oldest_date": 1791840601,
+            "newest_date": 1792445101, "oldest_activity_date": 1792100001},
+        {"content_type": "user", "count": 1, "assigned": 0, "oldest_date": 1792400001,
+            "newest_date": 1792400001, "oldest_activity_date": 1792400001}
+    ],
+    "cached_total": 6,
+    "cached_date": 1792445101
+}
+```
+
+- **A report is waiting while it is open or assigned**, as XenForo counts it for moderators.
+  `total` is both; `open` is those no moderator has taken, `assigned` those one has. Resolved and
+  rejected reports are not counted.
+- **Ages run from when the content was first reported.** XenForo keeps that date when a resolved
+  report is reported again and reopened, so a reopened report counts as old as its first report.
+- **`oldest_activity_date` is the longest any waiting report has gone untouched**: a new report
+  of the same content, a comment or a change of state all move a report's date on. It answers
+  "is anyone working them?" where `oldest_date` answers "how long has this been going on?".
+- `content_type` is a type something on the forum handles reports for; one no longer handled is
+  counted with a `null` name.
+- **`cached_total` is the count XenForo keeps for moderators**, the number beside *Reports* in
+  their navigation. One that differs from `total` means moderators are being shown the wrong
+  number.
 
 ## Add-on inventory
 

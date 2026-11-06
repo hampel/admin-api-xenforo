@@ -42,6 +42,7 @@ class HealthCheck
 		'hampelAdminApiStaff',
 		'hampelAdminApiApproval',
 		'hampelAdminApiLogEntries',
+		'hampelAdminApiReports',
 	];
 
 	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
@@ -55,9 +56,10 @@ class HealthCheck
 		'hampelAdminApiLogs',
 		'hampelAdminApiUpgrades',
 		'hampelAdminApiApproval',
+		'hampelAdminApiReports',
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports'];
 
 	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
 	const MEMBER_SCOPES = [
@@ -369,6 +371,7 @@ class HealthCheck
 		$logs = $this->app->repository('Hampel\AdminApi:Logs')->getIndex($now - 86400, $now);
 		$ips = $this->app->repository('Hampel\AdminApi:Ip')->getUsersByIpRange($test, $test, $now - 86400, 1);
 		$queue = $this->app->repository('Hampel\AdminApi:ApprovalQueue')->getState($now);
+		$reports = $this->app->repository('Hampel\AdminApi:Report')->getState($now);
 		// the newest entry of every log, read as the endpoint reads it
 		$entryLogs = $this->app->repository('Hampel\AdminApi:LogEntries');
 		$entryTotal = 0;
@@ -394,6 +397,7 @@ class HealthCheck
 			[self::OK, 'user upgrades', 'read: ' . count($upgrades['upgrades']) . " defined, {$upgrades['active']} held"],
 			[self::OK, 'IP log', "read: a lookup of a documentation address found {$ips['total_users']} members"],
 			[self::OK, 'approval queue', "read: {$queue['total']} waiting"],
+			[self::OK, 'reports', "read: {$reports['total']} open"],
 			[self::OK, 'log entries', "read: $entryTotal entries in the logs that record members"],
 			[self::OK, 'staff', "read: {$moderators['total']} moderators, {$administrators['total']} administrators"],
 		];
