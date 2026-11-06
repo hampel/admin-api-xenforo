@@ -628,6 +628,26 @@ administrator's keys, over HTTP:
 The forum rendered, the job queue held only core's own jobs after a run, and uninstall left no
 add-on row, scope, permission, phrase, route, permission grant or table.
 
+Proved from a `1.0.0a10` build on XenForo 2.2.19 Patch 2 with PHP 7.4.33, development off, on
+2026-11-06, for the reports and activity endpoints, `now` and the logs overview. The upgrade from
+the archived `1.0.0a9` zip imported the release's own data and brought both permissions, both
+routes and the new error phrase; no `_output/` appeared, and every PHP file linted. Rows were
+planted straight into the tables: five reports in four states, and members, a thread and posts
+dated in 1970 in each state. Over HTTP with a non-super administrator's read key:
+
+| checked | result |
+|---|---|
+| every read endpoint, twelve | 200, each answer opening with `now` |
+| `logs/` | 18 rows of `log`, `total`, `log_oldest_date` and `log_newest_date`; `log_total` only with `log=admin` |
+| `reports/` | 3 waiting, 2 open and 1 assigned, one in each of three age buckets, by type as planted; resolved and rejected not counted |
+| `activity/` | the planted members, thread and posts, each in its state, and no other row in the window |
+| `activity/?since=0` | 400, code `hampel_adminapi_window_too_long`, params `{"days": 31}` |
+| a key whose user holds only the logs permission | 403 `do_not_have_permission` on both new endpoints |
+| the admin log | no line from any of it |
+| the error log | one row, from the setup script's first attempt |
+
+`validate --strict` exited 0 and read both new endpoints.
+
 ### The fault commands, the same day and the same way
 
 On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
