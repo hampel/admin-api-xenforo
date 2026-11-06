@@ -434,8 +434,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
 
 **Counts from every log XenForo keeps** — the ones the control panel lists under *Logs*, and the
 IP, login attempt and upgrade logs it keeps without a page. Without `log`, one line for each:
-how many entries fall in the window as `total`, and how many the log holds with its oldest and
-newest as `log_total`, `log_oldest_date` and `log_newest_date`. With `log`, that log in full.
+how many entries fall in the window as `total`, and the oldest and newest the log holds as
+`log_oldest_date` and `log_newest_date`. With `log`, that log in full, including `log_total`, the
+number of entries it holds.
 
 | parameter | meaning |
 |---|---|
@@ -502,8 +503,11 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
   type, media site or provider must be one the forum has. Anything else is counted on one entry
   whose value is `null`, which also takes whatever falls past the busiest 500.
 - `log_total`, `log_oldest_date` and `log_newest_date` describe the whole log, whatever the
-  window; `precedes_log` is true when the window starts before the oldest entry, so a quiet start
-  may be where the log was last pruned. Most of these logs are pruned by an option.
+  window. **`log_total` is only in the answer for one log**: counting a whole table is the costly
+  part, and the list is meant to be cheap enough to poll. A `total` of 0 beside a
+  `log_newest_date` before the window means the log holds entries and none fall in the window.
+- `precedes_log` is true when the window starts before the oldest entry, so a quiet start may be
+  where the log was last pruned. Most of these logs are pruned by an option.
 - `by_day` is as in the error log summary: one entry per UTC day, quiet days included, from the
   start of the window or of the log, at most 366. `by_day_complete` is `false` when that cut it,
   so a series summing to less than `total` is not taken for pruning.
@@ -512,7 +516,8 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=ad
 - **A long window on a large log is slow, and the IP log is the largest.** Each part of the
   answer reads every entry in the window, so the cost grows with the window, not with what is
   returned. In a test with 2.7 million IP log rows, `log=ip` took 1 s for the default day and 14 s
-  with `since=0`. Ask for the window you need; `log_total` already gives the size of the whole log.
+  with `since=0`. Ask for the window you need; `log_total`, in the answer for one log, gives the
+  size of the whole log.
 
 ## Log entries
 

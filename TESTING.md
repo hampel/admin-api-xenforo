@@ -691,6 +691,13 @@ breakdown each read the whole table. A `/24` in `ip-users/` took 2.3 s, a single
 Decided the same day: no cap on how far back `since` may reach. The README says a long window on
 the IP log is slow, and a client should not send `since=0` for it.
 
+**The overview no longer counts whole tables**, decided 2026-11-06. It gave every log a
+`log_total`, a `COUNT(*)` of each of the 18 tables on every call, and monitoring is to poll it
+every few minutes on forums whose IP log is far larger than the 2.7 million above. `log_total`
+stays in the answer for one log. What is left in the overview is a count over an indexed date
+range and the oldest and newest dates, both read from an index on every table but the sitemap and
+upgrade logs, which hold a handful of rows.
+
 ## Needs a human
 
 - **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
@@ -724,12 +731,6 @@ the IP log is slow, and a client should not send `since=0` for it.
   not been looked at; the lookups were only ever run where nothing forwards the log.
 - **The member endpoints against a production forum's data.** Proved with planted rows in the
   suite and in a 2.2 sandbox; a forum with real staff, upgrades and logs has not been asked.
-- **How long the logs overview takes on a large forum.** Without `log` it counts every row of
-  all 18 log tables for `log_total` on each call, the IP log among them, which can hold millions
-  of rows. On the development forum each count takes under a millisecond, which says nothing;
-  in a sandbox with 2.7 million copied IP log rows the overview took 0.4 s (2026-10-25, above).
-  Kept on purpose, decided 2026-10-24; time it against a production forum's tables, and watch
-  it wherever monitoring polls the overview.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.

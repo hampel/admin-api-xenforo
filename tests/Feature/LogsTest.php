@@ -77,9 +77,10 @@ class LogsTest extends TestCase
 		$this->assertSame(2, $admin['total']);
 		// the whole log's figures carry the log_ name, as they do for one log
 		$this->assertSame(1000, $admin['log_oldest_date']);
-		$this->assertGreaterThanOrEqual(2, $admin['log_total']);
 		$this->assertGreaterThanOrEqual(2000, $admin['log_newest_date']);
 		$this->assertArrayNotHasKey('oldest_date', $admin);
+		// counting a whole table on every call is left to the single-log answer
+		$this->assertArrayNotHasKey('log_total', $admin);
 	}
 
 	public function test_a_series_cut_to_the_most_recent_days_says_so() : void

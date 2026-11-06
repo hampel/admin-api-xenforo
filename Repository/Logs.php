@@ -107,7 +107,6 @@ class Logs extends Repository
 			$logs[] = [
 				'log' => $logId,
 				'total' => $this->countWindow($log, $since, $until),
-				'log_total' => (int) $this->db()->fetchOne("SELECT COUNT(*) FROM {$log['table']}"),
 				'log_oldest_date' => $range['oldest_date'],
 				'log_newest_date' => $range['newest_date'],
 			];
