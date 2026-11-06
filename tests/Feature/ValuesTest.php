@@ -16,7 +16,10 @@ class ValuesTest extends TestCase
 	private const TRUSTED = 'Hampel/AdminApi';
 	private const UNTRUSTED = 'Tests/Unknown';
 
-	private const BOTH_SCOPES = ['scopes' => ['hampel_admin_api:read' => true, 'hampel_admin_api:values' => true]];
+	private const OPTIONS_VALUES = ['hampel_admin_api:options', 'hampel_admin_api:values'];
+	private const OPTIONS_SHAPE = ['hampel_admin_api:options'];
+	private const CONFIG_VALUES = ['hampel_admin_api:config', 'hampel_admin_api:values'];
+	private const CONFIG_SHAPE = ['hampel_admin_api:config'];
 
 	protected function setUp() : void
 	{
@@ -53,27 +56,26 @@ class ValuesTest extends TestCase
 
 	/**
 	 * @param array<string, mixed> $input
-	 * @param string[] $permissions
-	 * @param array<string, mixed> $key
+	 * @param string[] $scopes
+	 * @param string[] $permissions - core's, as well as the Admin API's own
 	 * 
 	 * @return array<string, mixed>
 	 */
-	private function options(array $input = [], array $permissions = ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], array $key = self::BOTH_SCOPES) : array
+	private function options(array $input = [], array $scopes = self::OPTIONS_VALUES, array $permissions = ['option']) : array
 	{
-		$this->actingAsAdminWithKey($permissions, $key);
+		$this->actingAsAdminWithKey($scopes, $permissions);
 
 		return $this->replyApiResult($this->dispatch('admin-api/options/', 'api', $input));
 	}
 
 	/**
-	 * @param array<string, mixed> $key
-	 * @param string[] $permissions
+	 * @param string[] $scopes
 	 * 
 	 * @return array<string, mixed>
 	 */
-	private function config(array $key = self::BOTH_SCOPES, array $permissions = ['hampelAdminApiConfig', 'hampelAdminApiValues']) : array
+	private function config(array $scopes = self::CONFIG_VALUES) : array
 	{
-		$this->actingAsAdminWithKey($permissions, $key);
+		$this->actingAsAdminWithKey($scopes);
 
 		return $this->replyApiResult($this->dispatch('admin-api/config/', 'api'));
 	}
@@ -90,9 +92,9 @@ class ValuesTest extends TestCase
 
 	// the gate
 
-	public function test_a_key_with_only_the_read_scope_gets_shape_and_is_told_why() : void
+	public function test_a_key_without_the_values_scope_gets_shape_and_is_told_why() : void
 	{
-		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], []);
+		$result = $this->options([], self::OPTIONS_SHAPE);
 
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('hampel_admin_api:values', $result['mode_reason']);
@@ -106,7 +108,7 @@ class ValuesTest extends TestCase
 	 */
 	public function test_the_values_scope_is_not_enough_without_the_option_admin_permission() : void
 	{
-		$result = $this->options([], ['hampelAdminApiOptions', 'hampelAdminApiValues']);
+		$result = $this->options([], self::OPTIONS_VALUES, []);
 
 		$this->assertSame('shape', $result['mode']);
 		$this->assertStringContainsString('option admin permission', $result['mode_reason']);
@@ -114,45 +116,34 @@ class ValuesTest extends TestCase
 	}
 
 	/**
-	 * The permission for an endpoint says its holder may read which settings are set. Seeing what
-	 * they are set to is a permission of its own, on both endpoints - and for config.php it is
-	 * the only one there is, since XenForo has no permission of its own for that file.
+	 * The scope for an endpoint says its holder may read which settings are set. Seeing what they
+	 * are set to takes the values scope as well, on both endpoints - and for config.php that is
+	 * the whole of it, since XenForo has no permission of its own for that file.
 	 */
-	public function test_the_values_scope_is_not_enough_without_the_values_admin_permission() : void
+	public function test_config_values_take_the_values_scope_and_nothing_else() : void
 	{
-		$options = $this->options([], ['hampelAdminApiOptions', 'option']);
-
-		$this->assertSame('shape', $options['mode']);
-		$this->assertStringContainsString('hampelAdminApiValues admin permission', $options['mode_reason']);
-		$this->assertStringNotContainsString('Welcome to the forum', json_encode($options, JSON_THROW_ON_ERROR));
-
 		$db = $this->app()->config('db');
-		$config = $this->config(self::BOTH_SCOPES, ['hampelAdminApiConfig']);
-		$settings = array_column($config['settings'], null, 'key');
+		$shape = $this->config(self::CONFIG_SHAPE);
+		$settings = array_column($shape['settings'], null, 'key');
 
-		$this->assertSame('shape', $config['mode']);
-		$this->assertStringContainsString('hampelAdminApiValues admin permission', $config['mode_reason']);
+		$this->assertSame('shape', $shape['mode']);
+		$this->assertStringContainsString('hampel_admin_api:values', $shape['mode_reason']);
 		$this->assertNull($settings['db.host']['value']);
 		$this->assertNull($settings['db.host']['redactions']);
-		$this->assertStringNotContainsString('"' . $db['dbname'] . '"', json_encode($config, JSON_THROW_ON_ERROR));
+		$this->assertStringNotContainsString('"' . $db['dbname'] . '"', json_encode($shape, JSON_THROW_ON_ERROR));
+
+		$this->assertSame('values', $this->config(self::CONFIG_VALUES)['mode']);
 	}
 
 	/**
-	 * Holding the values permission does not open an endpoint its holder cannot otherwise reach.
+	 * Selecting values does not open an endpoint the key cannot otherwise reach.
 	 */
-	public function test_the_values_admin_permission_alone_does_not_reach_an_endpoint() : void
+	public function test_the_values_scope_alone_does_not_reach_an_endpoint() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiValues', 'option'], self::BOTH_SCOPES);
+		$this->actingAsAdminWithKey(['hampel_admin_api:values'], ['option']);
 
-		$this->assertReplyIsError($this->dispatch('admin-api/options/', 'api'), 403, 'do not have permission');
-		$this->assertReplyIsError($this->dispatch('admin-api/config/', 'api'), 403, 'do not have permission');
-	}
-
-	public function test_the_values_scope_alone_does_not_reach_the_endpoint() : void
-	{
-		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'option'], ['scopes' => ['hampel_admin_api:values' => true]]);
-
-		$this->assertReplyIsError($this->dispatch('admin-api/options/', 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch('admin-api/options/', 'api'), 403, 'hampel_admin_api:options');
+		$this->assertReplyIsError($this->dispatch('admin-api/config/', 'api'), 403, 'hampel_admin_api:config');
 	}
 
 	// options
@@ -243,9 +234,9 @@ class ValuesTest extends TestCase
 		$this->insertOption('adminApiTestStoredCount', self::UNTRUSTED, 'unsigned_integer', '25');
 		$this->insertOption('adminApiTestStoredRate', self::UNTRUSTED, 'numeric', '1.5');
 
-		foreach ([self::BOTH_SCOPES, []] AS $key)
+		foreach ([self::OPTIONS_VALUES, self::OPTIONS_SHAPE] AS $scopes)
 		{
-			$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], $key));
+			$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED], $scopes));
 
 			$this->assertTrue($options['adminApiTestStoredFlag']['value']);
 			$this->assertFalse($options['adminApiTestStoredOff']['value']);
@@ -419,7 +410,7 @@ class ValuesTest extends TestCase
 		$this->assertNull($values['adminApiTestApiKey']['value']);
 		$this->assertNull($values['adminApiTestForeign']['value']);
 
-		$shape = $this->options(['option_id' => 'adminApiTestGreeting'], ['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], []);
+		$shape = $this->options(['option_id' => 'adminApiTestGreeting'], self::OPTIONS_SHAPE);
 		$this->assertSame('shape', $shape['mode']);
 		$this->assertNull($this->byId($shape)['adminApiTestGreeting']['value']);
 	}
@@ -437,7 +428,7 @@ class ValuesTest extends TestCase
 	 */
 	public function test_config_settings_can_be_asked_for_by_key() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiConfig', 'hampelAdminApiValues'], self::BOTH_SCOPES);
+		$this->actingAsAdminWithKey(self::CONFIG_VALUES);
 		$get = function (array $input)
 		{
 			return $this->replyApiResult($this->dispatch('admin-api/config/', 'api', $input));
@@ -470,7 +461,7 @@ class ValuesTest extends TestCase
 
 	public function test_config_is_shape_without_the_scope_and_values_with_it() : void
 	{
-		$shape = $this->config([]);
+		$shape = $this->config(self::CONFIG_SHAPE);
 		$this->assertSame('shape', $shape['mode']);
 
 		$values = $this->config();

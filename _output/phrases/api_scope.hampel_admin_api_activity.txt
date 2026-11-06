@@ -1,0 +1,1 @@
+Registrations, threads and posts made in a window, counted by state

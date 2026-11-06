@@ -14,9 +14,10 @@ class UserUpgradesTest extends TestCase
 	private const SUMMARY = 'admin-api/user-upgrades/';
 	private const RECORDS = 'admin-api/user-upgrade-records/';
 
-	private const RECORD_PERMISSIONS = ['hampelAdminApiUpgRecords', 'userUpgrade'];
+	private const RECORD_SCOPES = ['hampel_admin_api:upgrade_records'];
+
+	private const RECORD_PERMISSIONS = ['userUpgrade'];
 	// spelled out: a constant is evaluated while the suite is built, before the add-on can load
-	private const RECORD_KEY = ['scopes' => ['hampel_admin_api:upgrades' => true]];
 
 	private const DAY = 86400;
 
@@ -128,7 +129,7 @@ class UserUpgradesTest extends TestCase
 	 */
 	private function summary(array $input = []) : array
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiUpgrades']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:user_upgrades']);
 
 		return $this->replyApiResult($this->dispatch(self::SUMMARY, 'api', $input));
 	}
@@ -140,7 +141,7 @@ class UserUpgradesTest extends TestCase
 	 */
 	private function records(array $input = []) : array
 	{
-		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS, self::RECORD_KEY);
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES, self::RECORD_PERMISSIONS);
 
 		return $this->replyApiResult($this->dispatch(self::RECORDS, 'api', $input + ['user_upgrade_id' => $this->gold]));
 	}
@@ -215,13 +216,13 @@ class UserUpgradesTest extends TestCase
 		$this->assertStringNotContainsString((string) $this->users['alice']->user_id, json_encode($summary['upgrades'], JSON_THROW_ON_ERROR));
 	}
 
-	public function test_the_summary_needs_its_own_permission_and_the_read_scope() : void
+	public function test_the_summary_needs_its_own_scope_and_the_records_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiUpgRecords', 'userUpgrade']);
-		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'do not have permission');
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES, self::RECORD_PERMISSIONS);
+		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'hampel_admin_api:user_upgrades');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiUpgrades'], self::RECORD_KEY);
-		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'hampel_admin_api:read');
+		$this->actingAsAdminHolding([], ['hampel_admin_api:user_upgrades']);
+		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'do not have permission');
 	}
 
 	// the records
@@ -312,7 +313,7 @@ class UserUpgradesTest extends TestCase
 
 	public function test_a_state_that_does_not_exist_is_refused() : void
 	{
-		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS, self::RECORD_KEY);
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES, self::RECORD_PERMISSIONS);
 
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 400, 'active or expired');
 	}
@@ -330,24 +331,24 @@ class UserUpgradesTest extends TestCase
 
 	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_logged() : void
 	{
-		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS);
-		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'hampel_admin_api:upgrades');
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::RECORD_PERMISSIONS);
+		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'hampel_admin_api:upgrade_records');
 
-		$this->actingAsAdminWithKey(['userUpgrade'], self::RECORD_KEY);
+		$this->actingAsAdminHolding(self::RECORD_PERMISSIONS, self::RECORD_SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiUpgRecords'], self::RECORD_KEY);
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(self::RECORD_PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES, self::RECORD_PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api'), 403, 'single administrator');
 
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_admin_log WHERE user_id = ?', self::USER_ID));
 	}
 
-	public function test_the_upgrades_scope_does_not_reach_the_ip_lookup() : void
+	public function test_the_records_scope_does_not_reach_the_ip_lookup() : void
 	{
-		$this->actingAsAdminWithKey(array_merge(self::RECORD_PERMISSIONS, ['hampelAdminApiIps', 'user']), self::RECORD_KEY);
+		$this->actingAsAdminWithKey(self::RECORD_SCOPES, array_merge(self::RECORD_PERMISSIONS, ['user']));
 
 		$this->assertReplyIsError($this->dispatch('admin-api/ip-users/', 'api', ['ip' => '203.0.113.1']), 403, 'hampel_admin_api:ips');
 	}

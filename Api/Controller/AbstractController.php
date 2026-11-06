@@ -5,44 +5,51 @@ use XF\Mvc\ParameterBag;
 
 abstract class AbstractController extends BaseController
 {
-	const SCOPE = 'hampel_admin_api:read';
-	const SCOPE_ERROR_DETAIL = 'hampel_admin_api:error_detail';
+	/**
+	 * A scope for each capability, so that what a key can read is decided on the key, where an
+	 * administrator looks for it. The aggregate endpoints come first, then the member data.
+	 */
+	const SCOPE_ERROR_LOG = 'hampel_admin_api:error_log';
+	const SCOPE_LOGS = 'hampel_admin_api:logs';
+	const SCOPE_ADD_ONS = 'hampel_admin_api:add_ons';
+	const SCOPE_JOBS = 'hampel_admin_api:jobs';
+	const SCOPE_OPTIONS = 'hampel_admin_api:options';
+	const SCOPE_CONFIG = 'hampel_admin_api:config';
+	const SCOPE_ONLINE = 'hampel_admin_api:online';
+	const SCOPE_USER_UPGRADES = 'hampel_admin_api:user_upgrades';
+	const SCOPE_APPROVAL_QUEUE = 'hampel_admin_api:approval_queue';
+	const SCOPE_REPORTS = 'hampel_admin_api:reports';
+	const SCOPE_ACTIVITY = 'hampel_admin_api:activity';
 
+	/** Not an endpoint: the values of settings, on the options and config endpoints, rather than their shape */
 	const SCOPE_VALUES = 'hampel_admin_api:values';
 
-	/** Member data: a scope for each capability, so that a key can be narrower than its user */
+	const SCOPE_ERROR_DETAIL = 'hampel_admin_api:error_detail';
 	const SCOPE_IPS = 'hampel_admin_api:ips';
-	const SCOPE_UPGRADES = 'hampel_admin_api:upgrades';
+	const SCOPE_UPGRADE_RECORDS = 'hampel_admin_api:upgrade_records';
 	const SCOPE_STAFF = 'hampel_admin_api:staff';
 	const SCOPE_LOG_ENTRIES = 'hampel_admin_api:log_entries';
 
 	const SCOPES = [
-		self::SCOPE, self::SCOPE_ERROR_DETAIL, self::SCOPE_VALUES, self::SCOPE_IPS, self::SCOPE_UPGRADES, self::SCOPE_STAFF,
-		self::SCOPE_LOG_ENTRIES,
+		self::SCOPE_ERROR_LOG, self::SCOPE_LOGS, self::SCOPE_ADD_ONS, self::SCOPE_JOBS, self::SCOPE_OPTIONS,
+		self::SCOPE_CONFIG, self::SCOPE_ONLINE, self::SCOPE_USER_UPGRADES, self::SCOPE_APPROVAL_QUEUE,
+		self::SCOPE_REPORTS, self::SCOPE_ACTIVITY, self::SCOPE_VALUES, self::SCOPE_ERROR_DETAIL, self::SCOPE_IPS,
+		self::SCOPE_UPGRADE_RECORDS, self::SCOPE_STAFF, self::SCOPE_LOG_ENTRIES,
 	];
 
-	const PERMISSION_VALUES = 'hampelAdminApiValues';
+	/** The one admin permission: whether this administrator's keys may use the Admin API at all */
+	const PERMISSION = 'hampelAdminApi';
 
 	/**
-	 * The admin permission the key's own user must hold to reach this controller.
+	 * The scope the key must hold, ticked on the key itself.
 	 *
 	 * @return string
 	 */
-	abstract protected function getAdminPermissionId();
+	abstract protected function getScope();
 
 	/**
-	 * The scope the key must hold. One scope covers every endpoint that returns no content.
-	 *
-	 * @return string
-	 */
-	protected function getScope()
-	{
-		return self::SCOPE;
-	}
-
-	/**
-	 * Three gates, and the order matters: the first is the one core cannot supply, the second only
-	 * narrows, and the third is the boundary.
+	 * Three gates, and the order matters: the first is the one core cannot supply, the second is
+	 * what the key may read, and the third is whether its user may use the API at all.
 	 *
 	 * @param string $action
 	 *
@@ -51,8 +58,47 @@ abstract class AbstractController extends BaseController
 	protected function preDispatchController($action, ParameterBag $params)
 	{
 		$this->assertUserApiKey();
-		$this->assertApiScope($this->getScope());
-		$this->assertKeyUserAdminPermission($this->getAdminPermissionId());
+		$this->assertKeyScope($this->getScope());
+		$this->assertKeyUserAdminPermission(self::PERMISSION);
+	}
+
+	/**
+	 * Whether the key has this scope ticked. Not core's assertApiScope(), because a key allowed
+	 * all scopes passes that for every scope: one radio button would hand over member data and
+	 * the values of settings. Here a scope counts only when it was chosen.
+	 *
+	 * @param string $scope
+	 *
+	 * @return void
+	 */
+	protected function assertKeyScope($scope)
+	{
+		$key = \XF::apiKey();
+
+		if ($key->allow_all_scopes)
+		{
+			throw $this->exception(
+				$this->error(\XF::phrase('hampel_adminapi_scope_must_be_selected', ['scope' => $scope]), 403)
+			);
+		}
+
+		if (!self::keyHasScope($key, $scope))
+		{
+			throw $this->exception(
+				$this->error(\XF::phrase('api_error.missing_scope', ['scope' => $scope]), 403)
+			);
+		}
+	}
+
+	/**
+	 * @param \XF\Entity\ApiKey $key
+	 * @param string $scope
+	 *
+	 * @return bool
+	 */
+	public static function keyHasScope(\XF\Entity\ApiKey $key, $scope)
+	{
+		return !$key->allow_all_scopes && !empty($key->scopes[$scope]);
 	}
 
 	/**
@@ -147,22 +193,22 @@ abstract class AbstractController extends BaseController
 
 	/**
 	 * Whether this request may be given the values of settings, and not only their shape. That is
-	 * a capability of its own, so it has an admin permission of its own: the permission for an
-	 * endpoint says its holder may read which settings are set, and no more. It takes a scope of
-	 * its own as well, so that a key issued for monitoring cannot read values whoever holds it.
+	 * a capability of its own, so it has a scope of its own: the scope for an endpoint says its
+	 * holder may read which settings are set, and no more, so a key issued for monitoring cannot
+	 * read values unless someone ticks this as well.
 	 *
-	 * @param string[] $permissions Further admin permissions the key's user must hold
+	 * @param string[] $permissions Core admin permissions the key's user must hold as well
 	 *
 	 * @return string|null Null when values may be returned; otherwise why not
 	 */
 	protected function getValuesRefusal(array $permissions = [])
 	{
-		if (!\XF::apiKey()->hasScope(self::SCOPE_VALUES))
+		if (!self::keyHasScope(\XF::apiKey(), self::SCOPE_VALUES))
 		{
 			return 'the key does not hold the ' . self::SCOPE_VALUES . ' scope';
 		}
 
-		foreach (array_merge([self::PERMISSION_VALUES], $permissions) AS $permission)
+		foreach ($permissions AS $permission)
 		{
 			if (!\XF::visitor()->hasAdminPermission($permission))
 			{

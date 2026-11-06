@@ -4,20 +4,14 @@ use Hampel\AdminApi\Repository\LogEntries as LogEntriesRepository;
 use XF\Mvc\ParameterBag;
 
 /**
- * Entries from one of the logs that record what members and staff did. Member data, so a scope and
- * an admin permission of its own, core's permission to view logs, and a line in the admin log for
- * every lookup.
+ * Entries from one of the logs that record what members and staff did. Member data, so a scope of
+ * its own, core's permission to view logs, and a line in the admin log for every lookup.
  *
  * @api-group Admin API
  */
 class LogEntries extends AbstractController
 {
 	const DEFAULT_LIMIT = 50;
-
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiLogEntries';
-	}
 
 	protected function getScope()
 	{
@@ -39,12 +33,12 @@ class LogEntries extends AbstractController
 	}
 
 	/**
-	 * @api-desc Returns entries from one log, newest first: who acted, the member it was about, when,
-	 *   and the log's own closed values. Never an IP address, a reason, a title or a message; a
-	 *   user change's values only when asked for. Every lookup is written to the admin log.
-	 *   Requires a user API key holding the hampel_admin_api:log_entries scope, whose user has both
-	 *   the hampelAdminApiLogEntries and the viewLogs admin permissions; the admin log needs a
-	 *   super administrator as well.
+	 * @api-desc Returns entries from one log, newest first: who acted, the member it was about,
+	 *   when, and the log's own closed values. Never an IP address, a reason, a title or a message;
+	 *   a user change's values only when asked for. Every lookup is written to the admin log.
+	 *   Requires a user API key with the hampel_admin_api:log_entries scope selected, whose user
+	 *   holds the hampelAdminApi and the viewLogs admin permissions; the admin log needs a super
+	 *   administrator as well.
 	 *
 	 * @api-in str $log admin, moderator, user_change, username_change, spam_trigger, spam_cleaner, rejected_user or email_bounce
 	 * @api-in int $since Only entries from this Unix timestamp. Default the whole log.

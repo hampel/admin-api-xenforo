@@ -14,46 +14,41 @@ checked. For whoever changes it next.
 | API route | `admin-api/options/` → `Api\Controller\Options` |
 | API route | `admin-api/config/` → `Api\Controller\Config` |
 | API route | `admin-api/error-entries/` → `Api\Controller\ErrorEntries` |
-| API scope | `hampel_admin_api:read`, not usable with OAuth clients |
 | API route | `admin-api/online/` → `Api\Controller\Online` |
-| API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients |
-| API scope | `hampel_admin_api:values`, not usable with OAuth clients |
 | API route | `admin-api/ip-users/` → `Api\Controller\IpUsers` |
 | API route | `admin-api/logs/` → `Api\Controller\Logs` |
 | API route | `admin-api/user-upgrades/` → `Api\Controller\UserUpgrades` |
 | API route | `admin-api/user-upgrade-records/` → `Api\Controller\UserUpgradeRecords` |
-| API scope | `hampel_admin_api:upgrades`, not usable with OAuth clients |
-| API scope | `hampel_admin_api:ips`, not usable with OAuth clients |
 | API route | `admin-api/moderators/` → `Api\Controller\Moderators` |
 | API route | `admin-api/administrators/` → `Api\Controller\Administrators` |
-| API scope | `hampel_admin_api:staff`, not usable with OAuth clients |
 | API route | `admin-api/approval-queue/` → `Api\Controller\ApprovalQueue` |
 | API route | `admin-api/log-entries/` → `Api\Controller\LogEntries` |
 | API route | `admin-api/reports/` → `Api\Controller\Reports` |
 | API route | `admin-api/activity/` → `Api\Controller\Activity` |
-| API scope | `hampel_admin_api:log_entries`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:error_log`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:logs`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:add_ons`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:jobs`, not usable with OAuth clients; both the cron and the jobs endpoint |
+| API scope | `hampel_admin_api:options`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:config`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:online`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:user_upgrades`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:approval_queue`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:reports`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:activity`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:values`, not usable with OAuth clients; values on the options and config endpoints, with either of their scopes |
+| API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients; with core's `viewLogs` |
+| API scope | `hampel_admin_api:ips`, not usable with OAuth clients; with core's `user` |
+| API scope | `hampel_admin_api:upgrade_records`, not usable with OAuth clients; with core's `userUpgrade` |
+| API scope | `hampel_admin_api:staff`, not usable with OAuth clients; with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
+| API scope | `hampel_admin_api:log_entries`, not usable with OAuth clients; with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
 | other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
-| admin permission | `hampelAdminApiOnline` |
-| admin permission | `hampelAdminApiValues` — values on the options and config endpoints |
-| admin permission | `hampelAdminApiErrorLog` |
-| admin permission | `hampelAdminApiAddOns` |
-| admin permission | `hampelAdminApiJobs` — both the cron and the jobs endpoint |
-| admin permission | `hampelAdminApiOptions` |
-| admin permission | `hampelAdminApiConfig` |
-| admin permission | `hampelAdminApiErrorDetail` — with core's `viewLogs` |
-| admin permission | `hampelAdminApiIps` — with core's `user` |
-| admin permission | `hampelAdminApiLogs` |
-| admin permission | `hampelAdminApiUpgrades` |
-| admin permission | `hampelAdminApiUpgRecords` — with core's `userUpgrade`; an id is capped at 25 characters |
-| admin permission | `hampelAdminApiApproval` |
-| admin permission | `hampelAdminApiReports` |
-| admin permission | `hampelAdminApiActivity` |
-| admin permission | `hampelAdminApiLogEntries` — with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
-| admin permission | `hampelAdminApiStaff` — with core's `user` for the moderators; the administrators need a super administrator instead, as in the control panel |
+| admin permission | `hampelAdminApi` — *Use the Admin API*, the one permission; a key reads what its selected scopes allow |
+| template modification | `hampel_adminapi_api_key_scopes` on admin `api_key_edit` — lists this add-on's scopes apart, counts first and member data after |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |
-| phrases | 32 — the seven scope descriptions, the seventeen permission titles, eight errors |
+| phrases | 29 — the seventeen scope descriptions, the permission title, nine errors, two headings for the API key page |
 
 | CLI command | `admin-api:config`, `admin-api:validate` |
 | CLI command | `admin-api:fault-arm`, `admin-api:fault-clean`, `admin-api:fault-list` |
@@ -372,7 +367,10 @@ vendor/bin/phpunit
 ```
 
 - `tests/Feature/AuthorisationTest.php` dispatches the routes, so `preDispatch()` runs. It covers
-  each gate in both directions, including a super user key with the permission bypass on.
+  each gate in both directions, including a super user key with the permission bypass on, and a
+  key allowing all scopes refused even for a super administrator.
+- `tests/Unit/ScopeListTest.php` checks every scope is in exactly one of the health check's groups,
+  and that the template modification shows the same member-data scopes apart on the key page.
 - `tests/Feature/ErrorLogSummaryTest.php` writes rows inside a transaction, dated in a window no
   real entry occupies, and asserts the counts, the grouping, the limit and the absence of every
   personal and request column, of the install's own path, and of any directory outside it. Its
@@ -402,15 +400,16 @@ vendor/bin/phpunit
   admin log line.
 - `tests/Feature/ApprovalQueueTest.php` queues items under ids no content has, in each age
   bucket and for a type nothing approves, and compares the answer before and after, since the
-  queue is the forum's own; and checks the permission, the scope and that nothing is logged.
+  queue is the forum's own; and checks its own scope, a member scope refused, and that nothing
+  is logged.
 - `tests/Feature/ReportsTest.php` adds reports under content ids nothing has, open and assigned,
   in each age bucket, resolved and rejected, and for a type nothing handles, and compares the
   answer before and after; and checks the oldest report apart from the longest without activity,
-  that no content is read, the permission, the scope and that nothing is logged.
+  that no content is read, its own scope, a member scope refused, and that nothing is logged.
 - `tests/Feature/ActivityTest.php` plants members, threads and posts dated in 1970 in each state,
   inside and outside a window nothing real falls in, and checks each count exactly, that no name,
-  title, message or address is returned, the default window, the 31-day cap, the permission, the
-  scope and that nothing is logged.
+  title, message or address is returned, the default window, the 31-day cap, its own scope, a
+  member scope refused, and that nothing is logged.
 - `tests/Feature/ResponseClockTest.php` asks every read endpoint and one member endpoint, and
   checks each answer begins with `now`, the forum's clock.
 - `tests/Feature/LogEntriesTest.php` reads every declared log, so a misspelt table or column
@@ -429,7 +428,7 @@ vendor/bin/phpunit
   a location written into a message is not taken for one.
 - `tests/Feature/ErrorEntriesTest.php` covers the detail endpoint: what an entry returns, which
   others come with it, the cap, the request data being absent unless asked for, and each of the
-  ways in being refused — the wrong scope in both directions, the summary's permission, a missing
+  ways in being refused — the wrong scope in both directions, no *Use the Admin API*, a missing
   `viewLogs`, a super user key. And the admin log line: written for `request=1`, found or not;
   none without it, and none for a refusal or a missing `error_id`.
 - `tests/Feature/FaultTest.php` covers the three commands loading, the config guard in each

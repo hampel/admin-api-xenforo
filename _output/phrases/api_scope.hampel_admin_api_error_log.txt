@@ -1,0 +1,1 @@
+Counts from the server error log: what is failing, where and how often, without the messages

@@ -5,9 +5,9 @@ use XF\Mvc\ParameterBag;
 use XF\Util\Ip;
 
 /**
- * The members behind an IP address, and the members who share a member's addresses. Member data,
- * so a scope and an admin permission of its own, core's permission to look up IP addresses in the
- * control panel, and a line in the admin log for every lookup.
+ * The members behind an IP address, and the members who share a member's addresses. Member data, so
+ * a scope of its own, core's permission to look up IP addresses in the control panel, and a line in
+ * the admin log for every lookup.
  *
  * @api-group Admin API
  */
@@ -16,11 +16,6 @@ class IpUsers extends AbstractController
 	const DEFAULT_LIMIT = 50;
 	const MAX_LIMIT = 200;
 	const MAX_DAYS = 3650;
-
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiIps';
-	}
 
 	protected function getScope()
 	{
@@ -44,10 +39,10 @@ class IpUsers extends AbstractController
 
 	/**
 	 * @api-desc Returns the members who have used an IP address or range, or the other members who
-	 *   have used any address a member used, each with the addresses and when. Only the user id
-	 *   and username of each member; ask core's users endpoints for the rest. Every lookup is
-	 *   written to the admin log. Requires a user API key holding the hampel_admin_api:ips scope,
-	 *   whose user has both the hampelAdminApiIps and the user admin permissions.
+	 *   have used any address a member used, each with the addresses and when. Only the user id and
+	 *   username of each member; ask core's users endpoints for the rest. Every lookup is written
+	 *   to the admin log. Requires a user API key with the hampel_admin_api:ips scope selected,
+	 *   whose user holds the hampelAdminApi and the user admin permissions.
 	 *
 	 * @api-in int $user_id The member whose addresses to compare with everyone else's. Give this or ip.
 	 * @api-in str $ip An address, a CIDR range, or a partial IPv4 address such as 203.0.113.* Give this or user_id.

@@ -11,18 +11,19 @@ class ErrorLog extends AbstractController
 	const DEFAULT_LIMIT = 20;
 	const MAX_LIMIT = 100;
 
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiErrorLog';
+		return self::SCOPE_ERROR_LOG;
 	}
 
 	/**
 	 * @api-desc Summarises the server error log over a time window: counts by exception type, by
 	 *   add-on, by day and by signature (type, file and line), with the PHP error level, whether
 	 *   each arose from a web request, the command line or a job, and the add-on it originated in.
-	 *   Counts the members affected without
-	 *   identifying them, and returns no message, stack trace, request data, user or IP address. Requires a user API key holding the hampel_admin_api:read scope,
-	 *   whose user has the hampelAdminApiErrorLog admin permission.
+	 *   Counts the members affected without identifying them, and returns no message, stack trace,
+	 *   request data, user or IP address. Requires a user API key with the
+	 *   hampel_admin_api:error_log scope selected, whose user holds the hampelAdminApi admin
+	 *   permission.
 	 *
 	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.
 	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now.

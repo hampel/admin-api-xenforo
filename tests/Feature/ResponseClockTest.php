@@ -28,7 +28,7 @@ class ResponseClockTest extends TestCase
 	#[DataProvider('readRoutes')]
 	public function test_every_read_endpoint_says_what_time_it_is(string $route) : void
 	{
-		$this->actingAsAdminWithKey(HealthCheck::READ_PERMISSIONS);
+		$this->actingAsAdminWithKey(HealthCheck::AGGREGATE_SCOPES);
 
 		$result = $this->replyApiResult($this->dispatch($route, 'api'));
 
@@ -38,7 +38,7 @@ class ResponseClockTest extends TestCase
 
 	public function test_a_member_endpoint_says_it_too() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiIps', 'user'], ['scopes' => ['hampel_admin_api:ips' => true]]);
+		$this->actingAsAdminWithKey(['hampel_admin_api:ips'], ['user']);
 
 		$result = $this->replyApiResult($this->dispatch('admin-api/ip-users/', 'api', ['ip' => '192.0.2.1']));
 

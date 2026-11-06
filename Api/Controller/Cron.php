@@ -7,15 +7,15 @@ use Hampel\AdminApi\Repository\Cron as CronRepository;
  */
 class Cron extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiJobs';
+		return self::SCOPE_JOBS;
 	}
 
 	/**
-	 * @api-desc Lists every cron entry with when it is next due and whether it is overdue, and
-	 *   when the job that runs them last ran. Requires a user API key holding the
-	 *   hampel_admin_api:read scope, whose user has the hampelAdminApiJobs admin permission.
+	 * @api-desc Lists every cron entry with when it is next due and whether it is overdue, and when
+	 *   the job that runs them last ran. Requires a user API key with the hampel_admin_api:jobs
+	 *   scope selected, whose user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-out int $now The time the state was read
 	 * @api-out int $total Cron entries defined

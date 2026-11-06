@@ -11,17 +11,17 @@ class UserUpgrades extends AbstractController
 {
 	const DEFAULT_DAYS = 30;
 
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiUpgrades';
+		return self::SCOPE_USER_UPGRADES;
 	}
 
 	/**
 	 * @api-desc Returns every user upgrade with how many members hold it, how many end in the next
 	 *   days and how many ended in the last days, expiries by day both ways, and upgrade payments
 	 *   by provider and currency in the last days. Counts only: no member. Requires a user API key
-	 *   holding the hampel_admin_api:read scope, whose user has the hampelAdminApiUpgrades admin
-	 *   permission.
+	 *   with the hampel_admin_api:user_upgrades scope selected, whose user holds the hampelAdminApi
+	 *   admin permission.
 	 *
 	 * @api-in int $days How far ahead and back to look. Default 30, maximum 366.
 	 *

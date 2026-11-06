@@ -17,7 +17,7 @@ class ApprovalQueueTest extends TestCase
 	{
 		parent::setUp();
 
-		$this->actingAsAdminWithKey(['hampelAdminApiApproval']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:approval_queue']);
 	}
 
 	/** @return array<string, mixed> */
@@ -102,19 +102,19 @@ class ApprovalQueueTest extends TestCase
 		$this->assertSame(isset($cached['total']) ? (int) $cached['total'] : null, $state['cached_total']);
 	}
 
-	public function test_it_needs_its_own_permission_and_writes_nothing_to_the_admin_log() : void
+	public function test_it_needs_its_own_scope_and_writes_nothing_to_the_admin_log() : void
 	{
 		$this->state();
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_admin_log WHERE user_id = ?', self::USER_ID));
 
-		$this->actingAsAdminWithKey(['hampelAdminApiLogs']);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->actingAsAdminWithKey(['hampel_admin_api:logs']);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:approval_queue');
 	}
 
 	public function test_a_member_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiApproval'], ['scopes' => ['hampel_admin_api:staff' => true]]);
+		$this->actingAsAdminWithKey(['hampel_admin_api:approval_queue'], [], ['scopes' => ['hampel_admin_api:staff' => true]]);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:approval_queue');
 	}
 }

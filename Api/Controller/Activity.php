@@ -14,17 +14,17 @@ class Activity extends AbstractController
 	/** Each count reads every row in the window, so the window is capped; a month is enough to compare against */
 	const MAX_WINDOW_DAYS = 31;
 
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiActivity';
+		return self::SCOPE_ACTIVITY;
 	}
 
 	/**
 	 * @api-desc Returns how many members registered, and how many threads and posts were made, in
 	 *   the window, each by the state it is in now: a member valid, awaiting confirmation or
-	 *   approval, rejected or disabled; content visible, awaiting approval or deleted. Counts
-	 *   only: no member and no content. Requires a user API key holding the hampel_admin_api:read
-	 *   scope, whose user has the hampelAdminApiActivity admin permission.
+	 *   approval, rejected or disabled; content visible, awaiting approval or deleted. Counts only:
+	 *   no member and no content. Requires a user API key with the hampel_admin_api:activity scope
+	 *   selected, whose user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours before until.
 	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now. At most 31 days after since.

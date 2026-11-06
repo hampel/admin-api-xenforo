@@ -39,7 +39,7 @@ class JobStateTest extends TestCase
 		$this->insertFailed('Tests\Fake\Mail', $this->now - 500);
 		$this->insertFailed('Tests\Fake\Mail', $this->now - 100);
 
-		$this->actingAsAdminWithKey(['hampelAdminApiJobs']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:jobs']);
 	}
 
 	/** @param array<string, mixed> $values */
@@ -255,11 +255,11 @@ class JobStateTest extends TestCase
 		$this->assertStringNotContainsString('example.com', $json);
 	}
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiAddOns', 'cron']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log', 'hampel_admin_api:add_ons'], ['cron']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:jobs');
 	}
 
 	/**

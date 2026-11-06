@@ -5,18 +5,13 @@ use XF\Mvc\ParameterBag;
 
 /**
  * The forum's moderators and the moderator permissions each has been granted. Member data, so a
- * scope and an admin permission of its own, core's permission for the control panel's moderator
- * pages, and a line in the admin log for every lookup.
+ * scope of its own, core's permission for the control panel's moderator pages, and a line in the
+ * admin log for every lookup.
  *
  * @api-group Admin API
  */
 class Moderators extends AbstractController
 {
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiStaff';
-	}
-
 	protected function getScope()
 	{
 		return self::SCOPE_STAFF;
@@ -41,9 +36,8 @@ class Moderators extends AbstractController
 	 * @api-desc Returns each moderator with their user id and username, whether they are a super
 	 *   moderator, and the moderator permissions granted to them, globally and for each piece of
 	 *   content they moderate. Permissions a moderator has from a user group are not listed. Every
-	 *   lookup is written to the admin log. Requires a user API key holding the
-	 *   hampel_admin_api:staff scope, whose user has both the hampelAdminApiStaff and the user admin
-	 *   permissions.
+	 *   lookup is written to the admin log. Requires a user API key with the hampel_admin_api:staff
+	 *   scope selected, whose user holds the hampelAdminApi and the user admin permissions.
 	 *
 	 * @api-in int $user_id Only this member
 	 *

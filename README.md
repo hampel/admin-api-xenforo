@@ -41,35 +41,22 @@ Install the release zip through the admin control panel, or unpack it and run:
 php cmd.php xf:addon-install Hampel/AdminApi
 ```
 
-Nothing is reachable until an administrator has a permission and an API key — see *Setting up
+Nothing is reachable until an administrator has the permission and an API key — see *Setting up
 access*. The add-on creates one small table, for the commands under
 *Testing with faults*, and removes it when uninstalled.
 
 ## Setting up access
 
 1. **Pick an administrator for the key to act as**, under *Groups & permissions >
-   Administrators*. A super administrator already holds every permission below, so their key
-   reaches every endpoint its scopes allow; for anyone else, the permissions decide.
-2. **Give that administrator the permissions**, on the same page, for the endpoints you want.
-   Skip this for a super administrator.
-
-   | endpoint | admin permission |
-   |---|---|
-   | `error-log/` | Admin API: View error log summary |
-   | `logs/` | Admin API: View log summaries |
-   | `user-upgrades/` | Admin API: View user upgrade summary |
-   | `approval-queue/` | Admin API: View approval queue summary |
-   | `reports/` | Admin API: View report summary |
-   | `activity/` | Admin API: View activity summary |
-   | `add-ons/` | Admin API: View add-ons |
-   | `cron/`, `jobs/` | Admin API: View cron and jobs |
-   | `online/` | Admin API: View who is online |
-   | `options/` | Admin API: View options |
-   | `config/` | Admin API: View config.php |
-
+   Administrators*. A dedicated one is best: a new member made an administrator with the
+   permission below and nothing else, so the key can do nothing else either.
+2. **Give that administrator *Use the Admin API***, on the same page. A super administrator
+   already holds it.
 3. **Create the key.** Under *Setup > API keys*, add a key with:
    - *Key type*: **User key**, with that administrator's username
-   - *Allowed scopes*: **Selected scopes only**, with `hampel_admin_api:read` ticked
+   - *Allowed scopes*: **Selected scopes only**, and under *Admin API* select a scope for each
+     endpoint the key should reach. **"All scopes" includes none of them**: a key allowing all
+     scopes is refused by every endpoint here.
 4. **Test it.**
 
    ```bash
@@ -79,75 +66,59 @@ access*. The add-on creates one small table, for the commands under
    A 403 names what is missing; see *Errors*. `php cmd.php admin-api:validate` checks every key
    on the forum.
 
-**Recommendation**: create a new user with no other permissions, make them an administrator and give them just the
-"Admin API: ..." permissions you want them to have. This then restricts the api user to these specific roles and
-they can't do anything else.
+| scope | reaches |
+|---|---|
+| `hampel_admin_api:error_log` | `error-log/` |
+| `hampel_admin_api:logs` | `logs/` |
+| `hampel_admin_api:add_ons` | `add-ons/` |
+| `hampel_admin_api:jobs` | `cron/` and `jobs/` |
+| `hampel_admin_api:options` | `options/` |
+| `hampel_admin_api:config` | `config/` |
+| `hampel_admin_api:online` | `online/` |
+| `hampel_admin_api:user_upgrades` | `user-upgrades/` |
+| `hampel_admin_api:approval_queue` | `approval-queue/` |
+| `hampel_admin_api:reports` | `reports/` |
+| `hampel_admin_api:activity` | `activity/` |
+| `hampel_admin_api:values` | the values of settings, with `options` or `config` |
 
-**To see what settings are set to**, not only whether they are set:
+Those return counts and the shape of settings. The rest return content and members' details, and
+each needs one of XenForo's own permissions as well:
 
-- give the administrator *Admin API: View setting values*, and XenForo's *Manage options*;
-- add the `hampel_admin_api:values` scope to the key.
+| scope | reaches | and XenForo's |
+|---|---|---|
+| `hampel_admin_api:error_detail` | `error-entries/` | *View logs* |
+| `hampel_admin_api:ips` | `ip-users/` | *Manage users and moderators* |
+| `hampel_admin_api:upgrade_records` | `user-upgrade-records/` | *Manage user upgrades* |
+| `hampel_admin_api:staff` | `moderators/`, `administrators/` | *Manage users and moderators*; a super administrator for the administrators |
+| `hampel_admin_api:log_entries` | `log-entries/` | *View logs*; a super administrator for the admin log |
 
-**To read individual error log entries**, messages included:
+`options/` with `values` needs XenForo's *Manage options* as well. **Every lookup of members'
+details is written to the admin log**, and so is a read of an error entry's request.
 
-- give the administrator *Admin API: View error log entries*, and XenForo's *View logs*;
-- create a second key with only the `hampel_admin_api:error_detail` scope.
-
-**To look up members by IP address**:
-
-- give the administrator *Admin API: Look up members by IP address*, and XenForo's *Manage users
-  and moderators*;
-- create a key with the `hampel_admin_api:ips` scope. Every lookup is written to the admin log.
-
-**To look up which members hold user upgrades**, and what they paid:
-
-- give the administrator *Admin API: Look up members' user upgrades*, and XenForo's *Manage user
-  upgrades*;
-- create a key with the `hampel_admin_api:upgrades` scope. Every lookup is written to the admin
-  log.
-
-**To list the moderators and administrators**, and what each may do:
-
-- give the administrator *Admin API: Look up moderators and administrators*, and XenForo's *Manage
-  users and moderators* for the moderators;
-- create a key with the `hampel_admin_api:staff` scope. Every lookup is written to the admin log.
-- **The administrators are for a super administrator's key alone**, as their page in the control
-  panel is.
-
-**To read entries from the logs** of what members and staff did:
-
-- give the administrator *Admin API: Read log entries*, and XenForo's *View logs*;
-- create a key with the `hampel_admin_api:log_entries` scope. Every lookup is written to the admin
-  log.
-- **The admin log's entries are for a super administrator's key alone**, as its page in the
-  control panel is.
+**Keep monitoring and lookups on separate keys.** A key polled every few minutes from a script
+needs only the counts, and nothing it can read names a member.
 
 ## How access is decided
 
-**A request has to pass three checks, and the third is the one that decides.**
+**A request has to pass three checks, and each refuses with a 403 that names what is missing.**
 
 1. **The key must belong to one user.** A super user key is refused outright, whatever it is
    acting as, and so are a guest key and an OAuth access token. A super user key can act as any
    user and can ask XenForo to skip its permission checks, so there would be no single
    administrator whose permissions the request could be held to.
-2. **The key must hold the scope for that endpoint.** `hampel_admin_api:read` covers every
-   endpoint that returns counts and shape, and `hampel_admin_api:error_detail` the one that
-   returns error content. A third, `hampel_admin_api:values`, adds to the read scope: with it the
-   options and configuration endpoints return what settings are set to, not only whether. Each
-   endpoint that returns members' details has a scope of its own, such as
-   `hampel_admin_api:ips`, so that a key can be issued for one kind of lookup and no other.
-3. **The key's user must hold the admin permission for that endpoint.**
+2. **The key must have the endpoint's scope selected.** Each endpoint has a scope of its own, so
+   a key can be issued for exactly what it is for. **A key allowing all scopes is refused**: XenForo
+   lets one radio button satisfy every scope, which here would hand over members' details and the
+   values of settings to a key nobody chose them for. A scope counts only when it is selected.
+3. **The key's user must hold *Use the Admin API*.** A key for an ordinary member is refused
+   whatever scopes it has, and taking the permission away switches off every key its holder has.
 
-So a key can never do more than the administrator it belongs to. A key with *all scopes* allowed
-passes the second check and still fails the third unless its user is an administrator with the
-permission. The scopes exist to let an administrator issue a key that can do *less* than they
-can — above all, a key for routine monitoring that cannot read a single error message.
+So what a key reads is decided on the key, by whoever creates it — in XenForo that is a super
+administrator, who also decides administrators' permissions. A super administrator holds the
+permission already, so for their keys the scopes are the whole of the limit.
 
-A super administrator holds every admin permission, so the per-endpoint permissions constrain
-ordinary administrators only.
-
-**The options and configuration permissions cover which settings are set, and no more.** Seeing
-what they are set to takes its own permission as well as its own scope, as above.
+**The options and configuration scopes cover which settings are set, and no more.** Seeing what
+they are set to takes the `values` scope as well.
 
 **A lookup of members' details also needs XenForo's own permission for the same thing**, and is
 written to the admin log under *Logs > Admin log*, as `api/` and the endpoint, with what was asked.
@@ -157,12 +128,9 @@ too, with what was asked: an IP address looked up goes wherever the admin log go
 
 ## Endpoints
 
-Every endpoint is a `GET` under `/api/admin-api/`, and needs the `hampel_admin_api:read` scope
-except *Error log entries*, which needs `hampel_admin_api:error_detail` instead, *Members by IP
-address*, which needs `hampel_admin_api:ips`, *User upgrade records*, which needs
-`hampel_admin_api:upgrades`, *Moderators* and *Administrators*, which need
-`hampel_admin_api:staff`, and *Log entries*, which needs `hampel_admin_api:log_entries`. The JSON
-under each shows the shape of a response; the figures in it are illustrative.
+Every endpoint is a `GET` under `/api/admin-api/`, and needs its own scope, as listed under
+*Setting up access*. The JSON under each shows the shape of a response; the figures in it are
+illustrative.
 
 **Every response begins with `now`**, the forum's clock as a Unix timestamp. Work out an age
 against it rather than against the caller's clock, which may not agree with the clock that dated
@@ -354,13 +322,13 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-log/?s
 **The one endpoint that returns content.** Everything else here says that something is wrong and
 where; this says why, by returning an entry's message and stack trace as XenForo logged them. A
 message can quote whatever was being handled when the error happened — a member's input, an email
-address, a query — which is why it sits behind its own scope and its own permission, and why a key
-used for monitoring should not hold either.
+address, a query — which is why it sits behind its own scope, and why a key used for monitoring
+should not hold it.
 
 It takes three things to reach it:
 
-- a key holding `hampel_admin_api:error_detail` — `hampel_admin_api:read` is not enough;
-- the *Admin API: View error log entries* admin permission;
+- a key with `hampel_admin_api:error_detail` selected;
+- the *Use the Admin API* admin permission;
 - XenForo's own *View logs* admin permission. Everything returned here is in the server error log
   in the admin control panel, and an administrator who cannot open it there cannot read it here.
 
@@ -532,7 +500,7 @@ getting our mail?". *Logs* counts every log; this reads the entries of one.
 It takes three things to reach it:
 
 - a key holding `hampel_admin_api:log_entries`;
-- the *Admin API: Read log entries* admin permission;
+- the *Use the Admin API* admin permission;
 - XenForo's own *View logs* admin permission, and for the admin log a super administrator as the
   key's user, as in the control panel.
 
@@ -625,7 +593,7 @@ report of account sharing, a suspected sock puppet or a spam run.
 It takes three things to reach it:
 
 - a key holding `hampel_admin_api:ips`;
-- the *Admin API: Look up members by IP address* admin permission;
+- the *Use the Admin API* admin permission;
 - XenForo's own *Manage users and moderators* admin permission, which the control panel's IP
   lookups need.
 
@@ -748,8 +716,8 @@ expire in the next week?", or everything one member has bought.
 
 It takes three things to reach it:
 
-- a key holding `hampel_admin_api:upgrades`;
-- the *Admin API: Look up members' user upgrades* admin permission;
+- a key holding `hampel_admin_api:upgrade_records`;
+- the *Use the Admin API* admin permission;
 - XenForo's own *Manage user upgrades* admin permission.
 
 **Every lookup is written to the admin log**, as for *Members by IP address*.
@@ -819,7 +787,7 @@ forum?", or a check that nobody is a moderator who should not be.
 It takes three things to reach it:
 
 - a key holding `hampel_admin_api:staff`;
-- the *Admin API: Look up moderators and administrators* admin permission;
+- the *Use the Admin API* admin permission;
 - XenForo's own *Manage users and moderators* admin permission.
 
 **Every lookup is written to the admin log**, as for *Members by IP address*.
@@ -918,7 +886,7 @@ It takes two things to reach it:
             "is_super_admin": false,
             "last_login": null,
             "extra_user_group_ids": [],
-            "permissions": ["hampelAdminApiErrorLog", "option", "user"]
+            "permissions": ["hampelAdminApi", "option", "user"]
         }
     ]
 }
@@ -1283,10 +1251,9 @@ and, for working out why a forum is misbehaving, close to useless. A key that al
 
 **What it takes to see values:**
 
-- the key holds `hampel_admin_api:values` as well as `hampel_admin_api:read`;
-- the key's user holds this add-on's values permission, `hampelAdminApiValues`, as well as the
-  permission for the endpoint. The endpoint's permission never includes values, so granting
-  someone the options or configuration endpoint does not show them a setting;
+- the key holds `hampel_admin_api:values` as well as the endpoint's own scope, `options` or
+  `config`. The endpoint's scope never includes values, so a key issued for the options or
+  configuration endpoint does not show a setting;
 - for options, the key's user also holds XenForo's own *option* admin permission — the options
   pages in the control panel are where these values are otherwise seen, and the API asks for what
   they ask for.
@@ -1570,14 +1537,16 @@ php cmd.php admin-api:validate
 ```
 
 **`admin-api:config` reads and prints, and changes nothing.** It shows whether the REST API is on,
-each scope, how many administrators hold each admin permission, and every API key that holds one
+each scope, how many administrators hold *Use the Admin API*, and every API key that holds one
 of the scopes — its id, its title, whose it is, what it holds and when it was last used. A key's
 value is never shown.
 
 **`admin-api:validate` proves it.** It checks that the API is enabled, that the scopes, admin
 permissions and routes are in place, that at least one key can actually read, and that each
 endpoint's reader runs. It names any key that holds a scope and can never use it, with the reason:
-a super user key, an inactive key, a user who is not an administrator or lacks the permission.
+a super user key, an inactive key, a user who is not an administrator or lacks a permission, or
+`values` without `options` or `config`. It also names a key allowing all scopes whose user may use
+the Admin API, since every endpoint refuses it.
 
 | | all fine | warnings only | any failure |
 |---|---|---|---|
@@ -1664,8 +1633,9 @@ Every refusal of access is a `403`, so read the error `code` rather than the sta
 | code | meaning |
 |---|---|
 | `hampel_adminapi_user_api_key_required` | the key is a super user key, a guest key, or an OAuth token was used |
-| `missing_scope` | the key does not hold the scope for this endpoint; the message names it |
-| `do_not_have_permission` | the key's user does not hold the admin permission for this endpoint |
+| `hampel_adminapi_scope_must_be_selected` | the key allows all scopes, which includes none of these; the message names the scope to select |
+| `missing_scope` | the key does not have the scope for this endpoint selected; the message names it |
+| `do_not_have_permission` | the key's user does not hold *Use the Admin API*, or the XenForo permission a member lookup needs |
 
 The error log entries endpoint also answers `400` with `hampel_adminapi_error_id_required` when no
 `error_id` is given, and `404` when there is no such entry.

@@ -19,7 +19,7 @@ class ConfigShapeTest extends TestCase
 			'onSetup' => function () { return 'SECRET-closure'; },
 		]);
 
-		$this->actingAsAdminWithKey(['hampelAdminApiConfig']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:config']);
 	}
 
 	/**
@@ -137,10 +137,10 @@ class ConfigShapeTest extends TestCase
 		$this->assertTrue($settings['enableApi']['has_default']);
 	}
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'hampelAdminApiJobs', 'option']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:options', 'hampel_admin_api:jobs'], ['option']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:config');
 	}
 }

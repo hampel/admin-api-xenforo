@@ -8,20 +8,19 @@ use Hampel\AdminApi\ValueShape;
  */
 class Config extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiConfig';
+		return self::SCOPE_CONFIG;
 	}
 
 	/**
 	 * @api-desc Lists the settings in force from src/config.php and XenForo's defaults, by dotted
-	 *   key. A key that also holds the hampel_admin_api:values scope, whose user also holds the
-	 *   hampelAdminApiValues admin permission, is given each setting's value with the secrets
-	 *   removed - the database password and username among them. Any other key is
-	 *   given its shape: whether it is set and differs from the default, with booleans and small
-	 *   numbers returned and no string.
-	 *   Requires a user API key holding the hampel_admin_api:read scope, whose user has the
-	 *   hampelAdminApiConfig admin permission.
+	 *   key. A key with the hampel_admin_api:values scope selected as well is given each setting's
+	 *   value with the secrets removed - the database password and username among them. Any other
+	 *   key is given its shape: whether it is set and differs from the default, with booleans and
+	 *   small numbers returned and no string. Requires a user API key with the
+	 *   hampel_admin_api:config scope selected, whose user holds the hampelAdminApi admin
+	 *   permission.
 	 *
 	 * @api-in bool $changed Only settings that differ from XenForo's default, or have none
 	 *

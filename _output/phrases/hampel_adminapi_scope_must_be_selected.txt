@@ -1,0 +1,1 @@
+This key allows all scopes, which does not include the Admin API's. Choose "Selected scopes only" and select {scope}.

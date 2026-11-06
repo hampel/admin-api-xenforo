@@ -1,1 +1,1 @@
-See what options and config.php settings are set to, with secrets removed, through the Admin API endpoints
+With options or config: what each setting is set to, with secrets removed

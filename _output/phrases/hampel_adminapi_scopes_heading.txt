@@ -1,0 +1,1 @@
+Admin API: counts and settings. Select each one: "All scopes" includes none of the Admin API's

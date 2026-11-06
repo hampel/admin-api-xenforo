@@ -24,7 +24,7 @@ class CronStateTest extends TestCase
 		$this->insertEntry('adminApiTestDisabled', $this->now - 7200, 0, 'Hampel/AdminApi');
 		$this->insertEntry('adminApiTestOrphan', $this->now - 7200, 1, 'Not/Installed');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiJobs']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:jobs']);
 	}
 
 	private function insertEntry(string $id, int $nextRun, int $active, string $addOnId) : void
@@ -126,10 +126,10 @@ class CronStateTest extends TestCase
 		], $this->state()['runner']);
 	}
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiAddOns', 'cron']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log', 'hampel_admin_api:add_ons'], ['cron']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:jobs');
 	}
 }

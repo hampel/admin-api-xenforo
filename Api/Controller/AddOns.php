@@ -5,9 +5,9 @@
  */
 class AddOns extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiAddOns';
+		return self::SCOPE_ADD_ONS;
 	}
 
 	const PENDING_ACTIONS = ['install', 'upgrade', 'uninstall'];
@@ -15,8 +15,8 @@ class AddOns extends AbstractController
 	/**
 	 * @api-desc Lists every add-on the forum knows about - installed, or present on disk and not
 	 *   installed - with the installed version beside the version of the files on disk, and the
-	 *   XenForo and PHP versions. Requires a user API key holding the hampel_admin_api:read scope,
-	 *   whose user has the hampelAdminApiAddOns admin permission.
+	 *   XenForo and PHP versions. Requires a user API key with the hampel_admin_api:add_ons scope
+	 *   selected, whose user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-out array $xf XenForo's own version_id and version_string
 	 * @api-out str $php_version

@@ -28,23 +28,35 @@ or a separate tool that presents these endpoints to an agent — sits outside th
 protocol endpoint inside XenForo is ever wanted, it is a second add-on that requires this one, so
 an administrator opts into a new listener by name.
 
-## A key's ceiling is its own user's admin permissions
+## A key reads what its selected scopes allow, and nothing through "all scopes"
 
 `Api\Controller\AbstractController` runs three gates before any action, and every controller
 extends it:
 
 1. a user key only — super user keys, guest keys and OAuth tokens are refused;
-2. the scope the controller names in `getScope()` — `hampel_admin_api:read` unless it returns
-   content;
-3. the admin permission the controller names in `getAdminPermissionId()`.
+2. the scope the controller names in `getScope()`, **selected on the key** — `assertKeyScope()`,
+   not core's `assertApiScope()`;
+3. the one admin permission, `hampelAdminApi` (*Use the Admin API*), on the key's user.
 
-**The scope is not the boundary.** `allow_all_scopes` satisfies any scope check, and anyone can be
-handed such a key. The admin permission is the boundary, and the first gate is what makes it
-hold, because a super user key can turn core's permission checks off from the request.
+**The scope is the boundary, and it holds only because "all scopes" is refused.** Core's
+`hasScope()` answers true for every scope on a key allowing all of them, so one radio button would
+otherwise hand over member data and the values of settings. A scope counts only when it is named
+on the key. Do not call `hasScope()` or `assertApiScope()` anywhere in the add-on; use
+`AbstractController::keyHasScope()`.
 
-**A new capability gets its own admin permission, and every endpoint its own controller.** Reading
-one thing must not imply reading another. Cron and the job queue share `hampelAdminApiJobs`
-because they are one capability — cron entries are run by a job.
+**That is as safe as an admin permission per endpoint, which is what it replaced** — decided on
+2026-11-06, on Simon's observation that granting access meant editing two places, and that people
+look for a key's scopes, not for its user's admin permissions. In XenForo only a super
+administrator can create an API key or change an administrator's permissions, on 2.2 and 2.3
+alike, so the per-endpoint permissions never added a second decision-maker. What they guarded was
+"all scopes", which gate 2 now refuses outright. The first gate still matters, because a super
+user key can turn core's permission checks off from the request.
+
+**A new capability gets its own scope, and every endpoint its own controller.** Reading one thing
+must not imply reading another. Cron and the job queue share `hampel_admin_api:jobs` because they
+are one capability — cron entries are run by a job. **A new member-data scope goes in
+`HealthCheck::DETAIL_SCOPES` and in the template modification's list**, which shows it apart on
+the API key page; `ScopeListTest` fails until both agree.
 
 ## Monitoring returns aggregates; member data is a tier behind gates of its own
 
@@ -60,10 +72,9 @@ the administrator back to the control panel. So:
 
 - **The aggregate tier stays as the rules below have it**, because a monitoring key is handed out
   widely and polled constantly, and nothing in it should need the trust a member lookup does.
-- **Each member capability has a scope of its own, an admin permission of its own, and core's own
-  permission for the same thing**, as the entries endpoint asks for `viewLogs`. The API must not
-  be a way round the control panel. A scope per capability, not one for all member data, so that
-  a key can be narrower than its user without a second administrator — decided on 2026-10-24.
+- **Each member capability has a scope of its own, and needs core's own permission for the same
+  thing**, as the entries endpoint asks for `viewLogs`. The API must not be a way round the
+  control panel, and core's permissions are where an administrator expects to manage that.
 - **A member lookup is written to the admin log** through `logMemberLookup()`, after every gate
   and before the answer, whether or not anything is found: the lookup is what is recorded.
 - **What core's API already answers is not rebuilt here.** Core's `users/{id}` and
@@ -94,9 +105,9 @@ The rules that hold in every tier, and the aggregate tier's own:
   cannot be closed that way, the message text above all, does not belong in this tier. A job's
   `execute_data` and `unique_key` are the same hazard.
 - **A field that can carry personal or request data does not join an existing endpoint.** If it
-  is needed, it goes behind a separate endpoint with its own admin permission, used deliberately.
+  is needed, it goes behind a separate endpoint with its own scope, used deliberately.
 - **`Api\Controller\ErrorEntries` was the first such endpoint, and is the pattern.** It has its own
-  scope, so a monitoring key cannot reach it; its own permission; and it asks for core's `viewLogs`
+  scope, so a monitoring key cannot reach it, and it asks for core's `viewLogs`
   as well, because the API must not be a way round the control panel. It can only be entered through
   one named entry, it caps what comes back, and it leaves out the request, user and IP address
   unless asked. **Every gate runs before `error_id` is read**, so a request with no `error_id` is
@@ -115,10 +126,9 @@ The rules that hold in every tier, and the aggregate tier's own:
 - **The values tier shows a setting unless it is a secret, and is kept apart the same way.** It
   exists because shape alone could not answer "how is this forum configured" for someone
   troubleshooting it — decided on 2026-10-08, against this file's earlier rule. It is
-  kept apart by its own scope, its own admin permission (`hampelAdminApiValues`), core's `option`
-  permission for options, and trust tiers. **An endpoint's own permission never grants values**:
-  its title tells an administrator what they are granting, and for `config.php` there is no core
-  permission to lean on.
+  kept apart by its own scope, core's `option` permission for options, and trust tiers. **An
+  endpoint's own scope never grants values**: its description tells an administrator what they are
+  granting, and for `config.php` there is no core permission to lean on.
 - **`Redaction\Redactor` holds every rule, and they are independent on purpose**: the forum's
   override, the declared list, the name, the untrusted tier, the value's shape, a URL's opaque
   part. A change that makes one of them looser has to assume the others have already failed.

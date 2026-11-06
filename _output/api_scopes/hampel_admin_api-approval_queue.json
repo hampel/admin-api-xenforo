@@ -1,0 +1,4 @@
+{
+    "api_scope_id": "hampel_admin_api:approval_queue",
+    "usable_with_oauth_clients": false
+}

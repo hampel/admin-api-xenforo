@@ -9,16 +9,16 @@ use Hampel\AdminApi\Repository\ApprovalQueue as ApprovalQueueRepository;
  */
 class ApprovalQueue extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiApproval';
+		return self::SCOPE_APPROVAL_QUEUE;
 	}
 
 	/**
-	 * @api-desc Returns how many items wait in the approval queue, by content type and by age,
-	 *   the oldest and newest, and the count moderators are shown. Counts only: no content and no
-	 *   member. Requires a user API key holding the hampel_admin_api:read scope, whose user has
-	 *   the hampelAdminApiApproval admin permission.
+	 * @api-desc Returns how many items wait in the approval queue, by content type and by age, the
+	 *   oldest and newest, and the count moderators are shown. Counts only: no content and no
+	 *   member. Requires a user API key with the hampel_admin_api:approval_queue scope selected,
+	 *   whose user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-out int $total Items waiting
 	 * @api-out array $by_age Items waiting under an hour, under a day, under a week, and older

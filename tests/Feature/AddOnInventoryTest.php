@@ -11,7 +11,7 @@ class AddOnInventoryTest extends TestCase
 	/** @return array<string, mixed> */
 	private function inventory() : array
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiAddOns']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:add_ons']);
 
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api'));
 	}

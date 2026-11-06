@@ -20,21 +20,37 @@ abstract class TestCase extends BaseTestCase
 	protected const USER_ID = 987650;
 
 	/**
-	 * Act as an administrator holding the given admin permissions, calling with their own key.
+	 * Act as an administrator holding the Admin API permission and the given core admin
+	 * permissions, calling with their own key, which has the given scopes selected.
 	 *
 	 * In a real request XF\Api\App derives the visitor from the key. dispatch() does not go
 	 * through that, so the two are set side by side here and kept on the same user_id.
 	 *
-	 * @param string[] $permissions - admin permission ids held
+	 * @param string[] $scopes - this add-on's scopes, selected on the key
+	 * @param string[] $permissions - core admin permission ids held as well
 	 * @param array<string, mixed> $keyValues - overrides for the key's columns
 	 * @param array<string, mixed> $adminValues - overrides for the administrator record
 	 */
-	protected function actingAsAdminWithKey(array $permissions, array $keyValues = [], array $adminValues = []) : \XF\Entity\ApiKey
+	protected function actingAsAdminWithKey(array $scopes, array $permissions = [], array $keyValues = [], array $adminValues = []) : \XF\Entity\ApiKey
+	{
+		return $this->actingAsAdminHolding(array_merge([AbstractController::PERMISSION], $permissions), $scopes, $keyValues, $adminValues);
+	}
+
+	/**
+	 * Act as an administrator holding exactly these admin permissions, the Admin API's among them
+	 * or not, calling with their own key.
+	 *
+	 * @param string[] $permissions - admin permission ids held
+	 * @param string[] $scopes - this add-on's scopes, selected on the key
+	 * @param array<string, mixed> $keyValues - overrides for the key's columns
+	 * @param array<string, mixed> $adminValues - overrides for the administrator record
+	 */
+	protected function actingAsAdminHolding(array $permissions, array $scopes, array $keyValues = [], array $adminValues = []) : \XF\Entity\ApiKey
 	{
 		$user = $this->actingAsBoardMember(['is_admin' => true]);
 		$this->setVisitorAdminPermissions($user, array_fill_keys($permissions, true), $adminValues);
 
-		return $this->actingAsUserKey($keyValues);
+		return $this->actingAsUserKey($keyValues + ['scopes' => array_fill_keys($scopes, true)]);
 	}
 
 	/**
@@ -53,7 +69,7 @@ abstract class TestCase extends BaseTestCase
 	}
 
 	/**
-	 * A key bound to the acting user and holding this add-on's scope and no other.
+	 * A key bound to the acting user, with only the scopes it is given selected.
 	 *
 	 * @param array<string, mixed> $keyValues
 	 */
@@ -63,7 +79,7 @@ abstract class TestCase extends BaseTestCase
 			'is_super_user' => false,
 			'user_id' => self::USER_ID,
 			'allow_all_scopes' => false,
-			'scopes' => [AbstractController::SCOPE => true],
+			'scopes' => [],
 		]);
 	}
 }

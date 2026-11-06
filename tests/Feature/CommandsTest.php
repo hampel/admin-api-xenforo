@@ -39,12 +39,14 @@ class CommandsTest extends TestCase
 	}
 
 	/**
-	 * A new administrator with the given permissions, or a plain member, and a key bound to them.
+	 * A new administrator with the given permissions, or a plain member, and a key bound to them
+	 * with the given scopes selected.
 	 * 
+	 * @param string[] $scopes
 	 * @param string[] $permissions
 	 * @param array<string, mixed> $keyValues
 	 */
-	private function plantKey(array $permissions, array $keyValues = [], bool $isAdmin = true, bool $isSuperAdmin = false) : \XF\Entity\ApiKey
+	private function plantKey(array $scopes, array $permissions = ['hampelAdminApi'], array $keyValues = [], bool $isAdmin = true, bool $isSuperAdmin = false) : \XF\Entity\ApiKey
 	{
 		// a user of its own: an existing member is never altered, even inside the transaction
 		$user = $isAdmin
@@ -59,7 +61,7 @@ class CommandsTest extends TestCase
 			'user_id' => $userId,
 			'is_super_user' => false,
 			'allow_all_scopes' => false,
-			'scopes' => ['hampel_admin_api:read'],
+			'scopes' => $scopes,
 			'creation_user_id' => 1,
 		]);
 		$key->save();
@@ -102,13 +104,13 @@ class CommandsTest extends TestCase
 
 	public function test_a_clean_forum_passes() : void
 	{
-		$this->plantKey(['hampelAdminApiErrorLog']);
+		$this->plantKey(['hampel_admin_api:error_log']);
 
 		[$exit, $display] = $this->validate();
 
 		$this->assertSame(0, $exit, $display);
 		$this->assertStringNotContainsString('[fail]', $display);
-		$this->assertStringContainsString('[ ok ] keys that can read', $display);
+		$this->assertStringContainsString('[ ok ] keys for counts', $display);
 		$this->assertStringContainsString('skipped by --unattended', $display);
 	}
 
@@ -151,7 +153,7 @@ class CommandsTest extends TestCase
 		[$exit, $display] = $this->validateWithNoKeys();
 
 		$this->assertSame(0, $exit, $display);
-		$this->assertStringContainsString('[warn] keys that can read', $display);
+		$this->assertStringContainsString('[warn] keys for counts', $display);
 		$this->assertStringNotContainsString('[fail]', $display);
 	}
 
@@ -203,7 +205,7 @@ class CommandsTest extends TestCase
 
 	public function test_strict_with_nothing_to_warn_about_exits_zero() : void
 	{
-		$this->plantKey(['hampelAdminApiErrorLog']);
+		$this->plantKey(['hampel_admin_api:error_log']);
 
 		[$exit, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true, '--strict' => true]);
 
@@ -212,23 +214,35 @@ class CommandsTest extends TestCase
 	}
 
 	/**
-	 * A key can be handed the values scope without its user being allowed to see values. That is
-	 * a key that does less than whoever issued it thinks, which is a warning and not a failure.
+	 * The values scope adds to the options and config.php endpoints, so on its own it is a key
+	 * that does less than whoever issued it thinks: a warning, and not a failure.
 	 */
-	public function test_a_values_key_whose_user_lacks_the_values_permission_is_a_warning() : void
+	public function test_a_values_key_with_neither_settings_scope_is_a_warning() : void
 	{
-		$scopes = ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values']];
-
-		$this->plantKey(['hampelAdminApiOptions', 'option'], $scopes);
+		$this->plantKey(['hampel_admin_api:values']);
 		[$exit, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true, '--strict' => true]);
 
 		$this->assertSame(2, $exit);
-		$this->assertStringContainsString('its user lacks hampelAdminApiValues', $display);
+		$this->assertStringContainsString('it needs the hampel_admin_api:options or hampel_admin_api:config scope as well', $display);
 
-		$this->plantKey(['hampelAdminApiOptions', 'hampelAdminApiValues', 'option'], $scopes);
+		$this->plantKey(['hampel_admin_api:config', 'hampel_admin_api:values']);
 		[, $display] = $this->validateWithPlantedKeysOnly(['--unattended' => true]);
 
 		$this->assertStringContainsString('keys that see values           1', $display);
+	}
+
+	/**
+	 * A key allowing all scopes reaches no endpoint here. One for an administrator who may use the
+	 * Admin API was most likely made for it, so it is named.
+	 */
+	public function test_a_key_allowing_all_scopes_is_named() : void
+	{
+		$key = $this->plantKey([], ['hampelAdminApi'], ['allow_all_scopes' => true]);
+
+		[$exit, $display] = $this->validate();
+
+		$this->assertSame(0, $exit, $display);
+		$this->assertMatchesRegularExpression('/\[warn\] key #' . $key->api_key_id . '\b.*allows all scopes/', $display);
 	}
 
 	public function test_the_api_being_off_fails_with_or_without_strict() : void
@@ -251,13 +265,13 @@ class CommandsTest extends TestCase
 	{
 		$check = new class(\XF::app()) extends HealthCheck
 		{
-			const SCOPES = ['hampel_admin_api:read', 'hampel_admin_api:nowhere'];
-			const PERMISSIONS = ['hampelAdminApiErrorLog', 'hampelAdminApiNowhere'];
+			const SCOPES = ['hampel_admin_api:error_log', 'hampel_admin_api:nowhere'];
+			const PERMISSIONS = ['hampelAdminApi', 'hampelAdminApiNowhere'];
 			const ROUTES = ['error-log', 'nowhere'];
 		};
 
 		$this->assertSame([
-			[HealthCheck::OK, 'hampel_admin_api:read', 'defined, and withheld from OAuth clients'],
+			[HealthCheck::OK, 'hampel_admin_api:error_log', 'defined, and withheld from OAuth clients'],
 			[HealthCheck::FAIL, 'hampel_admin_api:nowhere', 'not defined - no key can be given it'],
 		], $check->scopes());
 		$this->assertSame(
@@ -340,7 +354,7 @@ class CommandsTest extends TestCase
 
 	public function test_a_key_that_can_never_work_is_named_with_the_reason() : void
 	{
-		$key = $this->plantKey([], [], false);
+		$key = $this->plantKey(['hampel_admin_api:error_log'], [], [], false);
 
 		[$exit, $display] = $this->validate();
 
@@ -355,19 +369,14 @@ class CommandsTest extends TestCase
 	public function test_every_reason_a_key_cannot_work_is_given() : void
 	{
 		$reasons = [
-			'the key is inactive' => $this->plantKey(['hampelAdminApiErrorLog'], ['active' => false]),
+			'the key is inactive' => $this->plantKey(['hampel_admin_api:error_log'], ['hampelAdminApi'], ['active' => false]),
 			'it is a super key, and only a user key is accepted' => $this->plantKey(
-				['hampelAdminApiErrorLog'],
+				['hampel_admin_api:error_log'],
+				['hampelAdminApi'],
 				['user_id' => 0, 'is_super_user' => true]
 			),
-			'it needs the hampel_admin_api:read scope as well' => $this->plantKey(
-				['hampelAdminApiValues', 'hampelAdminApiOptions'],
-				['scopes' => ['hampel_admin_api:values']]
-			),
-			'its user lacks hampelAdminApiOptions and hampelAdminApiConfig' => $this->plantKey(
-				['hampelAdminApiErrorLog', 'hampelAdminApiValues'],
-				['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values']]
-			),
+			'it needs the hampel_admin_api:options or hampel_admin_api:config scope as well' => $this->plantKey(['hampel_admin_api:values']),
+			'its user lacks hampelAdminApi' => $this->plantKey(['hampel_admin_api:error_log'], []),
 		];
 
 		[$exit, $display] = $this->validate();
@@ -388,7 +397,7 @@ class CommandsTest extends TestCase
 	 */
 	public function test_a_super_administrators_key_can_use_every_scope_it_holds() : void
 	{
-		$key = $this->plantKey([], ['scopes' => ['hampel_admin_api:read', 'hampel_admin_api:values', 'hampel_admin_api:error_detail', 'hampel_admin_api:ips', 'hampel_admin_api:upgrades']], true, true);
+		$key = $this->plantKey(AbstractController::SCOPES, [], [], true, true);
 
 		[$exit, $display] = $this->validate();
 
@@ -398,7 +407,7 @@ class CommandsTest extends TestCase
 
 	public function test_a_detail_key_needs_view_logs_as_well() : void
 	{
-		$this->plantKey(['hampelAdminApiErrorDetail'], ['scopes' => ['hampel_admin_api:error_detail']]);
+		$this->plantKey(['hampel_admin_api:error_detail']);
 
 		[, $display] = $this->validate();
 
@@ -413,10 +422,10 @@ class CommandsTest extends TestCase
 	{
 		$this->assertMatchesRegularExpression('/keys for IP lookups\s+none/', $this->validate()[1]);
 
-		$this->plantKey(['hampelAdminApiIps', 'user'], ['scopes' => ['hampel_admin_api:ips']]);
+		$this->plantKey(['hampel_admin_api:ips'], ['hampelAdminApi', 'user']);
 		$this->assertMatchesRegularExpression('/keys for IP lookups\s+1/', $this->validate()[1]);
 
-		$key = $this->plantKey(['hampelAdminApiIps'], ['scopes' => ['hampel_admin_api:ips']]);
+		$key = $this->plantKey(['hampel_admin_api:ips']);
 		$this->assertStringContainsString("key #{$key->api_key_id}", $this->validate()[1]);
 		$this->assertStringContainsString('its user lacks user', $this->validate()[1]);
 	}
@@ -467,7 +476,7 @@ class CommandsTest extends TestCase
 	 */
 	public function test_the_probe_leaves_nothing_behind() : void
 	{
-		$this->plantKey(['hampelAdminApiErrorLog']);
+		$this->plantKey(['hampel_admin_api:error_log']);
 
 		[$exit, $display] = $this->validate([]);
 
@@ -481,13 +490,13 @@ class CommandsTest extends TestCase
 
 	public function test_config_describes_a_key_and_never_shows_it() : void
 	{
-		$key = $this->plantKey(['hampelAdminApiErrorLog']);
+		$key = $this->plantKey(['hampel_admin_api:error_log']);
 
 		$display = $this->config();
 
 		$this->assertStringContainsString("#{$key->api_key_id} Planted for a test", $display);
 		$this->assertStringContainsString('user key for', $display);
-		$this->assertStringContainsString('holds read', $display);
+		$this->assertStringContainsString('holds error_log', $display);
 		$this->assertStringNotContainsString($key->api_key, $display);
 		$this->assertStringNotContainsString(substr($key->api_key, 0, 8), $display);
 	}

@@ -17,9 +17,10 @@ class ErrorEntriesTest extends TestCase
 	private const IP = '203.0.113.77';
 	private const USER = 424242;
 
-	private const PERMISSIONS = ['hampelAdminApiErrorDetail', 'viewLogs'];
+	private const SCOPES = ['hampel_admin_api:error_detail'];
+
+	private const PERMISSIONS = ['viewLogs'];
 	// spelled out: a constant is evaluated while the suite is built, before the add-on can load
-	private const KEY = ['scopes' => ['hampel_admin_api:error_detail' => true]];
 
 	/** @var int[] */
 	private $ids = [];
@@ -39,7 +40,7 @@ class ErrorEntriesTest extends TestCase
 		$this->insertError(1500, 'RuntimeException', self::FILE, self::LINE + 1);
 		$this->insertError(1600, 'LogicException', self::FILE, self::LINE);
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 	}
 
 	private function insertError(int $date, string $type, string $filename, int $line) : int
@@ -225,7 +226,7 @@ class ErrorEntriesTest extends TestCase
 	public function test_a_refused_or_unnamed_request_is_not_written() : void
 	{
 		$this->dispatch(self::ROUTE, 'api', ['request' => 1]);
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0], 'request' => 1]);
 
 		$this->assertSame([], $this->adminLogRows());
@@ -274,9 +275,9 @@ class ErrorEntriesTest extends TestCase
 
 	// access
 
-	public function test_the_read_scope_does_not_reach_it() : void
+	public function test_the_summary_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::PERMISSIONS);
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 
@@ -291,10 +292,10 @@ class ErrorEntriesTest extends TestCase
 	 */
 	public function test_the_scope_is_checked_before_the_parameter() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:error_detail');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'error_id');
 	}
 
@@ -304,26 +305,26 @@ class ErrorEntriesTest extends TestCase
 	 */
 	public function test_every_other_gate_is_checked_before_the_parameter_too() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs'], self::KEY);
+		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 	}
 
 	public function test_the_detail_scope_does_not_reach_the_summaries() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'hampelAdminApiErrorDetail', 'viewLogs'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 
-		$this->assertReplyIsError($this->dispatch('admin-api/error-log/', 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch('admin-api/error-log/', 'api'), 403, 'hampel_admin_api:error_log');
 	}
 
-	public function test_the_summary_permission_does_not_reach_it() : void
+	public function test_it_needs_the_admin_api_permission() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs'], self::KEY);
+		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 
@@ -336,7 +337,7 @@ class ErrorEntriesTest extends TestCase
 	 */
 	public function test_it_also_needs_permission_to_view_logs() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorDetail'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 
@@ -345,7 +346,7 @@ class ErrorEntriesTest extends TestCase
 
 	public function test_a_super_user_key_is_refused_here_too() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 

@@ -65,7 +65,7 @@ class ErrorLogSummaryTest extends TestCase
 		$this->insertError(999, 'LogicException', $root . '/src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
 		$this->insertError(2001, 'LogicException', $root . '/src/XF.php', 1, 'SECRET-MESSAGE', self::NO_TRACE, self::NO_STATE);
 
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log']);
 	}
 
 	private function insertError(int $date, string $type, string $filename, int $line, string $message, string $trace, string $state, ?int $userId = self::SECRET_USER) : void

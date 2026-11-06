@@ -1,0 +1,1 @@
+Reports waiting for a moderator, in counts: how many, of what kind and for how long

@@ -1,0 +1,9 @@
+{
+    "template": "api_key_edit",
+    "description": "Lists the Admin API scopes apart from the others, counts first and member data after",
+    "execution_order": 10,
+    "enabled": true,
+    "action": "preg_replace",
+    "find": "#(<xf:foreach loop=\"\\$scopes\" value=\"\\$scope\")>(.*?)</xf:foreach>#s",
+    "replace": "$1 if=\"$scope.addon_id != 'Hampel/AdminApi'\">$2</xf:foreach>\n\t\t\t\t\t\t<xf:optgroup label=\"{{ phrase('hampel_adminapi_scopes_heading') }}\">\n\t\t\t\t\t\t\t$1 if=\"$scope.addon_id == 'Hampel/AdminApi' && !in_array($scope.api_scope_id, ['hampel_admin_api:error_detail', 'hampel_admin_api:ips', 'hampel_admin_api:upgrade_records', 'hampel_admin_api:staff', 'hampel_admin_api:log_entries'])\">$2</xf:foreach>\n\t\t\t\t\t\t</xf:optgroup>\n\t\t\t\t\t\t<xf:optgroup label=\"{{ phrase('hampel_adminapi_scopes_heading_member') }}\">\n\t\t\t\t\t\t\t$1 if=\"$scope.addon_id == 'Hampel/AdminApi' && in_array($scope.api_scope_id, ['hampel_admin_api:error_detail', 'hampel_admin_api:ips', 'hampel_admin_api:upgrade_records', 'hampel_admin_api:staff', 'hampel_admin_api:log_entries'])\">$2</xf:foreach>\n\t\t\t\t\t\t</xf:optgroup>"
+}

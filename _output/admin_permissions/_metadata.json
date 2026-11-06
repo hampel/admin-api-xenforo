@@ -1,53 +1,5 @@
 {
-    "hampelAdminApiActivity.json": {
-        "hash": "e59d86fff0d4b488ef5deec7d9ccc4dd"
-    },
-    "hampelAdminApiAddOns.json": {
-        "hash": "b0af510a549c3918922d42f7a9645b71"
-    },
-    "hampelAdminApiApproval.json": {
-        "hash": "a6a6ccea59b4669ccf14fc5bfbda75d4"
-    },
-    "hampelAdminApiConfig.json": {
-        "hash": "48248508d491e51642efcd4fefd12c82"
-    },
-    "hampelAdminApiErrorDetail.json": {
-        "hash": "aa5117a9de1ffae1d2dc30ca20065b4c"
-    },
-    "hampelAdminApiErrorLog.json": {
+    "hampelAdminApi.json": {
         "hash": "a2b2af974d040e56da64964dc3641b84"
-    },
-    "hampelAdminApiIps.json": {
-        "hash": "216c7f2bb55faf9c0fe1f4eaeb871cc2"
-    },
-    "hampelAdminApiJobs.json": {
-        "hash": "64336ab34e63f3ab00c8bf2fe5dd74b1"
-    },
-    "hampelAdminApiLogEntries.json": {
-        "hash": "e88678617f3a7a06f0f2e30a166f0478"
-    },
-    "hampelAdminApiLogs.json": {
-        "hash": "627af6bb849e10b03d64ab5fc4e1fbd6"
-    },
-    "hampelAdminApiOnline.json": {
-        "hash": "ea576f0bf8b4ebe7824bd3fffa015a21"
-    },
-    "hampelAdminApiOptions.json": {
-        "hash": "8539b3ba96d6a80079da48c7d0c95ae7"
-    },
-    "hampelAdminApiReports.json": {
-        "hash": "d701cdcf7ab91dd1debdf22a2da712e7"
-    },
-    "hampelAdminApiStaff.json": {
-        "hash": "751b7e8d4fc004a14b63a9881a332801"
-    },
-    "hampelAdminApiUpgRecords.json": {
-        "hash": "e8e0e5a794033e71bcdc9d83fb4ef231"
-    },
-    "hampelAdminApiUpgrades.json": {
-        "hash": "9e220c0a05c110e83c257ccfc1015102"
-    },
-    "hampelAdminApiValues.json": {
-        "hash": "deb61b44374b5a1f0b6e18c5f606d011"
     }
 }

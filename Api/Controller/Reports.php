@@ -9,16 +9,16 @@ use Hampel\AdminApi\Repository\Report as ReportRepository;
  */
 class Reports extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiReports';
+		return self::SCOPE_REPORTS;
 	}
 
 	/**
 	 * @api-desc Returns how many reports are open or assigned, by content type and by age, the
-	 *   oldest and newest, the longest any has gone without activity, and the count moderators
-	 *   are shown. Counts only: no content, no comment and no member. Requires a user API key
-	 *   holding the hampel_admin_api:read scope, whose user has the hampelAdminApiReports admin
+	 *   oldest and newest, the longest any has gone without activity, and the count moderators are
+	 *   shown. Counts only: no content, no comment and no member. Requires a user API key with the
+	 *   hampel_admin_api:reports scope selected, whose user holds the hampelAdminApi admin
 	 *   permission.
 	 *
 	 * @api-out int $total Reports open or assigned

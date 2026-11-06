@@ -1,0 +1,1 @@
+Which config.php settings are set and which differ from their defaults; their values only with values as well

@@ -14,9 +14,10 @@ class StaffTest extends TestCase
 	private const MODERATORS = 'admin-api/moderators/';
 	private const ADMINISTRATORS = 'admin-api/administrators/';
 
-	private const PERMISSIONS = ['hampelAdminApiStaff', 'user'];
+	private const SCOPES = ['hampel_admin_api:staff'];
+
+	private const PERMISSIONS = ['user'];
 	// spelled out: a constant is evaluated while the suite is built, before the add-on can load
-	private const KEY = ['scopes' => ['hampel_admin_api:staff' => true]];
 	private const SUPER = ['is_super_admin' => true];
 
 	/** @var \XF\Entity\User */
@@ -90,7 +91,7 @@ class StaffTest extends TestCase
 			$db->insert('xf_admin_permission_entry', ['user_id' => $this->admin->user_id, 'admin_permission_id' => $permission]);
 		}
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 	}
 
 	/**
@@ -163,10 +164,10 @@ class StaffTest extends TestCase
 
 	public function test_moderators_need_the_user_admin_permission_as_well() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(['user'], self::KEY);
+		$this->actingAsAdminHolding(['user'], self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'do not have permission');
 	}
 
@@ -174,7 +175,7 @@ class StaffTest extends TestCase
 
 	public function test_an_administrator_with_the_permissions_they_hold() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, [], [], self::SUPER);
 
 		$result = $this->get(self::ADMINISTRATORS, ['user_id' => $this->admin->user_id]);
 
@@ -191,7 +192,7 @@ class StaffTest extends TestCase
 
 	public function test_a_super_administrator_holds_every_permission_so_none_is_listed() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, [], [], self::SUPER);
 
 		$admin = $this->get(self::ADMINISTRATORS, ['user_id' => $this->superAdmin->user_id])['administrators'][0];
 
@@ -223,7 +224,7 @@ class StaffTest extends TestCase
 	public function test_every_lookup_is_written_to_the_admin_log() : void
 	{
 		$this->get(self::MODERATORS, ['user_id' => $this->moderator->user_id]);
-		$this->actingAsAdminWithKey(['hampelAdminApiStaff'], self::KEY, self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, [], [], self::SUPER);
 		$this->get(self::ADMINISTRATORS);
 
 		$rows = $this->adminLogRows();
@@ -235,7 +236,7 @@ class StaffTest extends TestCase
 	public function test_a_refused_request_is_not_written() : void
 	{
 		$this->dispatch(self::ADMINISTRATORS, 'api');
-		$this->actingAsAdminWithKey(['user'], self::KEY);
+		$this->actingAsAdminHolding(['user'], self::SCOPES);
 		$this->dispatch(self::MODERATORS, 'api');
 
 		$this->assertSame([], $this->adminLogRows());
@@ -243,17 +244,17 @@ class StaffTest extends TestCase
 
 	public function test_the_staff_scope_is_needed_and_reaches_nothing_else() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS, [], self::SUPER);
+		$this->actingAsAdminWithKey([], self::PERMISSIONS, [], self::SUPER);
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'hampel_admin_api:staff');
 		$this->assertReplyIsError($this->dispatch(self::ADMINISTRATORS, 'api'), 403, 'hampel_admin_api:staff');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiStaff', 'user', 'hampelAdminApiIps'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch('admin-api/ip-users/', 'api', ['ip' => '192.0.2.1']), 403, 'hampel_admin_api:ips');
 	}
 
 	public function test_a_super_user_key_is_refused_even_for_a_super_administrator() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], self::SUPER);
 
 		$this->assertReplyIsError($this->dispatch(self::ADMINISTRATORS, 'api'), 403, 'single administrator');
 		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'single administrator');

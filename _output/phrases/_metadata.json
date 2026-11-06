@@ -1,147 +1,111 @@
 {
-    "admin_permission.hampelAdminApiActivity.txt": {
+    "admin_permission.hampelAdminApi.txt": {
         "global_cache": false,
-        "version_id": 1000020,
-        "version_string": "1.0.0a10",
-        "hash": "a501e946bcaead4ca92e85f1c858c6f6"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "24ced68cf8458cc7d31b24e96e25135f"
     },
-    "admin_permission.hampelAdminApiAddOns.txt": {
+    "api_scope.hampel_admin_api_activity.txt": {
         "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "a26631cb0ffc2621775dfb3d992a4be7"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "7a7d5ca85b200936f88b317ccb8160d0"
     },
-    "admin_permission.hampelAdminApiApproval.txt": {
+    "api_scope.hampel_admin_api_add_ons.txt": {
         "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "f1d30e55ca4fd89ae38bf4e0a1d4800c"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "fc7c15d88329fb5551da9339910a1b79"
     },
-    "admin_permission.hampelAdminApiConfig.txt": {
+    "api_scope.hampel_admin_api_approval_queue.txt": {
         "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "48a1ee4539699f87804b36178a79abcd"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "8e1f6243dd696d245f8e2941a8e9f346"
     },
-    "admin_permission.hampelAdminApiErrorDetail.txt": {
+    "api_scope.hampel_admin_api_config.txt": {
         "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "760bea5afd36035524a0fd3e62690e09"
-    },
-    "admin_permission.hampelAdminApiErrorLog.txt": {
-        "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "4c66d0d1296893570232a274906af0aa"
-    },
-    "admin_permission.hampelAdminApiIps.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "9e72ff5a3f5aa4a65fbf61a9920e71de"
-    },
-    "admin_permission.hampelAdminApiJobs.txt": {
-        "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "3d24a68bce7d2d6052b1fbba0546c382"
-    },
-    "admin_permission.hampelAdminApiLogEntries.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "cb20eb815e2e3728b19405041a74ef13"
-    },
-    "admin_permission.hampelAdminApiLogs.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "9b4ac293f687c562c0c5a78bcb19bada"
-    },
-    "admin_permission.hampelAdminApiOnline.txt": {
-        "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "42136048fefb30e4ebe77c50f11c038f"
-    },
-    "admin_permission.hampelAdminApiOptions.txt": {
-        "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "d5d5b330dbea4c2e462d24c4433f5a75"
-    },
-    "admin_permission.hampelAdminApiReports.txt": {
-        "global_cache": false,
-        "version_id": 1000020,
-        "version_string": "1.0.0a10",
-        "hash": "ec3c5c7348c725c2129d4e8f57246d41"
-    },
-    "admin_permission.hampelAdminApiStaff.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "bab3bfec2b64b77387002146216a7aed"
-    },
-    "admin_permission.hampelAdminApiUpgRecords.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "15b0407c12a8a5f91ccce14dca29aabd"
-    },
-    "admin_permission.hampelAdminApiUpgrades.txt": {
-        "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "9d6d25bca9ec2f9434346940ec328da5"
-    },
-    "admin_permission.hampelAdminApiValues.txt": {
-        "global_cache": false,
-        "version_id": 1000013,
-        "version_string": "1.0.0a3",
-        "hash": "3690cc4569e4de9eb8f705cd2d9f5c77"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "d800a5197af6210805d5be8a811e6c34"
     },
     "api_scope.hampel_admin_api_error_detail.txt": {
         "global_cache": false,
-        "version_id": 1000011,
-        "version_string": "1.0.0a1",
-        "hash": "8b6852b87561aeac78d47fda3634b9e2"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "5976f1906f61be2795c6672d94d21b82"
+    },
+    "api_scope.hampel_admin_api_error_log.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "7a7aee0b9fa05068a58a9053b907dcd1"
     },
     "api_scope.hampel_admin_api_ips.txt": {
         "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "7416dea1ba293131246bb34e93638f5d"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "7de858cb53cc9475cb011e326aa3b506"
+    },
+    "api_scope.hampel_admin_api_jobs.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "98973c8682b49e9027d220d64acef81a"
     },
     "api_scope.hampel_admin_api_log_entries.txt": {
         "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "a4f138d99ef139407f0403209d67f85e"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "4aebf8b4d29d366b4cbe54d819c82969"
     },
-    "api_scope.hampel_admin_api_read.txt": {
+    "api_scope.hampel_admin_api_logs.txt": {
         "global_cache": false,
-        "version_id": 1000011,
-        "version_string": "1.0.0a1",
-        "hash": "bee64f1767df87c0b9eeab955d480892"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "05315e453811b60a3f8076d92a09e635"
+    },
+    "api_scope.hampel_admin_api_online.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "6f2010bfe7d2d27e683adb6da5e6cf78"
+    },
+    "api_scope.hampel_admin_api_options.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "b41d7d998b3afe127381aa987808b2e4"
+    },
+    "api_scope.hampel_admin_api_reports.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "67eeb0aabecbd9d493e30605fb47bc99"
     },
     "api_scope.hampel_admin_api_staff.txt": {
         "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "13e5d65d9dcc8a0c4f687bcdd67c5fe6"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "11051a6156e9e55145626dcc8d0e17a5"
     },
-    "api_scope.hampel_admin_api_upgrades.txt": {
+    "api_scope.hampel_admin_api_upgrade_records.txt": {
         "global_cache": false,
-        "version_id": 1000018,
-        "version_string": "1.0.0a8",
-        "hash": "a2d283ca26a08654b089c6ab72287889"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "03f69ca69da47d2b93dc55c57cef2fb6"
+    },
+    "api_scope.hampel_admin_api_user_upgrades.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "71273660cafad29a3d99f91af547aa1f"
     },
     "api_scope.hampel_admin_api_values.txt": {
         "global_cache": false,
-        "version_id": 1000011,
-        "version_string": "1.0.0a1",
-        "hash": "47be5fcad6a70bc7b62bf143a765d40b"
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "3e9b6c4205ca40294c15f1e07d905311"
     },
     "hampel_adminapi_error_id_required.txt": {
         "global_cache": false,
@@ -160,6 +124,24 @@
         "version_id": 1000019,
         "version_string": "1.0.0a9",
         "hash": "ec0bf07a3c5b94e9498bd7fac2097b8c"
+    },
+    "hampel_adminapi_scope_must_be_selected.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "c4f5478db20ab6044597607819e6248a"
+    },
+    "hampel_adminapi_scopes_heading.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "eed9afbb55cb19836388df6f310329dd"
+    },
+    "hampel_adminapi_scopes_heading_member.txt": {
+        "global_cache": false,
+        "version_id": 1000021,
+        "version_string": "1.0.0a11",
+        "hash": "e428b934b8bd712603dbea8246ad70b0"
     },
     "hampel_adminapi_unknown_log.txt": {
         "global_cache": false,

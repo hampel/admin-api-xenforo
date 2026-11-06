@@ -17,19 +17,18 @@ class Options extends AbstractController
 		'emailTransport' => ['emailTransport' => ['sendmail', 'smtp']],
 	];
 
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiOptions';
+		return self::SCOPE_OPTIONS;
 	}
 
 	/**
-	 * @api-desc Lists the forum's options. A key that also holds the hampel_admin_api:values scope,
-	 *   whose user also holds the hampelAdminApiValues admin permission and XenForo's own option
-	 *   admin permission, is given each option's value with the secrets removed. Any other key is
-	 *   given its shape: whether it is set and whether it differs from its default, with booleans,
-	 *   small numbers and declared choices returned.
-	 *   Requires a user API key holding the hampel_admin_api:read scope, whose user has the
-	 *   hampelAdminApiOptions admin permission.
+	 * @api-desc Lists the forum's options. A key with the hampel_admin_api:values scope selected as
+	 *   well, whose user also holds XenForo's own option admin permission, is given each option's
+	 *   value with the secrets removed. Any other key is given its shape: whether it is set and
+	 *   whether it differs from its default, with booleans, small numbers and declared choices
+	 *   returned. Requires a user API key with the hampel_admin_api:options scope selected, whose
+	 *   user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-in str $add_on_id Only options belonging to this add-on
 	 * @api-in bool $changed Only options that differ from their default

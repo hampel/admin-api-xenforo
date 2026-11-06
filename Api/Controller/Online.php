@@ -7,16 +7,16 @@ use Hampel\AdminApi\Repository\Online as OnlineRepository;
  */
 class Online extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiOnline';
+		return self::SCOPE_ONLINE;
 	}
 
 	/**
-	 * @api-desc Counts who is online: members, guests and recognised robots, which robots, what
-	 *   the sessions were last doing, and how concentrated the guests and robots are by network.
-	 *   Names no member and returns no address. Requires a user API key holding the
-	 *   hampel_admin_api:read scope, whose user has the hampelAdminApiOnline admin permission.
+	 * @api-desc Counts who is online: members, guests and recognised robots, which robots, what the
+	 *   sessions were last doing, and how concentrated the guests and robots are by network. Names
+	 *   no member and returns no address. Requires a user API key with the hampel_admin_api:online
+	 *   scope selected, whose user holds the hampelAdminApi admin permission.
 	 *
 	 * @api-out int $now The time the counts were taken
 	 * @api-out int $window_minutes How recently a session must have been seen to count, from the forum's own setting

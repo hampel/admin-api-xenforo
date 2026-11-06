@@ -1,1 +1,1 @@
-Read entries from the logs of what members and staff did, through the Admin API endpoints
+Member data: entries from the logs of what members and staff did

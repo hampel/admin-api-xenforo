@@ -26,51 +26,34 @@ class HealthCheck
 	 */
 	const SCOPES = AbstractController::SCOPES;
 
-	const PERMISSIONS = [
-		'hampelAdminApiErrorLog',
-		'hampelAdminApiErrorDetail',
-		'hampelAdminApiAddOns',
-		'hampelAdminApiJobs',
-		'hampelAdminApiOptions',
-		'hampelAdminApiConfig',
-		'hampelAdminApiOnline',
-		'hampelAdminApiValues',
-		'hampelAdminApiIps',
-		'hampelAdminApiLogs',
-		'hampelAdminApiUpgrades',
-		'hampelAdminApiUpgRecords',
-		'hampelAdminApiStaff',
-		'hampelAdminApiApproval',
-		'hampelAdminApiLogEntries',
-		'hampelAdminApiReports',
-		'hampelAdminApiActivity',
-	];
+	const PERMISSIONS = [AbstractController::PERMISSION];
 
-	/** The permissions a key with the read scope can use; the detail endpoint has a scope of its own. */
-	const READ_PERMISSIONS = [
-		'hampelAdminApiErrorLog',
-		'hampelAdminApiAddOns',
-		'hampelAdminApiJobs',
-		'hampelAdminApiOptions',
-		'hampelAdminApiConfig',
-		'hampelAdminApiOnline',
-		'hampelAdminApiLogs',
-		'hampelAdminApiUpgrades',
-		'hampelAdminApiApproval',
-		'hampelAdminApiReports',
-		'hampelAdminApiActivity',
+	/** The scopes for counts, one per aggregate endpoint, which a monitoring key holds some of */
+	const AGGREGATE_SCOPES = [
+		AbstractController::SCOPE_ERROR_LOG,
+		AbstractController::SCOPE_LOGS,
+		AbstractController::SCOPE_ADD_ONS,
+		AbstractController::SCOPE_JOBS,
+		AbstractController::SCOPE_OPTIONS,
+		AbstractController::SCOPE_CONFIG,
+		AbstractController::SCOPE_ONLINE,
+		AbstractController::SCOPE_USER_UPGRADES,
+		AbstractController::SCOPE_APPROVAL_QUEUE,
+		AbstractController::SCOPE_REPORTS,
+		AbstractController::SCOPE_ACTIVITY,
 	];
 
 	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports', 'activity'];
 
-	/** The member scopes, each with the admin permissions its endpoint asks for and its row's label */
-	const MEMBER_SCOPES = [
-		AbstractController::SCOPE_IPS => ['label' => 'keys for IP lookups', 'permissions' => ['hampelAdminApiIps', 'user']],
-		AbstractController::SCOPE_UPGRADES => ['label' => 'keys for upgrade records', 'permissions' => ['hampelAdminApiUpgRecords', 'userUpgrade']],
+	/** The scopes for content and member data, each with core's admin permissions its endpoint asks for as well */
+	const DETAIL_SCOPES = [
+		AbstractController::SCOPE_ERROR_DETAIL => ['label' => 'keys for error entries', 'permissions' => ['viewLogs']],
+		AbstractController::SCOPE_IPS => ['label' => 'keys for IP lookups', 'permissions' => ['user']],
+		AbstractController::SCOPE_UPGRADE_RECORDS => ['label' => 'keys for upgrade records', 'permissions' => ['userUpgrade']],
 		// the administrators need a super administrator as well, and the moderators are enough to count
-		AbstractController::SCOPE_STAFF => ['label' => 'keys for staff', 'permissions' => ['hampelAdminApiStaff', 'user']],
+		AbstractController::SCOPE_STAFF => ['label' => 'keys for staff', 'permissions' => ['user']],
 		// the admin log needs a super administrator as well, and the other logs are enough to count
-		AbstractController::SCOPE_LOG_ENTRIES => ['label' => 'keys for log entries', 'permissions' => ['hampelAdminApiLogEntries', 'viewLogs']],
+		AbstractController::SCOPE_LOG_ENTRIES => ['label' => 'keys for log entries', 'permissions' => ['viewLogs']],
 	];
 
 	/** @var App */
@@ -177,76 +160,77 @@ class HealthCheck
 	}
 
 	/**
-	 * Whether anybody can actually use it. With no key that can read, nothing is broken and the
-	 * add-on does nothing, which is a warning: it works now and is no use until someone acts.
+	 * Whether anybody can actually use it. With no key that can reach an endpoint, nothing is
+	 * broken and the add-on does nothing, which is a warning: it works now and is no use until
+	 * someone acts.
 	 *
 	 * @return list<array{string, string, string}> Rows of outcome, label and detail
 	 */
 	public function access()
 	{
-		$rows = [];
-		$readers = 0;
-		$detailReaders = 0;
+		$warnings = [];
+		$monitoring = 0;
 		$valueReaders = 0;
-		$memberReaders = array_fill_keys(array_keys(static::MEMBER_SCOPES), 0);
+		$detailReaders = array_fill_keys(array_keys(static::DETAIL_SCOPES), 0);
 
 		foreach ($this->getKeys() AS $key)
 		{
+			$usable = [];
 			foreach ($key['scopes'] AS $scopeId)
 			{
 				$reason = $this->whyKeyCannotUse($key, $scopeId);
 
 				if ($reason !== null)
 				{
-					$rows[] = [self::WARN, "key #{$key['api_key_id']}", "holds $scopeId and cannot use it: $reason"];
-				}
-				else if ($scopeId === AbstractController::SCOPE)
-				{
-					$readers++;
-				}
-				else if ($scopeId === AbstractController::SCOPE_VALUES)
-				{
-					$valueReaders++;
-				}
-				else if (isset($memberReaders[$scopeId]))
-				{
-					$memberReaders[$scopeId]++;
+					$warnings[] = [self::WARN, "key #{$key['api_key_id']}", "holds $scopeId and cannot use it: $reason"];
 				}
 				else
 				{
-					$detailReaders++;
+					$usable[] = $scopeId;
 				}
+			}
+
+			if (array_intersect(static::AGGREGATE_SCOPES, $usable))
+			{
+				$monitoring++;
+			}
+			if (in_array(AbstractController::SCOPE_VALUES, $usable, true))
+			{
+				$valueReaders++;
+			}
+			foreach (array_intersect(array_keys($detailReaders), $usable) AS $scopeId)
+			{
+				$detailReaders[$scopeId]++;
 			}
 		}
 
-		array_unshift(
-			$rows,
-			$readers
-				? [self::OK, 'keys that can read', (string) $readers]
-				: [self::WARN, 'keys that can read', 'none - no API key can reach any endpoint yet'],
-			$detailReaders
-				? [self::OK, 'keys for error entries', (string) $detailReaders]
-				: [self::SKIP, 'keys for error entries', 'none, which is the safe default'],
+		$rows = [
+			$monitoring
+				? [self::OK, 'keys for counts', (string) $monitoring]
+				: [self::WARN, 'keys for counts', 'none - no API key can reach an aggregate endpoint yet'],
 			$valueReaders
 				? [self::OK, 'keys that see values', (string) $valueReaders]
-				: [self::SKIP, 'keys that see values', 'none - options and config.php are reported by shape only']
-		);
+				: [self::SKIP, 'keys that see values', 'none - options and config.php are reported by shape only'],
+		];
 
-		$memberRows = [];
-		foreach (static::MEMBER_SCOPES AS $scopeId => $scope)
+		foreach (static::DETAIL_SCOPES AS $scopeId => $scope)
 		{
-			$memberRows[] = $memberReaders[$scopeId]
-				? [self::OK, $scope['label'], (string) $memberReaders[$scopeId]]
+			$rows[] = $detailReaders[$scopeId]
+				? [self::OK, $scope['label'], (string) $detailReaders[$scopeId]]
 				: [self::SKIP, $scope['label'], 'none, which is the safe default'];
 		}
-		array_splice($rows, 3, 0, $memberRows);
 
-		return $rows;
+		foreach ($this->getAllScopeKeys() AS $key)
+		{
+			$warnings[] = [self::WARN, "key #{$key->api_key_id}", 'allows all scopes, which reaches no Admin API endpoint: select its scopes instead'];
+		}
+
+		return array_merge($rows, $warnings);
 	}
 
 	/**
-	 * Every API key that names one of this add-on's scopes. A key that merely allows all scopes
-	 * was not made for this, and is left out.
+	 * Every API key that names one of this add-on's scopes. A key allowing all scopes holds none
+	 * of them by name, and is left out: the endpoints refuse it.
 	 *
 	 * @return list<array<string, mixed>> api_key_id, title, key_type, active, user_id, username,
 	 *                                    scopes, last_use_date, is_admin, admin_permissions (null
@@ -259,7 +243,7 @@ class HealthCheck
 		foreach ($this->app->finder('XF:ApiKey')->order('api_key_id')->fetch() AS $key)
 		{
 			$scopes = array_values(array_intersect(static::SCOPES, array_keys(array_filter((array) $key->scopes))));
-			if (!$scopes)
+			if (!$scopes || $key->allow_all_scopes)
 			{
 				continue;
 			}
@@ -281,6 +265,30 @@ class HealthCheck
 					? null
 					: array_keys(array_filter((array) $admin->permission_cache)),
 			];
+		}
+
+		return $keys;
+	}
+
+	/**
+	 * Active user keys allowing all scopes whose user may use the Admin API: made, probably, for
+	 * it, and refused by every endpoint. A key for anyone else is not this add-on's business.
+	 *
+	 * @return list<\XF\Entity\ApiKey>
+	 */
+	public function getAllScopeKeys()
+	{
+		$keys = [];
+
+		foreach ($this->app->finder('XF:ApiKey')->where(['allow_all_scopes' => 1, 'active' => 1])->order('api_key_id')->fetch() AS $key)
+		{
+			$user = $key->key_type === 'user' && $key->user_id ? $this->app->em()->find('XF:User', $key->user_id) : null;
+			$admin = $user && $user->is_admin ? $user->Admin : null;
+
+			if ($admin && ($admin->is_super_admin || !empty($admin->permission_cache[AbstractController::PERMISSION])))
+			{
+				$keys[] = $key;
+			}
 		}
 
 		return $keys;
@@ -309,10 +317,12 @@ class HealthCheck
 			return 'its user is not an administrator';
 		}
 
-		// it adds to the read scope and does nothing without it, whoever holds the key
-		if ($scopeId === AbstractController::SCOPE_VALUES && !in_array(AbstractController::SCOPE, $key['scopes'], true))
+		// it adds to the options and config.php endpoints and does nothing without one of them
+		if ($scopeId === AbstractController::SCOPE_VALUES
+			&& !array_intersect([AbstractController::SCOPE_OPTIONS, AbstractController::SCOPE_CONFIG], $key['scopes'])
+		)
 		{
-			return 'it needs the ' . AbstractController::SCOPE . ' scope as well';
+			return 'it needs the ' . AbstractController::SCOPE_OPTIONS . ' or ' . AbstractController::SCOPE_CONFIG . ' scope as well';
 		}
 
 		// a super administrator holds every permission
@@ -321,36 +331,13 @@ class HealthCheck
 			return null;
 		}
 
-		if ($scopeId === AbstractController::SCOPE_VALUES)
-		{
-			if (!in_array(AbstractController::PERMISSION_VALUES, $key['admin_permissions'], true))
-			{
-				return 'its user lacks ' . AbstractController::PERMISSION_VALUES;
-			}
+		$required = array_merge(
+			[AbstractController::PERMISSION],
+			isset(static::DETAIL_SCOPES[$scopeId]) ? static::DETAIL_SCOPES[$scopeId]['permissions'] : []
+		);
+		$missing = array_diff($required, $key['admin_permissions']);
 
-			// values come from the options and config.php endpoints, so one of those as well
-			return array_intersect(['hampelAdminApiOptions', 'hampelAdminApiConfig'], $key['admin_permissions'])
-				? null
-				: 'its user lacks hampelAdminApiOptions and hampelAdminApiConfig';
-		}
-
-		if (isset(static::MEMBER_SCOPES[$scopeId]))
-		{
-			$missing = array_diff(static::MEMBER_SCOPES[$scopeId]['permissions'], $key['admin_permissions']);
-
-			return $missing ? 'its user lacks ' . implode(' and ', $missing) : null;
-		}
-
-		if ($scopeId === AbstractController::SCOPE_ERROR_DETAIL)
-		{
-			$missing = array_diff(['hampelAdminApiErrorDetail', 'viewLogs'], $key['admin_permissions']);
-
-			return $missing ? 'its user lacks ' . implode(' and ', $missing) : null;
-		}
-
-		return array_intersect(self::READ_PERMISSIONS, $key['admin_permissions'])
-			? null
-			: 'its user holds none of the admin permissions';
+		return $missing ? 'its user lacks ' . implode(' and ', $missing) : null;
 	}
 
 	/**

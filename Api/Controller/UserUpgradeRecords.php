@@ -5,8 +5,8 @@ use XF\Mvc\ParameterBag;
 
 /**
  * Which members hold which user upgrades, when each ends, and what was paid. Member data, so a
- * scope and an admin permission of its own, core's permission to manage user upgrades, and a line
- * in the admin log for every lookup.
+ * scope of its own, core's permission to manage user upgrades, and a line in the admin log for
+ * every lookup.
  *
  * @api-group Admin API
  */
@@ -15,14 +15,9 @@ class UserUpgradeRecords extends AbstractController
 	const DEFAULT_LIMIT = 50;
 	const MAX_LIMIT = 200;
 
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiUpgRecords';
-	}
-
 	protected function getScope()
 	{
-		return self::SCOPE_UPGRADES;
+		return self::SCOPE_UPGRADE_RECORDS;
 	}
 
 	/**
@@ -41,10 +36,10 @@ class UserUpgradeRecords extends AbstractController
 	}
 
 	/**
-	 * @api-desc Returns user upgrade records with the member's id and username, the dates, the price,
-	 *   the provider and each payment's date and transaction id. Every lookup is written to the
-	 *   admin log. Requires a user API key holding the hampel_admin_api:upgrades scope, whose user
-	 *   has both the hampelAdminApiUpgRecords and the userUpgrade admin permissions.
+	 * @api-desc Returns user upgrade records with the member's id and username, the dates, the
+	 *   price, the provider and each payment's date and transaction id. Every lookup is written to
+	 *   the admin log. Requires a user API key with the hampel_admin_api:upgrade_records scope
+	 *   selected, whose user holds the hampelAdminApi and the userUpgrade admin permissions.
 	 *
 	 * @api-in str $state active (default) or expired
 	 * @api-in int $days Active: only those ending within this many days. Expired: only those that ended within it. Default any.

@@ -4,8 +4,8 @@ use Hampel\AdminApi\Repository\ErrorLog as ErrorLogRepository;
 use XF\Mvc\ParameterBag;
 
 /**
- * The one endpoint that returns content, not counts. It has its own scope and its own admin
- * permission, and a key holding the read scope gets nothing here.
+ * The one endpoint that returns content, not counts. It has a scope of its own, and a key without
+ * it gets nothing here.
  *
  * @api-group Admin API
  */
@@ -13,11 +13,6 @@ class ErrorEntries extends AbstractController
 {
 	const DEFAULT_LIMIT = 5;
 	const MAX_LIMIT = 20;
-
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiErrorDetail';
-	}
 
 	protected function getScope()
 	{
@@ -42,9 +37,9 @@ class ErrorEntries extends AbstractController
 	/**
 	 * @api-desc Returns one server error log entry in full - message and stack trace - with the
 	 *   most recent other entries raised at the same place. The request, user and IP address are
-	 *   included only when asked for. Requires a user API key holding the
-	 *   hampel_admin_api:error_detail scope, whose user has both the hampelAdminApiErrorDetail and
-	 *   the viewLogs admin permissions.
+	 *   included only when asked for. Requires a user API key with the
+	 *   hampel_admin_api:error_detail scope selected, whose user holds the hampelAdminApi and the
+	 *   viewLogs admin permissions.
 	 *
 	 * @api-in int $error_id <req> The entry to return, as given by last_error_id in the error log summary
 	 * @api-in int $limit How many entries to return, counting the one asked for. Default 5, maximum 20.

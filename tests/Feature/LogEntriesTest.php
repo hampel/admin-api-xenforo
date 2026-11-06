@@ -16,9 +16,10 @@ class LogEntriesTest extends TestCase
 	private const ROUTE = 'admin-api/log-entries/';
 	private const WINDOW = ['since' => 1, 'until' => 100000];
 
-	private const PERMISSIONS = ['hampelAdminApiLogEntries', 'viewLogs'];
+	private const SCOPES = ['hampel_admin_api:log_entries'];
+
+	private const PERMISSIONS = ['viewLogs'];
 	// spelled out: a constant is evaluated while the suite is built, before the add-on can load
-	private const KEY = ['scopes' => ['hampel_admin_api:log_entries' => true]];
 	private const SUPER = ['is_super_admin' => true];
 
 	/** @var \XF\Entity\User */
@@ -34,7 +35,7 @@ class LogEntriesTest extends TestCase
 		$this->staff = $this->createUserAccount();
 		$this->member = $this->createUserAccount();
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 	}
 
 	/**
@@ -300,7 +301,7 @@ class LogEntriesTest extends TestCase
 	 */
 	public function test_every_log_can_be_read() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY, self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, [], self::SUPER);
 
 		foreach (array_keys(LogEntries::LOGS) AS $log)
 		{
@@ -320,7 +321,7 @@ class LogEntriesTest extends TestCase
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['log' => 'admin'] + self::WINDOW), 403, 'super administrator');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY, self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, [], self::SUPER);
 		$result = $this->entries(['log' => 'admin']);
 
 		$entry = $result['entries'][0];
@@ -354,19 +355,19 @@ class LogEntriesTest extends TestCase
 
 	public function test_every_gate_is_checked_before_the_input_and_nothing_refused_is_written() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:log_entries');
 
-		$this->actingAsAdminWithKey(['viewLogs'], self::KEY);
+		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiLogEntries'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], self::SUPER);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], self::SUPER);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'moderator, user_change');
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['log' => 'ip']), 400);
 
@@ -375,9 +376,9 @@ class LogEntriesTest extends TestCase
 
 	public function test_the_entries_scope_reaches_nothing_else() : void
 	{
-		$this->actingAsAdminWithKey(array_merge(self::PERMISSIONS, ['hampelAdminApiLogs', 'hampelAdminApiErrorDetail']), self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 
-		$this->assertReplyIsError($this->dispatch('admin-api/logs/', 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch('admin-api/logs/', 'api'), 403, 'hampel_admin_api:logs');
 		$this->assertReplyIsError($this->dispatch('admin-api/error-entries/', 'api'), 403, 'hampel_admin_api:error_detail');
 	}
 }

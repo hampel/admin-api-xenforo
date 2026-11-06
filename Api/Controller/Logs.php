@@ -11,17 +11,17 @@ class Logs extends AbstractController
 {
 	const DEFAULT_WINDOW = 86400;
 
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiLogs';
+		return self::SCOPE_LOGS;
 	}
 
 	/**
 	 * @api-desc Returns, for every log XenForo keeps, how many entries fall in the window and the
-	 *   oldest and newest it holds; or, given a log, that log in full - members who acted, a
-	 *   series by day and its breakdowns. Counts only: no entry, URL, address or message. Requires
-	 *   a user API key holding the hampel_admin_api:read scope, whose user has the
-	 *   hampelAdminApiLogs admin permission.
+	 *   oldest and newest it holds; or, given a log, that log in full - members who acted, a series
+	 *   by day and its breakdowns. Counts only: no entry, URL, address or message. Requires a user
+	 *   API key with the hampel_admin_api:logs scope selected, whose user holds the hampelAdminApi
+	 *   admin permission.
 	 *
 	 * @api-in str $log One log, as named in the list this returns without it
 	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.

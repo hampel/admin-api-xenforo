@@ -22,7 +22,7 @@ class ActivityTest extends TestCase
 	{
 		parent::setUp();
 
-		$this->actingAsAdminWithKey(['hampelAdminApiActivity']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:activity']);
 	}
 
 	/**
@@ -106,19 +106,19 @@ class ActivityTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['since' => 0]), 400, '31 days');
 	}
 
-	public function test_it_needs_its_own_permission_and_writes_nothing_to_the_admin_log() : void
+	public function test_it_needs_its_own_scope_and_writes_nothing_to_the_admin_log() : void
 	{
 		$this->activity();
 		$this->assertSame(0, (int) $this->app()->db()->fetchOne('SELECT COUNT(*) FROM xf_admin_log WHERE user_id = ?', self::USER_ID));
 
-		$this->actingAsAdminWithKey(['hampelAdminApiReports']);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->actingAsAdminWithKey(['hampel_admin_api:reports']);
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:activity');
 	}
 
 	public function test_a_member_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiActivity'], ['scopes' => ['hampel_admin_api:staff' => true]]);
+		$this->actingAsAdminWithKey(['hampel_admin_api:activity'], [], ['scopes' => ['hampel_admin_api:staff' => true]]);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:activity');
 	}
 }

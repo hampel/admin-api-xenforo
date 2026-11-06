@@ -19,7 +19,7 @@ class LogsTest extends TestCase
 	{
 		parent::setUp();
 
-		$this->actingAsAdminWithKey(['hampelAdminApiLogs']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:logs']);
 	}
 
 	/**
@@ -223,23 +223,23 @@ class LogsTest extends TestCase
 
 	// access
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiErrorLog', 'viewLogs']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], ['viewLogs']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:logs');
 	}
 
 	public function test_a_member_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiLogs'], ['scopes' => ['hampel_admin_api:ips' => true]]);
+		$this->actingAsAdminWithKey(['hampel_admin_api:logs'], [], ['scopes' => ['hampel_admin_api:ips' => true]]);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:logs');
 	}
 
 	public function test_a_super_user_key_is_refused_here_too() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiLogs'], ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->actingAsAdminWithKey(['hampel_admin_api:logs'], [], ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 	}

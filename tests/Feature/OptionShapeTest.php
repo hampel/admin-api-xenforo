@@ -25,7 +25,7 @@ class OptionShapeTest extends TestCase
 		$this->insertOption('adminApiTestAccount', 'unsigned_integer', '4242424242', '0');
 		$this->insertOption('adminApiTestList', 'array', '{"password":"SECRET-smtp","host":"mail.example.com"}', '[]');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiOptions']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:options']);
 	}
 
 	private function insertOption(string $id, string $dataType, string $value, string $default, string $format = 'textbox', string $params = '', ?string $subOptions = null) : void
@@ -284,10 +284,10 @@ class OptionShapeTest extends TestCase
 		$this->assertGreaterThan(0, $strings, 'no option on this forum exercised the choice rule');
 	}
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiConfig', 'hampelAdminApiJobs', 'option']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:config', 'hampel_admin_api:jobs'], ['option']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:options');
 	}
 }

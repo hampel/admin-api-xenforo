@@ -1,0 +1,1 @@
+The installed add-ons and their versions, and whether one is part-way through an install or upgrade

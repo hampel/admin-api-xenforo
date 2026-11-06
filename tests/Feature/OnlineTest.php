@@ -43,7 +43,7 @@ class OnlineTest extends TestCase
 		$this->insertSession(990002, '192.0.2.2', '', $now - 30, 'error');
 		$this->insertSession(0, '198.51.100.250', '', $now - 86400);
 
-		$this->actingAsAdminWithKey(['hampelAdminApiOnline']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:online']);
 	}
 
 	private function insertSession(int $userId, string $ip, string $robot, int $viewDate, string $state = 'valid') : void
@@ -200,10 +200,10 @@ class OnlineTest extends TestCase
 		}
 	}
 
-	public function test_it_needs_its_own_permission() : void
+	public function test_it_needs_its_own_scope() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiOptions', 'viewOnlineStaff']);
+		$this->actingAsAdminWithKey(['hampel_admin_api:options'], ['viewOnlineStaff']);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:online');
 	}
 }

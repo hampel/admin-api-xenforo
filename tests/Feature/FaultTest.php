@@ -218,13 +218,13 @@ class FaultTest extends TestCase
 	}
 
 	/**
-	 * @param string[] $permissions
+	 * @param string[] $scopes
 	 * 
 	 * @return array<string, mixed>
 	 */
-	private function endpoint(string $route, array $permissions) : array
+	private function endpoint(string $route, array $scopes) : array
 	{
-		$this->actingAsAdminWithKey($permissions);
+		$this->actingAsAdminWithKey($scopes);
 
 		return $this->replyApiResult($this->dispatch($route, 'api'));
 	}
@@ -235,7 +235,7 @@ class FaultTest extends TestCase
 
 		$this->assertSame(['orphan', 'rejected'], array_column($armed['jobs'], 'kind'));
 
-		$byClass = array_column($this->endpoint('admin-api/jobs/', ['hampelAdminApiJobs'])['by_class'], null, 'execute_class');
+		$byClass = array_column($this->endpoint('admin-api/jobs/', ['hampel_admin_api:jobs'])['by_class'], null, 'execute_class');
 
 		$this->assertSame(1, $byClass[Manager::MISSING_JOB]['total']);
 		$this->assertSame(1, $byClass[Manager::MISSING_JOB]['due']);
@@ -246,7 +246,7 @@ class FaultTest extends TestCase
 	public function test_a_planted_cron_entry_shows_as_overdue() : void
 	{
 		$armed = $this->armRows();
-		$state = $this->endpoint('admin-api/cron/', ['hampelAdminApiJobs']);
+		$state = $this->endpoint('admin-api/cron/', ['hampel_admin_api:jobs']);
 		$entries = array_column($state['entries'], null, 'entry_id');
 
 		$this->assertSame('aaf_rows', $armed['cron']['entry_id']);
@@ -258,7 +258,7 @@ class FaultTest extends TestCase
 	public function test_a_planted_add_on_record_shows_an_unfinished_upgrade() : void
 	{
 		$armed = $this->armRows();
-		$addOns = array_column($this->endpoint('admin-api/add-ons/', ['hampelAdminApiAddOns'])['add_ons'], null, 'addon_id');
+		$addOns = array_column($this->endpoint('admin-api/add-ons/', ['hampel_admin_api:add_ons'])['add_ons'], null, 'addon_id');
 
 		$this->assertSame('AdminApiFault/Rows', $armed['add_on']['addon_id']);
 		$this->assertSame('upgrade', $addOns['AdminApiFault/Rows']['pending_action']);

@@ -7,16 +7,17 @@ use Hampel\AdminApi\Repository\Job as JobRepository;
  */
 class Jobs extends AbstractController
 {
-	protected function getAdminPermissionId()
+	protected function getScope()
 	{
-		return 'hampelAdminApiJobs';
+		return self::SCOPE_JOBS;
 	}
 
 	/**
 	 * @api-desc Summarises the job queue by job class: how many are queued, due, stalled, waiting
-	 *   to be run manually or being retried, and the failed jobs XenForo has recorded. Failed
-	 *   jobs are grouped by where they failed. Returns no job data, unique key or exception text. Requires a user API key holding the
-	 *   hampel_admin_api:read scope, whose user has the hampelAdminApiJobs admin permission.
+	 *   to be run manually or being retried, and the failed jobs XenForo has recorded. Failed jobs
+	 *   are grouped by where they failed. Returns no job data, unique key or exception text.
+	 *   Requires a user API key with the hampel_admin_api:jobs scope selected, whose user holds the
+	 *   hampelAdminApi admin permission.
 	 *
 	 * @api-out int $now The time the state was read
 	 * @api-out int $total Jobs in the queue

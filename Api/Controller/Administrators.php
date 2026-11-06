@@ -4,20 +4,14 @@ use Hampel\AdminApi\Repository\Staff as StaffRepository;
 use XF\Mvc\ParameterBag;
 
 /**
- * The forum's administrators and the admin permissions each holds. Member data, so a scope and an
- * admin permission of its own, and a line in the admin log for every lookup. Only a super
- * administrator's key can read it, because only a super administrator can see the control panel's
- * list of administrators.
+ * The forum's administrators and the admin permissions each holds. Member data, so a scope of its
+ * own, and a line in the admin log for every lookup. Only a super administrator's key can read it,
+ * because only a super administrator can see the control panel's list of administrators.
  *
  * @api-group Admin API
  */
 class Administrators extends AbstractController
 {
-	protected function getAdminPermissionId()
-	{
-		return 'hampelAdminApiStaff';
-	}
-
 	protected function getScope()
 	{
 		return self::SCOPE_STAFF;
@@ -45,7 +39,7 @@ class Administrators extends AbstractController
 	 * @api-desc Returns each administrator with their user id and username, whether they are a
 	 *   super administrator, when they last logged in to the control panel, and the admin
 	 *   permissions they hold. Every lookup is written to the admin log. Requires a user API key
-	 *   holding the hampel_admin_api:staff scope, whose user is a super administrator.
+	 *   with the hampel_admin_api:staff scope selected, whose user is a super administrator.
 	 *
 	 * @api-in int $user_id Only this member
 	 *

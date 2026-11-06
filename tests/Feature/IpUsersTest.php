@@ -19,9 +19,10 @@ class IpUsersTest extends TestCase
 	private const V6 = '2001:db8::1';
 	private const GONE = 424242;
 
-	private const PERMISSIONS = ['hampelAdminApiIps', 'user'];
+	private const SCOPES = ['hampel_admin_api:ips'];
+
+	private const PERMISSIONS = ['user'];
 	// spelled out: a constant is evaluated while the suite is built, before the add-on can load
-	private const KEY = ['scopes' => ['hampel_admin_api:ips' => true]];
 
 	/** @var \XF\Entity\User */
 	private $alice;
@@ -58,7 +59,7 @@ class IpUsersTest extends TestCase
 		$this->logIp(0, self::SHARED, $now - $day);
 		$this->logIp(self::GONE, self::SHARED, $now - 3 * $day);
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 	}
 
 	private function logIp(\XF\Entity\User|int $user, string $ip, int $date) : void
@@ -214,7 +215,7 @@ class IpUsersTest extends TestCase
 	{
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400);
 
-		$this->actingAsAdminWithKey(['hampelAdminApiIps'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403);
 
 		$this->assertSame([], $this->adminLogRows());
@@ -222,9 +223,9 @@ class IpUsersTest extends TestCase
 
 	// access
 
-	public function test_the_read_scope_does_not_reach_it() : void
+	public function test_another_scope_does_not_reach_it() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::PERMISSIONS);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403, 'hampel_admin_api:ips');
 	}
@@ -235,19 +236,19 @@ class IpUsersTest extends TestCase
 	 */
 	public function test_every_gate_is_checked_before_the_input() : void
 	{
-		$this->actingAsAdminWithKey(self::PERMISSIONS);
+		$this->actingAsAdminWithKey(['hampel_admin_api:error_log'], self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:ips');
 
-		$this->actingAsAdminWithKey(['user'], self::KEY);
+		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(['hampelAdminApiIps'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, ['is_super_user' => true, 'allow_all_scopes' => true], ['is_super_admin' => true]);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
 
-		$this->actingAsAdminWithKey(self::PERMISSIONS, self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 400, 'user_id');
 	}
 
@@ -256,15 +257,15 @@ class IpUsersTest extends TestCase
 	 */
 	public function test_it_also_needs_the_user_admin_permission() : void
 	{
-		$this->actingAsAdminWithKey(['hampelAdminApiIps'], self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES);
 
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403, 'do not have permission');
 	}
 
 	public function test_the_ip_scope_does_not_reach_the_summaries() : void
 	{
-		$this->actingAsAdminWithKey(array_merge(self::PERMISSIONS, ['hampelAdminApiErrorLog']), self::KEY);
+		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS);
 
-		$this->assertReplyIsError($this->dispatch('admin-api/error-log/', 'api'), 403, 'hampel_admin_api:read');
+		$this->assertReplyIsError($this->dispatch('admin-api/error-log/', 'api'), 403, 'hampel_admin_api:error_log');
 	}
 }
