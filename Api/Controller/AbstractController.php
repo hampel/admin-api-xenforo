@@ -98,6 +98,24 @@ abstract class AbstractController extends BaseController
 	}
 
 	/**
+	 * Every answer opens with the forum's clock, so that the age of anything in it is worked out
+	 * against the clock that dated it, not the caller's.
+	 *
+	 * @param mixed $result
+	 *
+	 * @return \XF\Api\Mvc\Reply\ApiResult
+	 */
+	public function apiResult($result)
+	{
+		if (is_array($result))
+		{
+			$result = ['now' => \XF::$time] + $result;
+		}
+
+		return parent::apiResult($result);
+	}
+
+	/**
 	 * A lookup of member data leaves a line in the admin log, as an action in the control panel
 	 * does, so that who looked up whom can be seen afterwards. It records the route and what was
 	 * asked, with core's own masking of the input, and is pruned with the rest of the log. Call it

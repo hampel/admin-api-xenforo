@@ -160,8 +160,11 @@ except *Error log entries*, which needs `hampel_admin_api:error_detail` instead,
 address*, which needs `hampel_admin_api:ips`, *User upgrade records*, which needs
 `hampel_admin_api:upgrades`, *Moderators* and *Administrators*, which need
 `hampel_admin_api:staff`, and *Log entries*, which needs `hampel_admin_api:log_entries`. The JSON
-under
-each shows the shape of a response; the figures in it are illustrative.
+under each shows the shape of a response; the figures in it are illustrative.
+
+**Every response begins with `now`**, the forum's clock as a Unix timestamp. Work out an age
+against it rather than against the caller's clock, which may not agree with the clock that dated
+the answer. The examples leave it out where it says nothing more.
 
 ## Error log summary
 

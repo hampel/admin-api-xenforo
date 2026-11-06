@@ -158,7 +158,7 @@ class StaffTest extends TestCase
 	{
 		$result = $this->get(self::MODERATORS, ['user_id' => $this->admin->user_id]);
 
-		$this->assertSame(['total' => 0, 'complete' => true, 'moderators' => []], $result);
+		$this->assertSame(['now' => \XF::$time, 'total' => 0, 'complete' => true, 'moderators' => []], $result);
 	}
 
 	public function test_moderators_need_the_user_admin_permission_as_well() : void

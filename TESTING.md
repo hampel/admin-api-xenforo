@@ -399,6 +399,8 @@ vendor/bin/phpunit
 - `tests/Feature/ApprovalQueueTest.php` queues items under ids no content has, in each age
   bucket and for a type nothing approves, and compares the answer before and after, since the
   queue is the forum's own; and checks the permission, the scope and that nothing is logged.
+- `tests/Feature/ResponseClockTest.php` asks every read endpoint and one member endpoint, and
+  checks each answer begins with `now`, the forum's clock.
 - `tests/Feature/LogEntriesTest.php` reads every declared log, so a misspelt table or column
   fails there, and plants entries in seven of them with `SECRET` in every column that is not
   returned and a documentation IP address in each that has one, then checks each log's fields,
