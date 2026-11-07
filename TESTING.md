@@ -647,6 +647,40 @@ dated in 1970 in each state. Over HTTP with a non-super administrator's read key
 
 `validate --strict` exited 0 and read both new endpoints.
 
+Proved from a `1.0.0a11` build on XenForo 2.2.19 Patch 2 with PHP 7.4.33, development off, on
+2026-11-07, for one admin permission with a scope per endpoint, the API key page's grouping, and
+windows that exclude their end. Before the upgrade, a non-super administrator held every
+`1.0.0a10` permission and a key held the read and values scopes, and that key read the inventory.
+The upgrade from the archived `1.0.0a10` zip took the real import path, and left:
+
+- one admin permission and 17 scopes, the read scope gone and stripped from the key, which kept
+  `values`;
+- every old permission's grants gone with it, and core's still held;
+- the template modification applied to `api_key_edit` with status `ok`, 29 phrases, no
+  `_output/`, and every PHP file linted.
+
+The key page's template, rendered through the control panel's templater, listed core's 21 scopes,
+then the 12 counts-and-settings scopes under their heading, then the five member-data scopes
+under theirs, each once. Over HTTP:
+
+| checked | result |
+|---|---|
+| the `1.0.0a10` key, its user given *Use the Admin API* | 403 `missing_scope` |
+| a key allowing all scopes | 403 `hampel_adminapi_scope_must_be_selected`, naming the scope |
+| a key whose user lacks the permission | 403 `do_not_have_permission` |
+| a super user key with the bypass parameter | 403 |
+| a counts key on a member endpoint, and the reverse | 403 `missing_scope` |
+| the twelve counts endpoints | 200, values mode on options |
+| the member endpoints | 200, or 400 for no input, and the administrators refused for a non-super administrator |
+| a row on each boundary, in activity, both logs views, the error log and log entries | counted by the window starting there and not by the one ending there |
+| `until` left out | `now` + 1, and the window 86400 seconds long |
+| activity over exactly 31 days, and one second more | answered, and 400 |
+
+`validate --strict` exited 2 on two warnings, each a key set up wrongly on purpose, and its probe
+passed. Uninstall left no add-on row, scope, key grant, permission, grant, phrase, route,
+modification or table. The error log held five rows: one planted for the window check, and four
+from setup scripts of mine that stopped part-way.
+
 ### The fault commands, the same day and the same way
 
 On the same kind of forum — the release zip, XenForo 2.3.0 Patch 2, PHP 7.4.33 — with
