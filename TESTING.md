@@ -805,6 +805,10 @@ upgrade logs, which hold a handful of rows.
   not been looked at; the lookups were only ever run where nothing forwards the log.
 - **The member endpoints against a production forum's data.** Proved with planted rows in the
   suite and in a 2.2 sandbox; a forum with real staff, upgrades and logs has not been asked.
+- **A key whose user XenForo refuses, on a real forum.** `admin-api:validate`'s warning for a user
+  without *View* is tested with a user in the *Administrative* group alone; a forum that grants
+  *View* to guests only, as an archive may, has not been run, nor has
+  `hampel_adminapi_admin_permission_required` been seen by a client over HTTP.
 - **The admin control panel pages themselves.** The phrases are checked in the database after an
   install; nobody has looked at the administrator edit page, the API key page or the OAuth client
   page in a browser.
