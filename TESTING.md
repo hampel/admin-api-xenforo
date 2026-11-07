@@ -158,7 +158,7 @@ came back unchanged.
 
 **A login's username took the site's name out of paths.** Found on a development forum on
 2026-11-07 by the MCP test session: its SMTP login was its directory's name, so every path in an
-entry came back as `/srv/www/[withheld].local/…` and counted as scrubbed. A username is withheld
+entry came back with `[withheld]` where the site's directory was, and counted as scrubbed. A username is withheld
 from the settings as half of a login, and is often the site's own name, as a database user named
 for the site is. The scrubber no longer looks for a username; its password is still removed.
 `ErrorEntriesTest` and `SecretValuesTest` pin both halves.
@@ -295,7 +295,7 @@ outside and loses its add-on — the suite did not catch that until its rows wer
 because a test that writes only full paths never meets the common case.
 
 **The detail endpoint is the only place content leaves the forum, and four things keep it narrow**:
-its own scope, its own permission plus `viewLogs`, entry by `error_id` only, and a cap of 20. Each
+its own scope, the add-on's permission plus `viewLogs`, entry by `error_id` only, and a cap of 20. Each
 has a test. The cap had a bug on the day it was written — a finder asked to fetch none returns
 them all, so `limit=1` returned every entry at that place — and only the test for it showed that.
 
@@ -483,9 +483,16 @@ vendor/bin/phpunit
 
 To confirm the gate tests are real, remove one of the three calls in
 `Api\Controller\AbstractController::preDispatchController()` and run `AuthorisationTest`: four
-tests fail without the first, one without the second, four without the third.
+tests fail without the first, four without the second, three without the third. Across the whole
+suite it is 11, 30 and 11. Measured 2026-11-07.
 
 ## Proved on a clean forum
+
+**Every gate has been seen to hold over HTTP, with real keys**, where XenForo derives the visitor
+from the key rather than a test setting both. That was a *Needs a human* item until the sandbox
+runs below settled it: a super user key with and without `api_bypass_permissions`, a member's key
+and an administrator's allowing all scopes, a key whose user lacks the permission, each scope on
+another's endpoint, and a key left over from the earlier access model after an upgrade.
 
 On 2026-10-07 the release zip was installed on a disposable forum that had never had the add-on,
 at **XenForo 2.3.0 Patch 2 on PHP 7.4.33** — both declared floors at once — with development mode
@@ -772,11 +779,6 @@ upgrade logs, which hold a handful of rows.
 
 ## Needs a human
 
-- **A request over HTTP with a real key.** The suite sets the key and the visitor side by side; a
-  real request has XenForo derive the visitor from the key. Create a *User* key for an
-  administrator with only this add-on's scope and request each endpoint, then repeat with a
-  super user key adding `api_bypass_permissions=1`, and with a key for an ordinary member that
-  allows all scopes. The second and third must be refused.
 - **An install or upgrade that has really stopped part-way.** `pending_action` is tested with
   planted records, not with an add-on whose setup step failed.
 - **A stopped queue.** `stalled` and `overdue` are tested with planted rows. Whether they read
