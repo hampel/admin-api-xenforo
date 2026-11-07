@@ -989,7 +989,7 @@ and a state are read for each, never a name, an email address, a title or a mess
 | parameter | meaning |
 |---|---|
 | `since` | start of the window, as a Unix timestamp, included. Default 24 hours before `until` |
-| `until` | end of the window, excluded. Default the second after now. At most 31 days after `since` |
+| `until` | end of the window, excluded. Default the second after now. At most 31 days after `since`; left out, `since` may be up to 31 days before now |
 
 ```json
 {

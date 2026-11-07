@@ -135,6 +135,19 @@ class ActivityTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['since' => 0]), 400, '31 days');
 	}
 
+	/**
+	 * "The last 31 days" with no end asked for is allowed, though the default end is the second
+	 * after now: that second is there to count this one, not to lengthen the window.
+	 */
+	public function test_the_last_31_days_may_be_asked_for_without_an_end() : void
+	{
+		$since = \XF::$time - 31 * 86400;
+
+		$this->assertSame(['since' => $since, 'until' => \XF::$time + 1], $this->activity(['since' => $since])['window']);
+
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['since' => $since - 1]), 400, '31 days');
+	}
+
 	public function test_it_needs_its_own_scope_and_writes_nothing_to_the_admin_log() : void
 	{
 		$this->activity();
