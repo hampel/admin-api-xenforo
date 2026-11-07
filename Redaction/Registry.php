@@ -221,6 +221,11 @@ class Registry
 	 * options endpoint as a precaution, not because it is a secret, and taking every such string
 	 * out of every error message would remove ordinary words.
 	 *
+	 * A login's username is left out for the same reason. It is withheld from the settings as half
+	 * of a login, but it is so often the site's own name - a database user named for the site, an
+	 * SMTP login named for the forum - that removing it from free text blanks every path and
+	 * message that names the site, and the password it pairs with is still removed.
+	 *
 	 * @return string[]
 	 */
 	public function getSecretValues()
@@ -230,7 +235,7 @@ class Registry
 		$redactor = $this->getOptionRedactor();
 		foreach ($this->app->options() AS $optionId => $value)
 		{
-			$this->collectWithheld($value, $redactor->redact((string) $optionId, $value, true), $values);
+			$this->collectWithheld((string) $optionId, $value, $redactor->redact((string) $optionId, $value, true), $values);
 		}
 
 		$config = $this->app->config();
@@ -239,13 +244,14 @@ class Registry
 		$redactor = $this->getConfigRedactor();
 		foreach ($config AS $key => $value)
 		{
-			$this->collectWithheld($value, $redactor->redact((string) $key, $value, true), $values);
+			$this->collectWithheld((string) $key, $value, $redactor->redact((string) $key, $value, true), $values);
 		}
 
 		return array_values(array_unique($values));
 	}
 
 	/**
+	 * @param string $name The option id or config key the value is held under
 	 * @param mixed $original
 	 * @param array{value: mixed, redactions: list<array<string, mixed>>} $result What
 	 *        Redactor::redact() returned for it
@@ -253,10 +259,16 @@ class Registry
 	 *
 	 * @return void
 	 */
-	protected function collectWithheld($original, array $result, array &$values)
+	protected function collectWithheld($name, $original, array $result, array &$values)
 	{
 		foreach ($result['redactions'] AS $redaction)
 		{
+			$path = array_merge(explode('.', $name), $redaction['segments']);
+			if (self::isUsername((string) end($path)))
+			{
+				continue;
+			}
+
 			$value = $original;
 			foreach ($redaction['segments'] AS $segment)
 			{
@@ -272,6 +284,19 @@ class Registry
 				}
 			});
 		}
+	}
+
+	/**
+	 * Whether a setting is a login's username, by the last part of its name: smtpLoginUsername,
+	 * db.username. Matched as Redactor matches it when it withholds one.
+	 *
+	 * @param string $name
+	 *
+	 * @return bool
+	 */
+	public static function isUsername($name)
+	{
+		return (bool) preg_match('/username$/i', $name);
 	}
 
 	/**

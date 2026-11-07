@@ -11,7 +11,7 @@
  * Three passes, each independent of the others:
  *
  *   1. any value the forum's own settings hold that the redaction rules class as a secret,
- *      wherever it appears, by exact match
+ *      wherever it appears, by exact match - but a login's username, which Registry leaves out
  *   2. a URL carrying a login, an opaque part or a webhook path - cut down to where it points
  *   3. anything shaped like a credential, and the value of a parameter named like one - as a
  *      query string writes it, as JSON does, or as name: value

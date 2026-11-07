@@ -143,6 +143,42 @@ class ErrorEntriesTest extends TestCase
 	}
 
 	/**
+	 * A login's username is withheld from the settings but not taken out of text: it is so often
+	 * the site's own name that every path naming the site would go with it. Its password still
+	 * goes. Found on a development forum whose SMTP login was its directory's name.
+	 */
+	public function test_a_login_username_is_left_in_and_its_password_taken_out() : void
+	{
+		$this->setOption('emailTransport', [
+			'emailTransport' => 'smtp',
+			'smtpHost' => 'mail.example.com',
+			'smtpLoginUsername' => 'examplesite',
+			'smtpLoginPassword' => 'SECRETsmtp-password',
+		]);
+
+		$db = $this->app()->db();
+		$db->insert('xf_error_log', [
+			'exception_date' => 1500,
+			'user_id' => self::USER,
+			'ip_address' => inet_pton(self::IP),
+			'exception_type' => 'ErrorException',
+			'message' => '[E_WARNING] unlink(/srv/www/examplesite.com/internal_data/x.zip): Permission denied (login examplesite with SECRETsmtp-password)',
+			'filename' => self::FILE,
+			'line' => 999,
+			'trace_string' => '#0 {main}',
+			'request_state' => '{"cli":"php cmd.php"}',
+		]);
+
+		$entry = $this->entries(['error_id' => (int) $db->lastInsertId(), 'limit' => 1])['entries'][0];
+
+		$this->assertSame(
+			'[E_WARNING] unlink(/srv/www/examplesite.com/internal_data/x.zip): Permission denied (login examplesite with [withheld])',
+			$entry['message']
+		);
+		$this->assertSame(1, $entry['scrubbed']);
+	}
+
+	/**
 	 * The one asked for comes first, then the rest newest first - and the same file stored in full
 	 * by another request is the same place.
 	 */

@@ -386,7 +386,9 @@ curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/error-entrie
 - **Secrets quoted in an entry are taken out before it is returned**, from the message, the trace
   and the request alike, and replaced with `[withheld]`. An HTTP client's exception quotes the
   URL it called, and a webhook's URL is its credential. Three things are removed: any value this
-  forum's own options or `config.php` hold as a secret, wherever it appears; a URL carrying a
+  forum's own options or `config.php` hold as a secret, wherever it appears, but a login's
+  username, which is so often the site's own name that it would take every path naming the site
+  with it; a URL carrying a
   login, a webhook path or an opaque part, which keeps its scheme and host; and anything shaped
   like a token or a private key, an authorisation header's credential, or a value given under a
   name like one - `token=`, `"api_key": "…"`, `password: …`. In the request, a field named like a

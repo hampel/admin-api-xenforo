@@ -156,6 +156,13 @@ held as its Akismet key came back whole before the upgrade and with all of them 
 from the message, the trace and the request; an ordinary entry with a thread URL in its message
 came back unchanged.
 
+**A login's username took the site's name out of paths.** Found on a development forum on
+2026-11-07 by the MCP test session: its SMTP login was its directory's name, so every path in an
+entry came back as `/srv/www/[withheld].local/…` and counted as scrubbed. A username is withheld
+from the settings as half of a login, and is often the site's own name, as a database user named
+for the site is. The scrubber no longer looks for a username; its password is still removed.
+`ErrorEntriesTest` and `SecretValuesTest` pin both halves.
+
 **`Seed/ErrorSecretsSeeder` plants those cases on demand**, thirteen kinds of them, each credential
 made at run time and beginning `zSEED` and its kind. It needs `Hampel/Seeder`, so it runs in a
 2.3 sandbox with the working copy mounted (mode 1), never on a forum where another add-on
