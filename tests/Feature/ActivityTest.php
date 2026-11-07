@@ -93,9 +93,38 @@ class ActivityTest extends TestCase
 		$this->assertStringNotContainsString('example.com', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
-	public function test_the_window_defaults_to_the_last_day() : void
+	/**
+	 * The start is in and the end is out, so windows laid end to end count each item once and
+	 * their totals add up.
+	 */
+	public function test_a_window_includes_its_start_and_excludes_its_end() : void
 	{
-		$this->assertSame(['since' => \XF::$time - 86400, 'until' => \XF::$time], $this->activity([])['window']);
+		$this->member('valid', 3000);
+		$this->thread('visible', 3000);
+		$this->post('visible', 3000);
+
+		$before = $this->activity(['since' => 1000, 'until' => 3000]);
+		$after = $this->activity(['since' => 3000, 'until' => 5000]);
+
+		foreach (['registrations', 'threads', 'posts'] AS $kind)
+		{
+			$this->assertSame(0, $before[$kind]['total'], $kind);
+			$this->assertSame(1, $after[$kind]['total'], $kind);
+		}
+	}
+
+	/**
+	 * The end is excluded, so it defaults to the second after this one, and something stamped now
+	 * is counted.
+	 */
+	public function test_the_window_defaults_to_the_last_day_up_to_and_including_now() : void
+	{
+		$before = $this->activity([]);
+		$this->assertSame(['since' => \XF::$time + 1 - 86400, 'until' => \XF::$time + 1], $before['window']);
+
+		$this->post('visible', \XF::$time);
+
+		$this->assertSame($before['posts']['total'] + 1, $this->activity([])['posts']['total']);
 	}
 
 	public function test_a_window_longer_than_a_month_is_refused() : void

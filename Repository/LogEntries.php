@@ -107,7 +107,7 @@ class LogEntries extends Repository
 		$log = self::LOGS[$logId];
 		$db = $this->db();
 
-		$where = ["{$log['date']} >= " . $db->quote($filters['since']), "{$log['date']} <= " . $db->quote($filters['until'])];
+		$where = ["{$log['date']} >= " . $db->quote($filters['since']), "{$log['date']} < " . $db->quote($filters['until'])];
 		if (isset($log['where']))
 		{
 			$where[] = $log['where'];

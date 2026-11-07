@@ -136,6 +136,11 @@ illustrative.
 against it rather than against the caller's clock, which may not agree with the clock that dated
 the answer. The examples leave it out where it says nothing more.
 
+**A window includes `since` and excludes `until`.** Windows laid end to end, each `until` the next
+`since`, count everything once, so their counts add up exactly: that is how a period longer than an
+endpoint allows is asked for in pieces. Left out, `until` is the second after `now`, so whatever
+happened this second is counted. Before `1.0.0a11` both ends were included.
+
 ## Error log summary
 
 `GET /api/admin-api/error-log/`
@@ -159,8 +164,8 @@ which. The IP address is not read at all.
 
 | parameter | meaning |
 |---|---|
-| `since` | start of the window, as a Unix timestamp. Defaults to 24 hours before `until`; `0` is the whole log |
-| `until` | end of the window. Defaults to now |
+| `since` | start of the window, as a Unix timestamp, included. Defaults to 24 hours before `until`; `0` is the whole log |
+| `until` | end of the window, excluded. Defaults to the second after now |
 | `limit` | how many signatures to return, most frequent first. Default 20, maximum 100 |
 
 ```bash
@@ -411,8 +416,8 @@ number of entries it holds.
 | parameter | meaning |
 |---|---|
 | `log` | one log, named as below |
-| `since` | start of the window, as a Unix timestamp. Default 24 hours ago; `0` is the whole log |
-| `until` | end of the window. Default now |
+| `since` | start of the window, as a Unix timestamp, included. Default 24 hours before `until`; `0` is the whole log |
+| `until` | end of the window, excluded. Default the second after now |
 
 ```bash
 curl -H "XF-Api-Key: $KEY" "https://forum.example.com/api/admin-api/logs/?log=admin&since=0"
@@ -509,7 +514,7 @@ It takes three things to reach it:
 | parameter | meaning |
 |---|---|
 | `log` | which log; see the table below. Required |
-| `since`, `until` | only entries in this window, as Unix timestamps. Default the whole log, up to now |
+| `since`, `until` | only entries in this window, as Unix timestamps, `since` included and `until` excluded. Default the whole log, up to and including now |
 | `user_id` | only entries recording this member's action |
 | `about_user_id` | only entries about this member |
 | `content_type`, `content_id` | only entries about this content |
@@ -983,8 +988,8 @@ and a state are read for each, never a name, an email address, a title or a mess
 
 | parameter | meaning |
 |---|---|
-| `since` | start of the window, as a Unix timestamp. Default 24 hours before `until` |
-| `until` | end of the window. Default now. At most 31 days after `since` |
+| `since` | start of the window, as a Unix timestamp, included. Default 24 hours before `until` |
+| `until` | end of the window, excluded. Default the second after now. At most 31 days after `since` |
 
 ```json
 {
@@ -1010,7 +1015,8 @@ and a state are read for each, never a name, an email address, a title or a mess
 - **Every thread's first post is a post as well**, so `posts` includes the opening post of each
   thread in `threads`.
 - **The window is capped at 31 days**, because each count reads every row in it; a longer one is
-  refused with a 400. Every count reads its table's date index, so a day costs what a day's
+  refused with a 400. Ask for a longer period as windows of 31 days or less, each starting at the
+  last one's `until`, and add the counts. Every count reads its table's date index, so a day costs what a day's
   registrations and posts cost to read.
 
 ## Add-on inventory

@@ -25,8 +25,8 @@ class ErrorLog extends AbstractController
 	 *   hampel_admin_api:error_log scope selected, whose user holds the hampelAdminApi admin
 	 *   permission.
 	 *
-	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.
-	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now.
+	 * @api-in int $since Start of the window, as a Unix timestamp, included. Defaults to 24 hours ago; 0 is the whole log.
+	 * @api-in int $until End of the window, as a Unix timestamp, excluded. Defaults to now + 1, so this second is in.
 	 * @api-in int $limit Maximum number of signatures to return, most frequent first. Default 20, maximum 100.
 	 *
 	 * @api-out array $window The window summarised: since, until, and whether it starts before the log does
@@ -58,7 +58,7 @@ class ErrorLog extends AbstractController
 
 		if ($until === null)
 		{
-			$until = \XF::$time;
+			$until = \XF::$time + 1;
 		}
 		if ($since === null)
 		{

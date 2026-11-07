@@ -24,8 +24,8 @@ class Logs extends AbstractController
 	 *   admin permission.
 	 *
 	 * @api-in str $log One log, as named in the list this returns without it
-	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours ago; 0 is the whole log.
-	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now.
+	 * @api-in int $since Start of the window, as a Unix timestamp, included. Defaults to 24 hours ago; 0 is the whole log.
+	 * @api-in int $until End of the window, as a Unix timestamp, excluded. Defaults to now + 1, so this second is in.
 	 *
 	 * @api-out array $window The window counted
 	 * @api-out array $logs Without log: each log's total in the window, and its log_oldest_date and log_newest_date
@@ -40,7 +40,7 @@ class Logs extends AbstractController
 
 		if ($until === null)
 		{
-			$until = \XF::$time;
+			$until = \XF::$time + 1;
 		}
 		if ($since === null)
 		{

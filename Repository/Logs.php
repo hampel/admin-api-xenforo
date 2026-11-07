@@ -145,7 +145,7 @@ class Logs extends Repository
 		}
 
 		$row = $db->fetchRow(
-			'SELECT ' . implode(', ', $select) . " FROM {$log['table']} WHERE $date >= ? AND $date <= ?",
+			'SELECT ' . implode(', ', $select) . " FROM {$log['table']} WHERE $date >= ? AND $date < ?",
 			[$since, $until]
 		) ?: [];
 
@@ -218,7 +218,7 @@ class Logs extends Repository
 		$date = $log['date'];
 
 		return (int) $this->db()->fetchOne(
-			"SELECT COUNT(*) FROM {$log['table']} WHERE $date >= ? AND $date <= ?",
+			"SELECT COUNT(*) FROM {$log['table']} WHERE $date >= ? AND $date < ?",
 			[$since, $until]
 		);
 	}
@@ -240,7 +240,7 @@ class Logs extends Repository
 			return true;
 		}
 
-		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$lastDay = (int) floor(min($until - 1, \XF::$time) / 86400);
 		$firstDay = (int) floor(max($since, $logOldest) / 86400);
 
 		return $firstDay > $lastDay - self::MAX_DAYS;
@@ -268,11 +268,11 @@ class Logs extends Repository
 		$counts = $this->db()->fetchPairs("
 			SELECT FLOOR($date / 86400) AS day_number, COUNT(*)
 			FROM {$log['table']}
-			WHERE $date >= ? AND $date <= ?
+			WHERE $date >= ? AND $date < ?
 			GROUP BY day_number
 		", [$since, $until]);
 
-		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$lastDay = (int) floor(min($until - 1, \XF::$time) / 86400);
 		$firstDay = (int) floor(max($since, $logOldest) / 86400);
 		$firstDay = max($firstDay, $lastDay - self::MAX_DAYS + 1);
 
@@ -305,7 +305,7 @@ class Logs extends Repository
 				COUNT(*) AS count,
 				MAX($date) AS newest_date
 			FROM {$log['table']}
-			WHERE $date >= ? AND $date <= ?
+			WHERE $date >= ? AND $date < ?
 			GROUP BY value
 			ORDER BY count DESC
 			LIMIT " . (self::MAX_GROUPS + 1) . '

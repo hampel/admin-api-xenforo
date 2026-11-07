@@ -26,8 +26,8 @@ class Activity extends AbstractController
 	 *   no member and no content. Requires a user API key with the hampel_admin_api:activity scope
 	 *   selected, whose user holds the hampelAdminApi admin permission.
 	 *
-	 * @api-in int $since Start of the window, as a Unix timestamp. Defaults to 24 hours before until.
-	 * @api-in int $until End of the window, as a Unix timestamp. Defaults to now. At most 31 days after since.
+	 * @api-in int $since Start of the window, as a Unix timestamp, included. Defaults to 24 hours before until.
+	 * @api-in int $until End of the window, as a Unix timestamp, excluded. Defaults to now + 1, so this second is in. At most 31 days after since.
 	 *
 	 * @api-out array $window The window counted
 	 * @api-out array $registrations The total, and by_state for each member state
@@ -43,7 +43,7 @@ class Activity extends AbstractController
 
 		if ($until === null)
 		{
-			$until = \XF::$time;
+			$until = \XF::$time + 1;
 		}
 		if ($since === null)
 		{

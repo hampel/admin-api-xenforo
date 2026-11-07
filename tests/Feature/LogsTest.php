@@ -83,6 +83,41 @@ class LogsTest extends TestCase
 		$this->assertArrayNotHasKey('log_total', $admin);
 	}
 
+	/**
+	 * The start is in and the end is out, so windows laid end to end count each entry once.
+	 */
+	public function test_a_window_includes_its_start_and_excludes_its_end() : void
+	{
+		$this->insertAdminLog(5000, 1, 'options/');
+
+		$admin = function (array $input) : array
+		{
+			return $this->logs($input)['logs'][0];
+		};
+		$this->assertSame(0, $admin(['since' => 1, 'until' => 5000])['total']);
+		$this->assertSame(1, $admin(['since' => 5000, 'until' => 100000])['total']);
+
+		$this->assertSame(0, $this->logs(['log' => 'admin', 'since' => 1, 'until' => 5000])['total']);
+		$this->assertSame(1, $this->logs(['log' => 'admin', 'since' => 5000, 'until' => 100000])['total']);
+	}
+
+	public function test_a_window_ending_at_midnight_has_no_day_after_it() : void
+	{
+		$this->insertAdminLog(1000, 1, 'options/');
+		$this->insertAdminLog(86400, 1, 'options/');
+
+		$result = $this->logs(['log' => 'admin', 'since' => 1, 'until' => 86400]);
+
+		$this->assertSame([['day' => '1970-01-01', 'count' => 1]], $result['by_day']);
+	}
+
+	public function test_the_window_defaults_to_the_last_day_up_to_and_including_now() : void
+	{
+		$window = $this->replyApiResult($this->dispatch(self::ROUTE, 'api'))['window'];
+
+		$this->assertSame(['since' => \XF::$time + 1 - 86400, 'until' => \XF::$time + 1], $window);
+	}
+
 	public function test_a_series_cut_to_the_most_recent_days_says_so() : void
 	{
 		$this->insertAdminLog(1000, 1, 'options/');

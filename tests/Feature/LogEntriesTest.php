@@ -97,6 +97,27 @@ class LogEntriesTest extends TestCase
 		$this->assertStringNotContainsString('203.0.113.5', json_encode($result, JSON_THROW_ON_ERROR));
 	}
 
+	/**
+	 * The start is in and the end is out, so windows laid end to end return each entry once.
+	 */
+	public function test_a_window_includes_its_start_and_excludes_its_end() : void
+	{
+		$this->moderatorLog(5000, 'post', 5, 'edit');
+
+		$this->assertSame(0, $this->entries(['log' => 'moderator', 'since' => 1, 'until' => 5000])['total']);
+		$this->assertSame(1, $this->entries(['log' => 'moderator', 'since' => 5000, 'until' => 100000])['total']);
+	}
+
+	public function test_the_window_defaults_to_everything_up_to_and_including_now() : void
+	{
+		$id = $this->moderatorLog(\XF::$time, 'post', 5, 'edit');
+
+		$result = $this->replyApiResult($this->dispatch(self::ROUTE, 'api', ['log' => 'moderator']));
+
+		$this->assertSame(['since' => 0, 'until' => \XF::$time + 1], $result['window']);
+		$this->assertContains($id, array_column($result['entries'], 'id'));
+	}
+
 	public function test_entries_can_be_narrowed_to_a_member_or_a_piece_of_content() : void
 	{
 		$this->moderatorLog(1000, 'post', 5, 'edit');

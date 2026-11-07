@@ -47,7 +47,7 @@ class Activity extends Repository
 		$rows = $this->db()->fetchPairs("
 			SELECT $stateColumn, COUNT(*)
 			FROM $table
-			WHERE $dateColumn >= ? AND $dateColumn <= ?
+			WHERE $dateColumn >= ? AND $dateColumn < ?
 			GROUP BY $stateColumn
 		", [$since, $until]);
 

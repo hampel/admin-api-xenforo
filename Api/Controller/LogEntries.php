@@ -42,7 +42,7 @@ class LogEntries extends AbstractController
 	 *
 	 * @api-in str $log admin, moderator, user_change, username_change, spam_trigger, spam_cleaner, rejected_user or email_bounce
 	 * @api-in int $since Only entries from this Unix timestamp. Default the whole log.
-	 * @api-in int $until Only entries up to this Unix timestamp. Default now.
+	 * @api-in int $until Only entries before this Unix timestamp, which is excluded. Default now + 1.
 	 * @api-in int $user_id Only entries recording this member's action
 	 * @api-in int $about_user_id Only entries about this member, where the log records one
 	 * @api-in str $content_type Only entries about this content type, where the log records content
@@ -85,7 +85,7 @@ class LogEntries extends AbstractController
 		];
 		if ($filters['until'] === null)
 		{
-			$filters['until'] = \XF::$time;
+			$filters['until'] = \XF::$time + 1;
 		}
 
 		$needs = ['user_id' => 'actor', 'about_user_id' => 'subject', 'content_type' => 'content', 'content_id' => 'content'];

@@ -87,7 +87,7 @@ class ErrorLog extends Repository
 				COUNT(DISTINCT CASE WHEN user_id > 0 THEN user_id END) AS member_count,
 				SUM(CASE WHEN user_id > 0 THEN 1 ELSE 0 END) AS member_error_count
 			FROM xf_error_log
-			WHERE exception_date >= ? AND exception_date <= ?
+			WHERE exception_date >= ? AND exception_date < ?
 			GROUP BY exception_type, filename, line
 			ORDER BY error_count DESC, last_date DESC
 		', [$since, $until]);
@@ -235,7 +235,7 @@ class ErrorLog extends Repository
 		return (int) $this->db()->fetchOne('
 			SELECT COUNT(DISTINCT user_id)
 			FROM xf_error_log
-			WHERE exception_date >= ? AND exception_date <= ?
+			WHERE exception_date >= ? AND exception_date < ?
 				AND user_id > 0
 				' . $extraWhere . '
 		', array_merge([$since, $until], $extraParams));
@@ -424,7 +424,7 @@ class ErrorLog extends Repository
 				LEFT(request_state, ' . self::STATE_START . ') AS state_start,
 				(trace_string LIKE ?) AS in_job
 			FROM xf_error_log
-			WHERE exception_date >= ? AND exception_date <= ?
+			WHERE exception_date >= ? AND exception_date < ?
 			ORDER BY error_id DESC
 			LIMIT ' . self::MAX_ROWS_EXAMINED . '
 		', ['%XF_Job_Manager.php(%', $since, $until]);
@@ -519,7 +519,7 @@ class ErrorLog extends Repository
 			return true;
 		}
 
-		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$lastDay = (int) floor(min($until - 1, \XF::$time) / 86400);
 		$firstDay = (int) floor(max($since, $logOldest) / 86400);
 
 		return $firstDay > $lastDay - self::MAX_DAYS;
@@ -545,11 +545,11 @@ class ErrorLog extends Repository
 		$counts = $this->db()->fetchPairs('
 			SELECT FLOOR(exception_date / 86400) AS day_number, COUNT(*)
 			FROM xf_error_log
-			WHERE exception_date >= ? AND exception_date <= ?
+			WHERE exception_date >= ? AND exception_date < ?
 			GROUP BY day_number
 		', [$since, $until]);
 
-		$lastDay = (int) floor(min($until, \XF::$time) / 86400);
+		$lastDay = (int) floor(min($until - 1, \XF::$time) / 86400);
 		$firstDay = (int) floor(max($since, $logOldest) / 86400);
 		$firstDay = max($firstDay, $lastDay - self::MAX_DAYS + 1);
 

@@ -127,6 +127,24 @@ class ErrorLogSummaryTest extends TestCase
 		$this->assertSame(['rows' => 7, 'complete' => true], $summary['examined']);
 	}
 
+	/**
+	 * The start is in and the end is out, so windows laid end to end count each error once. The
+	 * rows at 999 and 2001 sit just outside the usual window.
+	 */
+	public function test_a_window_includes_its_start_and_excludes_its_end() : void
+	{
+		$first = $this->summary(['since' => 999, 'until' => 1100]);
+		$second = $this->summary(['since' => 1100, 'until' => 2001]);
+		$third = $this->summary(['since' => 2001, 'until' => 3000]);
+
+		$this->assertSame([1, 7, 1], [$first['total'], $second['total'], $third['total']]);
+		$this->assertSame(1100, $second['oldest_date']);
+		$this->assertSame(['rows' => 7, 'complete' => true], $second['examined']);
+		$this->assertSame(9, array_sum(array_column($first['by_day'], 'count'))
+			+ array_sum(array_column($second['by_day'], 'count'))
+			+ array_sum(array_column($third['by_day'], 'count')));
+	}
+
 	public function test_it_groups_by_exception_type() : void
 	{
 		$this->assertSame([
@@ -450,6 +468,13 @@ class ErrorLogSummaryTest extends TestCase
 		], $this->summary(['since' => 999, 'until' => 86400 * 3 - 1])['by_day']);
 	}
 
+	public function test_a_window_ending_at_midnight_has_no_day_after_it() : void
+	{
+		$days = $this->summary(['since' => 999, 'until' => 86400 * 2])['by_day'];
+
+		$this->assertSame(['1970-01-01', '1970-01-02'], array_column($days, 'day'));
+	}
+
 	public function test_the_days_start_where_the_log_does_and_not_before() : void
 	{
 		$days = $this->summary(['since' => 0, 'until' => 86400 * 2 - 1])['by_day'];
@@ -502,8 +527,8 @@ class ErrorLogSummaryTest extends TestCase
 		$reply = $this->dispatch(self::ROUTE, 'api');
 		$window = $this->replyApiResult($reply)['window'];
 
+		$this->assertSame(\XF::$time + 1, $window['until']);
 		$this->assertSame(86400, $window['until'] - $window['since']);
-		$this->assertEqualsWithDelta(time(), $window['until'], 5);
 		$this->assertFalse($window['precedes_log']);
 	}
 
