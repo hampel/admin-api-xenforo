@@ -52,19 +52,26 @@ access*. The add-on creates one small table, for the commands under
    permission below and nothing else, so the key can do nothing else either.
 2. **Give that administrator *Use the Admin API***, on the same page. A super administrator
    already holds it.
-3. **Create the key.** Under *Setup > API keys*, add a key with:
+3. **Make sure that member can view the forum.** XenForo checks *General permissions > View* on
+   every API request before any add-on's code runs, and an administrator permission does not
+   grant it. A member only in the *Administrative* group, or a forum that grants *View* to
+   guests alone, is refused every endpoint. Grant it to the member under *Groups & permissions >
+   User permissions* rather than widening a group. Their state must be *Valid* too: a member
+   awaiting email confirmation has a guest's permissions.
+4. **Create the key.** Under *Setup > API keys*, add a key with:
    - *Key type*: **User key**, with that administrator's username
    - *Allowed scopes*: **Selected scopes only**, and under *Admin API* select a scope for each
      endpoint the key should reach. **"All scopes" includes none of them**: a key allowing all
      scopes is refused by every endpoint here.
-4. **Test it.**
+5. **Test it.**
 
    ```bash
    curl -H "XF-Api-Key: <key>" https://forum.example.com/api/admin-api/add-ons/
    ```
 
-   A 403 names what is missing; see *Errors*. `php cmd.php admin-api:validate` checks every key
-   on the forum.
+   A 403 names what is missing; see *Errors*. If it is a bare `do_not_have_permission`, ask
+   core's `api/index/` with the same key: refused there too means step 3, not this add-on.
+   `php cmd.php admin-api:validate` checks every key on the forum.
 
 | scope | reaches |
 |---|---|
@@ -101,6 +108,9 @@ needs only the counts, and nothing it can read names a member.
 ## How access is decided
 
 **A request has to pass three checks, and each refuses with a 403 that names what is missing.**
+XenForo's own checks come first, on every API request: the key's user must be able to view the
+forum and must not be banned, rejected or disabled. Those are not this add-on's, and nothing here
+can loosen them.
 
 1. **The key must belong to one user.** A super user key is refused outright, whatever it is
    acting as, and so are a guest key and an OAuth access token. A super user key can act as any
@@ -1643,7 +1653,7 @@ Every refusal of access is a `403`, so read the error `code` rather than the sta
 | `hampel_adminapi_user_api_key_required` | the key is a super user key, a guest key, or an OAuth token was used |
 | `hampel_adminapi_scope_must_be_selected` | the key allows all scopes, which includes none of these; the message names the scope to select |
 | `missing_scope` | the key does not have the scope for this endpoint selected; the message names it |
-| `do_not_have_permission` | the key's user does not hold *Use the Admin API*, or the XenForo permission a member lookup needs |
+| `do_not_have_permission` | the key's user does not hold *Use the Admin API*, or the XenForo permission a member lookup needs, or cannot view the forum at all (core's check, before this add-on's) |
 
 The error log entries endpoint also answers `400` with `hampel_adminapi_error_id_required` when no
 `error_id` is given, and `404` when there is no such entry.
