@@ -240,10 +240,10 @@ class IpUsersTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:ips');
 
 		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"Use the Admin API"');
 
 		$this->actingAsAdminWithKey(self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"Manage users and moderators"');
 
 		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
@@ -259,7 +259,7 @@ class IpUsersTest extends TestCase
 	{
 		$this->actingAsAdminWithKey(self::SCOPES);
 
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api', ['ip' => self::SHARED]), 403, '"Manage users and moderators"');
 	}
 
 	public function test_the_ip_scope_does_not_reach_the_summaries() : void

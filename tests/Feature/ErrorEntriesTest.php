@@ -342,10 +342,10 @@ class ErrorEntriesTest extends TestCase
 	public function test_every_other_gate_is_checked_before_the_parameter_too() : void
 	{
 		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"Use the Admin API"');
 
 		$this->actingAsAdminWithKey(self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"View logs"');
 
 		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');
@@ -364,7 +364,7 @@ class ErrorEntriesTest extends TestCase
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 
-		$this->assertReplyIsError($reply, 403, 'do not have permission');
+		$this->assertReplyIsError($reply, 403, '"Use the Admin API"');
 	}
 
 	/**
@@ -377,7 +377,7 @@ class ErrorEntriesTest extends TestCase
 
 		$reply = $this->dispatch(self::ROUTE, 'api', ['error_id' => $this->ids[0]]);
 
-		$this->assertReplyIsError($reply, 403, 'do not have permission');
+		$this->assertReplyIsError($reply, 403, '"View logs"');
 	}
 
 	public function test_a_super_user_key_is_refused_here_too() : void

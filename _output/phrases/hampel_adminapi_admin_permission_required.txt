@@ -1,0 +1,1 @@
+The key's user does not hold the administrator permission "{permission}", which this endpoint needs.

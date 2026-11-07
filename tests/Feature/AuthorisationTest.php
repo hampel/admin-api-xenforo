@@ -18,7 +18,7 @@ class AuthorisationTest extends TestCase
 
 	private const KEY_REFUSED = 'single administrator';
 	private const ALL_SCOPES_REFUSED = 'Selected scopes only';
-	private const NO_PERMISSION = 'do not have permission';
+	private const NO_PERMISSION = '"Use the Admin API"';
 
 	protected function tearDown() : void
 	{
@@ -139,6 +139,24 @@ class AuthorisationTest extends TestCase
 		$reply = $this->dispatch(self::ERROR_LOG, 'api');
 
 		$this->assertReplyIsError($reply, 403, self::NO_PERMISSION);
+	}
+
+	/**
+	 * The API answers with the phrase's name as the error code. Core's own refusal, for a user who
+	 * cannot view the forum, is do_not_have_permission, and runs before this; a client tells the
+	 * two apart by the code.
+	 */
+	public function test_the_refusal_has_a_code_of_its_own() : void
+	{
+		$this->actingAsAdminHolding(['option'], [self::SCOPE]);
+
+		$reply = $this->dispatch(self::ERROR_LOG, 'api');
+
+		$this->assertInstanceOf(\XF\Mvc\Reply\Error::class, $reply);
+		$errors = $reply->getErrors();
+		$error = reset($errors);
+		$this->assertInstanceOf(\XF\Phrase::class, $error);
+		$this->assertSame('hampel_adminapi_admin_permission_required', $error->getName());
 	}
 
 	public function test_a_member_whose_key_has_the_scope_is_refused() : void

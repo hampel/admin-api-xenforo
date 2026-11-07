@@ -222,7 +222,7 @@ class UserUpgradesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'hampel_admin_api:user_upgrades');
 
 		$this->actingAsAdminHolding([], ['hampel_admin_api:user_upgrades']);
-		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::SUMMARY, 'api'), 403, '"Use the Admin API"');
 	}
 
 	// the records
@@ -335,10 +335,10 @@ class UserUpgradesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'hampel_admin_api:upgrade_records');
 
 		$this->actingAsAdminHolding(self::RECORD_PERMISSIONS, self::RECORD_SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, '"Use the Admin API"');
 
 		$this->actingAsAdminWithKey(self::RECORD_SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api', ['state' => 'pending']), 403, '"Manage user upgrades"');
 
 		$this->actingAsAdminWithKey(self::RECORD_SCOPES, self::RECORD_PERMISSIONS, ['is_super_user' => true], ['is_super_admin' => true]);
 		$this->assertReplyIsError($this->dispatch(self::RECORDS, 'api'), 403, 'single administrator');

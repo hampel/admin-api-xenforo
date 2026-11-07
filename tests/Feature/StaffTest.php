@@ -165,10 +165,10 @@ class StaffTest extends TestCase
 	public function test_moderators_need_the_user_admin_permission_as_well() : void
 	{
 		$this->actingAsAdminWithKey(self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, '"Manage users and moderators"');
 
 		$this->actingAsAdminHolding(['user'], self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::MODERATORS, 'api'), 403, '"Use the Admin API"');
 	}
 
 	// administrators

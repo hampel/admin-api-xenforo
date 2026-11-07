@@ -69,9 +69,9 @@ access*. The add-on creates one small table, for the commands under
    curl -H "XF-Api-Key: <key>" https://forum.example.com/api/admin-api/add-ons/
    ```
 
-   A 403 names what is missing; see *Errors*. If it is a bare `do_not_have_permission`, ask
-   core's `api/index/` with the same key: refused there too means step 3, not this add-on.
-   `php cmd.php admin-api:validate` checks every key on the forum.
+   A 403 names what is missing; see *Errors*. A bare `do_not_have_permission` is XenForo
+   refusing the user before this add-on runs, which is step 3. `php cmd.php admin-api:validate`
+   checks every key on the forum, step 3 included.
 
 | scope | reaches |
 |---|---|
@@ -1562,8 +1562,9 @@ value is never shown.
 **`admin-api:validate` proves it.** It checks that the API is enabled, that the scopes, admin
 permissions and routes are in place, that at least one key can actually read, and that each
 endpoint's reader runs. It names any key that holds a scope and can never use it, with the reason:
-a super user key, an inactive key, a user who is not an administrator or lacks a permission, or
-`values` without `options` or `config`. It also names a key allowing all scopes whose user may use
+a super user key, an inactive key, a user who is not an administrator or lacks a permission, a user
+XenForo refuses before any add-on runs (banned, rejected, disabled, or unable to view the forum),
+or `values` without `options` or `config`. It also names a key allowing all scopes whose user may use
 the Admin API, since every endpoint refuses it.
 
 | | all fine | warnings only | any failure |
@@ -1653,7 +1654,12 @@ Every refusal of access is a `403`, so read the error `code` rather than the sta
 | `hampel_adminapi_user_api_key_required` | the key is a super user key, a guest key, or an OAuth token was used |
 | `hampel_adminapi_scope_must_be_selected` | the key allows all scopes, which includes none of these; the message names the scope to select |
 | `missing_scope` | the key does not have the scope for this endpoint selected; the message names it |
-| `do_not_have_permission` | the key's user does not hold *Use the Admin API*, or the XenForo permission a member lookup needs, or cannot view the forum at all (core's check, before this add-on's) |
+| `hampel_adminapi_admin_permission_required` | the key's user does not hold an administrator permission the endpoint needs: *Use the Admin API*, or the XenForo permission a member lookup needs; the message names it |
+| `you_must_be_super_admin_to_access_this_page` | the administrators endpoint, or the admin log's entries, asked for by someone who is not a super administrator |
+| `do_not_have_permission` | XenForo's own check, before this add-on's: the key's user cannot view the forum, or its state is not *Valid* on a forum that guests cannot view |
+
+Before `1.0.0a13` a missing administrator permission was answered with `do_not_have_permission`,
+the same code as XenForo's own refusal.
 
 The error log entries endpoint also answers `400` with `hampel_adminapi_error_id_required` when no
 `error_id` is given, and `404` when there is no such entry.

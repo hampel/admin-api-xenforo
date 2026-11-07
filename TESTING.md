@@ -655,7 +655,7 @@ dated in 1970 in each state. Over HTTP with a non-super administrator's read key
 | `reports/` | 3 waiting, 2 open and 1 assigned, one in each of three age buckets, by type as planted; resolved and rejected not counted |
 | `activity/` | the planted members, thread and posts, each in its state, and no other row in the window |
 | `activity/?since=0` | 400, code `hampel_adminapi_window_too_long`, params `{"days": 31}` |
-| a key whose user holds only the logs permission | 403 `do_not_have_permission` on both new endpoints |
+| a key whose user holds only the logs permission | 403 `do_not_have_permission` on both new endpoints (from `1.0.0a13` the code is `hampel_adminapi_admin_permission_required`) |
 | the admin log | no line from any of it |
 | the error log | one row, from the setup script's first attempt |
 
@@ -681,7 +681,7 @@ under theirs, each once. Over HTTP:
 |---|---|
 | the `1.0.0a10` key, its user given *Use the Admin API* | 403 `missing_scope` |
 | a key allowing all scopes | 403 `hampel_adminapi_scope_must_be_selected`, naming the scope |
-| a key whose user lacks the permission | 403 `do_not_have_permission` |
+| a key whose user lacks the permission | 403 `do_not_have_permission` (from `1.0.0a13`, `hampel_adminapi_admin_permission_required`) |
 | a super user key with the bypass parameter | 403 |
 | a counts key on a member endpoint, and the reverse | 403 `missing_scope` |
 | the twelve counts endpoints | 200, values mode on options |

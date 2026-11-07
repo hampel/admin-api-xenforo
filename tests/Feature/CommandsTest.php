@@ -392,6 +392,46 @@ class CommandsTest extends TestCase
 	}
 
 	/**
+	 * XenForo refuses these users before any add-on's code runs, whatever they hold, so a key of
+	 * theirs is named with the reason rather than counted.
+	 */
+	public function test_a_user_xenforo_itself_refuses_is_named_with_the_reason() : void
+	{
+		$reasons = [
+			'its user is banned' => ['is_banned' => true],
+			'its user is rejected' => ['user_state' => 'rejected'],
+			'its user is disabled' => ['user_state' => 'disabled'],
+			// administrative alone grants no View on a stock forum: the case a dedicated API account hits
+			'its user cannot view the forum (General permissions > View)' => ['user_group_id' => 3, 'secondary_group_ids' => []],
+		];
+
+		$keys = [];
+		foreach ($reasons AS $reason => $values)
+		{
+			$key = $this->plantKey(['hampel_admin_api:error_log'], ['hampelAdminApi'], [], true, true);
+			$user = $key->User;
+			$this->assertNotNull($user);
+			$user->bulkSet($values);
+			$user->save();
+			$keys[$reason] = $key;
+		}
+
+		$this->assertFalse($keys['its user cannot view the forum (General permissions > View)']->User->hasPermission('general', 'view'),
+			'the Administrative group grants View on this forum, so the case cannot be planted this way');
+
+		[$exit, $display] = $this->validate();
+
+		$this->assertSame(0, $exit, $display);
+		foreach ($keys AS $reason => $key)
+		{
+			$this->assertMatchesRegularExpression(
+				'/\[warn\] key #' . $key->api_key_id . '\b.*' . preg_quote($reason, '/') . '/',
+				$display
+			);
+		}
+	}
+
+	/**
 	 * A super administrator holds every admin permission without any being listed, so a key of
 	 * theirs is not reported as lacking one.
 	 */

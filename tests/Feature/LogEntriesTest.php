@@ -380,10 +380,10 @@ class LogEntriesTest extends TestCase
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'hampel_admin_api:log_entries');
 
 		$this->actingAsAdminHolding(self::PERMISSIONS, self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"Use the Admin API"');
 
 		$this->actingAsAdminWithKey(self::SCOPES);
-		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'do not have permission');
+		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, '"View logs"');
 
 		$this->actingAsAdminWithKey(self::SCOPES, self::PERMISSIONS, ['is_super_user' => true], self::SUPER);
 		$this->assertReplyIsError($this->dispatch(self::ROUTE, 'api'), 403, 'single administrator');

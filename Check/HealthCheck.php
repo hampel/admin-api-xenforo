@@ -234,7 +234,8 @@ class HealthCheck
 	 *
 	 * @return list<array<string, mixed>> api_key_id, title, key_type, active, user_id, username,
 	 *                                    scopes, last_use_date, is_admin, admin_permissions (null
-	 *                                    for a super administrator, who has them all)
+	 *                                    for a super administrator, who has them all), refused_by_core
+	 *                                    (why XenForo refuses the user before any add-on runs, or null)
 	 */
 	public function getKeys()
 	{
@@ -264,6 +265,7 @@ class HealthCheck
 				'admin_permissions' => !$admin || $admin->is_super_admin
 					? null
 					: array_keys(array_filter((array) $admin->permission_cache)),
+				'refused_by_core' => $user ? $this->whyCoreRefuses($user) : null,
 			];
 		}
 
@@ -317,6 +319,11 @@ class HealthCheck
 			return 'its user is not an administrator';
 		}
 
+		if ($key['refused_by_core'] !== null)
+		{
+			return $key['refused_by_core'];
+		}
+
 		// it adds to the options and config.php endpoints and does nothing without one of them
 		if ($scopeId === AbstractController::SCOPE_VALUES
 			&& !array_intersect([AbstractController::SCOPE_OPTIONS, AbstractController::SCOPE_CONFIG], $key['scopes'])
@@ -338,6 +345,38 @@ class HealthCheck
 		$missing = array_diff($required, $key['admin_permissions']);
 
 		return $missing ? 'its user lacks ' . implode(' and ', $missing) : null;
+	}
+
+	/**
+	 * What XenForo's own API controller checks before any add-on's: the user's state, then the
+	 * general View permission. A user whose state is not valid has a guest's permissions, so on a
+	 * forum where guests cannot view, an unconfirmed administrator is refused too. Admin
+	 * permissions do not grant View.
+	 *
+	 * @param \XF\Entity\User $user
+	 *
+	 * @return string|null Null when XenForo lets the user through
+	 */
+	protected function whyCoreRefuses(\XF\Entity\User $user)
+	{
+		if ($user->is_banned)
+		{
+			return 'its user is banned';
+		}
+
+		if (in_array($user->user_state, ['rejected', 'disabled'], true))
+		{
+			return "its user is {$user->user_state}";
+		}
+
+		if (!$user->hasPermission('general', 'view'))
+		{
+			return $user->user_state === 'valid'
+				? 'its user cannot view the forum (General permissions > View)'
+				: "its user's state is {$user->user_state}, which has a guest's permissions, and guests cannot view the forum";
+		}
+
+		return null;
 	}
 
 	/**

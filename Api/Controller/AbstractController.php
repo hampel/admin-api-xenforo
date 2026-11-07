@@ -131,6 +131,10 @@ abstract class AbstractController extends BaseController
 	 * bypassing permissions. assertUserApiKey() already makes that impossible; this does not
 	 * depend on it having run.
 	 *
+	 * The refusal has a code of its own and names the permission. Core answers a user who cannot
+	 * view the forum with a bare do_not_have_permission before this runs, and the two need
+	 * different fixes.
+	 *
 	 * @param string $permissionId
 	 *
 	 * @return void
@@ -139,7 +143,9 @@ abstract class AbstractController extends BaseController
 	{
 		if (!\XF::visitor()->hasAdminPermission($permissionId))
 		{
-			throw $this->exception($this->noPermission());
+			throw $this->exception($this->noPermission(\XF::phrase('hampel_adminapi_admin_permission_required', [
+				'permission' => \XF::phrase('admin_permission.' . $permissionId)->render('raw'),
+			])));
 		}
 	}
 

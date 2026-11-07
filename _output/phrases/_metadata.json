@@ -107,6 +107,12 @@
         "version_string": "1.0.0a11",
         "hash": "3e9b6c4205ca40294c15f1e07d905311"
     },
+    "hampel_adminapi_admin_permission_required.txt": {
+        "global_cache": false,
+        "version_id": 1000023,
+        "version_string": "1.0.0a13",
+        "hash": "c7b868c5991f94020734717fb4bbd045"
+    },
     "hampel_adminapi_error_id_required.txt": {
         "global_cache": false,
         "version_id": 1000011,
