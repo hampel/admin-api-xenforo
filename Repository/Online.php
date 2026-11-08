@@ -32,11 +32,14 @@ class Online extends Repository
 				SUM(user_id = 0 AND robot_key = \'\') AS guests,
 				SUM(user_id = 0 AND robot_key <> \'\') AS robots,
 				SUM(view_state = \'error\') AS errors,
+				SUM(view_state = \'error\' AND user_id > 0) AS member_errors,
+				SUM(view_state = \'error\' AND user_id = 0 AND robot_key = \'\') AS guest_errors,
+				SUM(view_state = \'error\' AND user_id = 0 AND robot_key <> \'\') AS robot_errors,
 				MAX(view_date) AS newest_date
 			FROM xf_session_activity
 			WHERE view_date >= ?
 		', $since) ?: ['total' => 0, 'members' => 0, 'guests' => 0, 'robots' => 0, 'errors' => 0,
-			'newest_date' => null];
+			'member_errors' => 0, 'guest_errors' => 0, 'robot_errors' => 0, 'newest_date' => null];
 
 		$byRobot = [];
 		$rows = $db->fetchAll('
@@ -71,7 +74,8 @@ class Online extends Repository
 				COUNT(*) AS session_count,
 				SUM(user_id > 0) AS members,
 				SUM(user_id = 0 AND robot_key = \'\') AS guests,
-				SUM(user_id = 0 AND robot_key <> \'\') AS robots
+				SUM(user_id = 0 AND robot_key <> \'\') AS robots,
+				SUM(view_state = \'error\') AS errors
 			FROM xf_session_activity
 			WHERE view_date >= ?
 			GROUP BY controller_name, controller_action
@@ -85,6 +89,7 @@ class Online extends Repository
 				'members' => (int) $row['members'],
 				'guests' => (int) $row['guests'],
 				'robots' => (int) $row['robots'],
+				'errors' => (int) $row['errors'],
 			];
 
 			if (count($byAction) < self::MAX_ACTIONS)
@@ -94,7 +99,7 @@ class Online extends Repository
 			}
 
 			// past the busiest so many, counted together so the list still adds up to the total
-			$other = $other ?: ['controller' => null, 'action' => null, 'count' => 0, 'members' => 0, 'guests' => 0, 'robots' => 0];
+			$other = $other ?: ['controller' => null, 'action' => null, 'count' => 0, 'members' => 0, 'guests' => 0, 'robots' => 0, 'errors' => 0];
 			foreach ($counts AS $key => $value)
 			{
 				$other[$key] += $value;
@@ -113,9 +118,15 @@ class Online extends Repository
 			'guests' => (int) $totals['guests'],
 			'robots' => (int) $totals['robots'],
 			'errors' => (int) $totals['errors'],
+			'errors_by_kind' => [
+				'members' => (int) $totals['member_errors'],
+				'guests' => (int) $totals['guest_errors'],
+				'robots' => (int) $totals['robot_errors'],
+			],
 			'newest_date' => $totals['newest_date'] === null ? null : (int) $totals['newest_date'],
 			'guest_networks' => $this->getNetworks($since, 'robot_key = \'\''),
 			'robot_networks' => $this->getNetworks($since, 'robot_key <> \'\''),
+			'shared_networks' => $this->getSharedNetworks($since),
 			'by_robot' => $byRobot,
 			'by_action' => $byAction,
 		];
@@ -161,5 +172,42 @@ class Online extends Repository
 		}
 
 		return $networks;
+	}
+
+	/**
+	 * The networks that hold guest sessions and robot sessions both, and how many of each sit in
+	 * them - whether one source is behind the guests and the robots, without saying which network.
+	 * Counted over every shared network rather than by comparing the busiest of each, which two
+	 * networks of the same size would make ambiguous. IPv4 only, as in getNetworks().
+	 *
+	 * @param int $since
+	 *
+	 * @return array<string, int> distinct_24, guests_24, robots_24, distinct_16, guests_16, robots_16
+	 */
+	protected function getSharedNetworks($since)
+	{
+		$db = $this->db();
+		$shared = [];
+
+		foreach ([24 => 3, 16 => 2] AS $bits => $bytes)
+		{
+			// an aggregate always returns a row; the defaults satisfy the type and are never used
+			$row = $db->fetchRow("
+				SELECT COUNT(*) AS distinct_networks, COALESCE(SUM(guests), 0) AS guests, COALESCE(SUM(robots), 0) AS robots
+				FROM (
+					SELECT SUM(robot_key = '') AS guests, SUM(robot_key <> '') AS robots
+					FROM xf_session_activity
+					WHERE view_date >= ? AND user_id = 0 AND LENGTH(ip) = 4
+					GROUP BY LEFT(ip, $bytes)
+					HAVING guests > 0 AND robots > 0
+				) AS networks
+			", $since) ?: ['distinct_networks' => 0, 'guests' => 0, 'robots' => 0];
+
+			$shared["distinct_$bits"] = (int) $row['distinct_networks'];
+			$shared["guests_$bits"] = (int) $row['guests'];
+			$shared["robots_$bits"] = (int) $row['robots'];
+		}
+
+		return $shared;
 	}
 }

@@ -78,7 +78,7 @@ class OnlineTest extends TestCase
 		}))[0];
 
 		$this->assertSame(
-			['controller' => self::CONTROLLER, 'action' => 'Index', 'count' => 50, 'members' => 2, 'guests' => 45, 'robots' => 3],
+			['controller' => self::CONTROLLER, 'action' => 'Index', 'count' => 50, 'members' => 2, 'guests' => 45, 'robots' => 3, 'errors' => 1],
 			$action
 		);
 
@@ -122,6 +122,31 @@ class OnlineTest extends TestCase
 		$this->assertGreaterThanOrEqual(5, $last['count']);
 		$this->assertSame($last['count'], $last['members'] + $last['guests'] + $last['robots']);
 		$this->assertSame($state['total'], array_sum(array_column($state['by_action'], 'count')));
+		$this->assertSame($state['errors'], array_sum(array_column($state['by_action'], 'errors')));
+	}
+
+	/**
+	 * An error is counted under the action that answered it, so a not-found or a refusal can be
+	 * told from a request XenForo could not route, and split by who was behind it.
+	 */
+	public function test_errors_are_counted_by_action_and_by_kind() : void
+	{
+		$this->insertSession(0, '198.51.100.200', '', \XF::$time - 30, 'error');
+		$this->insertSession(0, '203.0.113.200', self::ROBOT, \XF::$time - 30, 'error');
+
+		$state = $this->state();
+		$action = array_values(array_filter($state['by_action'], function ($row)
+		{
+			return $row['controller'] === self::CONTROLLER;
+		}))[0];
+
+		$this->assertSame(3, $action['errors']);
+		$this->assertSame(['members', 'guests', 'robots'], array_keys($state['errors_by_kind']));
+		$this->assertGreaterThanOrEqual(1, $state['errors_by_kind']['members']);
+		$this->assertGreaterThanOrEqual(1, $state['errors_by_kind']['guests']);
+		$this->assertGreaterThanOrEqual(1, $state['errors_by_kind']['robots']);
+		$this->assertSame($state['errors'], array_sum($state['errors_by_kind']));
+		$this->assertSame($state['errors'], array_sum(array_column($state['by_action'], 'errors')));
 	}
 
 	public function test_it_names_each_robot() : void
@@ -188,6 +213,33 @@ class OnlineTest extends TestCase
 
 		$this->assertGreaterThanOrEqual(3, $networks['sessions']);
 		$this->assertGreaterThanOrEqual(3, $networks['largest_24']);
+	}
+
+	/**
+	 * Whether the guests and the robots come from the same place, without saying where. Measured
+	 * as a difference, since the forum has sessions of its own: two robots joining the guests'
+	 * /24 make it shared, and a robot on a network with no guests changes nothing.
+	 */
+	public function test_it_counts_the_networks_guests_and_robots_share() : void
+	{
+		$before = $this->state()['shared_networks'];
+
+		$this->insertSession(0, '198.51.100.201', self::ROBOT, \XF::$time - 30);
+		$this->insertSession(0, '198.51.100.202', self::ROBOT, \XF::$time - 30);
+		$this->insertSession(0, '203.0.113.201', self::ROBOT, \XF::$time - 30);
+
+		$after = $this->state()['shared_networks'];
+
+		$this->assertSame(
+			['distinct_24', 'guests_24', 'robots_24', 'distinct_16', 'guests_16', 'robots_16'],
+			array_keys($after)
+		);
+		$this->assertSame(1, $after['distinct_24'] - $before['distinct_24']);
+		$this->assertSame(40, $after['guests_24'] - $before['guests_24']);
+		$this->assertSame(2, $after['robots_24'] - $before['robots_24']);
+		$this->assertSame(1, $after['distinct_16'] - $before['distinct_16']);
+		$this->assertSame(45, $after['guests_16'] - $before['guests_16']);
+		$this->assertSame(2, $after['robots_16'] - $before['robots_16']);
 	}
 
 	public function test_no_address_member_or_request_detail_is_returned() : void

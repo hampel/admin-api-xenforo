@@ -1222,6 +1222,7 @@ that do not identify themselves end up. No member is named and no address is ret
     "guests": 1512,
     "robots": 291,
     "errors": 12,
+    "errors_by_kind": {"members": 1, "guests": 9, "robots": 2},
     "newest_date": 1791453579,
     "guest_networks": {
         "sessions": 1512, "ipv4": 1490,
@@ -1233,11 +1234,15 @@ that do not identify themselves end up. No member is named and no address is ret
         "largest_24": 44, "distinct_24": 61,
         "largest_16": 120, "distinct_16": 19
     },
+    "shared_networks": {
+        "distinct_24": 1, "guests_24": 640, "robots_24": 44,
+        "distinct_16": 3, "guests_16": 702, "robots_16": 51
+    },
     "by_robot": [
         {"robot_key": "googlebot", "count": 120}
     ],
     "by_action": [
-        {"controller": "XF\\Pub\\Controller\\ThreadController", "action": "Index", "count": 902, "members": 11, "guests": 804, "robots": 87}
+        {"controller": "XF\\Pub\\Controller\\ThreadController", "action": "Index", "count": 902, "members": 11, "guests": 804, "robots": 87, "errors": 3}
     ]
 }
 ```
@@ -1256,7 +1261,17 @@ that do not identify themselves end up. No member is named and no address is ret
 - `by_action` is what sessions were last doing — the controller and action, never the thread or
   page — for the 25 busiest; the rest are counted together in a last entry whose `controller`
   and `action` are `null`.
-- `errors` is how many sessions' last request ended in an error.
+- **`shared_networks` says whether one source is behind guests and robots both**, without saying
+  which. `distinct_24` is how many /24 networks hold guest sessions and robot sessions at once, and
+  `guests_24` and `robots_24` how many of each sit in those networks; the same for /16. A swarm
+  that identifies itself on some requests and not others shows here as one shared /24 holding most
+  of the busiest network's guests.
+- `errors` is how many sessions' last recorded page was an error reply or had a 4xx or 5xx status:
+  not found, no permission, login required, a server exception. A redirect, or a request made by
+  a page's own scripts, is never recorded as a session's last page. `errors_by_kind` splits them
+  into members, guests and robots, and each `by_action` entry carries its own `errors`. An error
+  is listed under the action that answered it; only `XF\Pub\Controller\ErrorController` with
+  `DispatchError` means a request XenForo could not route.
 
 For alerting, the numbers to watch are `guests`, `robots` and `guest_networks.largest_24`. This
 endpoint reports them; deciding what is too many is the caller's.

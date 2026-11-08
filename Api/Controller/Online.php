@@ -24,10 +24,12 @@ class Online extends AbstractController
 	 * @api-out int $members Sessions with a logged-in member
 	 * @api-out int $guests Sessions with no member that were not recognised as a robot
 	 * @api-out int $robots Sessions recognised as a robot
-	 * @api-out int $errors Sessions whose last request ended in an error
+	 * @api-out int $errors Sessions whose last recorded page was an error reply or had a 4xx or 5xx status
+	 * @api-out array $errors_by_kind The errors split into members, guests and robots
 	 * @api-out int $newest_date When the most recent session was last seen, or null
 	 * @api-out array $guest_networks How the guest sessions are spread across networks
 	 * @api-out array $robot_networks The same for robot sessions
+	 * @api-out array $shared_networks The networks holding both guest and robot sessions, and how many of each are in them
 	 * @api-out array $by_robot Count for each robot
 	 * @api-out array $by_action Counts for what sessions were last doing, by controller and action
 	 *
