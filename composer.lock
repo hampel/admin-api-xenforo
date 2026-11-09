@@ -65,16 +65,16 @@
         },
         {
             "name": "hampel/xenforo-phpstan",
-            "version": "0.10.5",
+            "version": "0.10.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/hampel/xenforo-phpstan.git",
-                "reference": "a093be389e470deb0ca289a6bec2d5ff53ce5ac6"
+                "reference": "1c9702370d2970b39c4b6af604bdbdf02e0f188c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/hampel/xenforo-phpstan/zipball/a093be389e470deb0ca289a6bec2d5ff53ce5ac6",
-                "reference": "a093be389e470deb0ca289a6bec2d5ff53ce5ac6",
+                "url": "https://api.github.com/repos/hampel/xenforo-phpstan/zipball/1c9702370d2970b39c4b6af604bdbdf02e0f188c",
+                "reference": "1c9702370d2970b39c4b6af604bdbdf02e0f188c",
                 "shasum": ""
             },
             "require": {
@@ -125,8 +125,8 @@
                 "issues": "https://github.com/hampel/xenforo-phpstan/issues",
                 "source": "https://github.com/hampel/xenforo-phpstan"
             },
-            "time": "2026-10-25T09:39:16+00:00",
-            "published-time": "2026-10-25T23:38:41+00:00"
+            "time": "2026-11-09T09:49:20+00:00",
+            "published-time": "2026-11-09T09:50:07+00:00"
         },
         {
             "name": "hampel/xenforo-test-framework",
@@ -1917,16 +1917,16 @@
         },
         {
             "name": "sebastian/version",
-            "version": "6.0.1",
+            "version": "6.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/version.git",
-                "reference": "9e935a16187e14f39b0e79910dabd614972cdb26"
+                "reference": "a8b6643a19ba6c8125a473623e45fb8cbb0e4159"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/version/zipball/9e935a16187e14f39b0e79910dabd614972cdb26",
-                "reference": "9e935a16187e14f39b0e79910dabd614972cdb26",
+                "url": "https://api.github.com/repos/sebastianbergmann/version/zipball/a8b6643a19ba6c8125a473623e45fb8cbb0e4159",
+                "reference": "a8b6643a19ba6c8125a473623e45fb8cbb0e4159",
                 "shasum": ""
             },
             "require": {
@@ -1959,7 +1959,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/version/issues",
                 "security": "https://github.com/sebastianbergmann/version/security/policy",
-                "source": "https://github.com/sebastianbergmann/version/tree/6.0.1"
+                "source": "https://github.com/sebastianbergmann/version/tree/6.0.2"
             },
             "funding": [
                 {
@@ -1979,8 +1979,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-04T05:50:08+00:00",
-            "published-time": "2026-10-04T05:50:36+00:00"
+            "time": "2026-11-09T06:30:55+00:00",
+            "published-time": "2026-11-09T06:31:20+00:00"
         },
         {
             "name": "staabm/side-effects-detector",
