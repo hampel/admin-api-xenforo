@@ -259,4 +259,5 @@ The rules that hold in every tier, and the aggregate tier's own:
 ## Local detail
 
 Anything specific to one machine — paths, hostnames, the running record of work — is in
-`CLAUDE.local.md`, which is not committed.
+`CLAUDE.local.md`, which is not committed. It holds the current state only. The running record
+is in `HISTORY.local.md`, which is also uncommitted and is not loaded automatically.
