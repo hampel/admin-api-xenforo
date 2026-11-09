@@ -181,7 +181,9 @@ class Redactor
 			return $value;
 		}
 
-		if (!$trusted)
+		// a checkbox inside an array option is kept as "0" or "1", since XenForo does not cast what
+		// it cannot type; it says a thing is on or off and nothing else, whoever's it is
+		if (!$trusted && $value !== '0' && $value !== '1')
 		{
 			return $this->withhold($relative, self::UNTRUSTED, $value, $redactions);
 		}

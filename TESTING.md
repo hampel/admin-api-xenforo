@@ -214,7 +214,8 @@ token. Lower-case words joined by hyphens are now left alone.
 
 **The values sweep is the test to trust.** `ValuesTest` asks for every real option on the forum in
 values mode and fails if any declared secret came back, if anything returned is named or shaped
-like a credential, or if an untrusted add-on's text was returned. It runs against whatever the
+like a credential, or if an untrusted add-on's text was returned, at any depth, other than a
+checkbox kept as `"0"` or `"1"`. It runs against whatever the
 forum holds, so it is only as good as the forum: on one with few secrets configured it proves
 little, and the masked review below is the complement.
 

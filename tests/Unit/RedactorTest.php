@@ -222,6 +222,25 @@ class RedactorTest extends TestCase
 		$this->assertSame(['serviceValue' => Redactor::UNTRUSTED], $this->reasons($result));
 	}
 
+	/**
+	 * XenForo does not cast what it cannot type, so a checkbox inside an array option is kept as
+	 * "0" or "1". That much says on or off and nothing more, so it is shown; any other text is not.
+	 */
+	public function test_an_untrusted_add_ons_flag_kept_as_text_is_shown_and_nothing_else_is() : void
+	{
+		$result = $this->redact('serviceNotify', ['enabled' => '1', 'quiet' => '0', 'pin' => '12', 'mode' => 'x', 'blank' => ''], false);
+
+		$this->assertSame(['enabled' => '1', 'quiet' => '0', 'pin' => null, 'mode' => null, 'blank' => null], $result['value']);
+		$this->assertSame(
+			['pin' => Redactor::UNTRUSTED, 'mode' => Redactor::UNTRUSTED, 'blank' => Redactor::UNTRUSTED],
+			$this->reasons($result)
+		);
+
+		// a name or a declaration still comes first
+		$this->assertNull($this->redact('servicePassword', '1', false)['value']);
+		$this->assertNull($this->redact('serviceFlag', '1', false, ['serviceFlag'])['value']);
+	}
+
 	/** @return array<string, array{string}> */
 	public static function secretValues() : array
 	{

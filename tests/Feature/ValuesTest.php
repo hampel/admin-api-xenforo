@@ -246,6 +246,41 @@ class ValuesTest extends TestCase
 		}
 	}
 
+	/**
+	 * Reported from production: XenForo makes the id from 32 random letters and digits, and the
+	 * value rule wants three digits, so it was withheld on one forum and shown on another. It is
+	 * declared, so the answer no longer depends on what the id happens to hold.
+	 */
+	public function test_the_server_stats_installation_id_is_withheld_whatever_it_holds() : void
+	{
+		$redactor = (new Registry($this->app()))->getOptionRedactor();
+
+		foreach (['abcdefghijklmnopqrstuvwxyzABCDEF', 'a1b2c3d4e5f6g7h8i9j0kLmNoPqRsTuV'] AS $id)
+		{
+			$result = $redactor->redact('collectServerStats', ['enabled' => true, 'installation_id' => $id, 'last_sent' => 1700000000], true);
+
+			$this->assertSame(['enabled' => true, 'installation_id' => null, 'last_sent' => 1700000000], $result['value']);
+			$this->assertSame(Redactor::KNOWN, $result['redactions'][0]['reason']);
+		}
+	}
+
+	/**
+	 * The shape of the notification switches an undeclared add-on keeps: an array whose members
+	 * are checkboxes and text.
+	 */
+	public function test_an_undeclared_add_ons_switches_are_shown_and_its_text_is_not() : void
+	{
+		$this->insertOption('adminApiTestForeignNotify', self::UNTRUSTED, 'array', json_encode(
+			['enabled' => '1', 'ignoreKeepAlive' => '0', 'verbosity' => 'SECRET-text', 'channel' => ''],
+			JSON_THROW_ON_ERROR
+		));
+
+		$option = $this->byId($this->options(['add_on_id' => self::UNTRUSTED]))['adminApiTestForeignNotify'];
+
+		$this->assertSame(['enabled' => '1', 'ignoreKeepAlive' => '0', 'verbosity' => null, 'channel' => null], $option['value']);
+		$this->assertStringNotContainsString('SECRET', json_encode($option, JSON_THROW_ON_ERROR));
+	}
+
 	public function test_text_from_an_add_on_nobody_has_declared_is_withheld() : void
 	{
 		$options = $this->byId($this->options(['add_on_id' => self::UNTRUSTED]));
@@ -365,7 +400,15 @@ class ValuesTest extends TestCase
 
 			if (!$registry->isTrustedAddOn($option['add_on_id']))
 			{
-				$this->assertFalse(is_string($option['value']) && $option['value'] !== '', "$id belongs to an untrusted add-on");
+				// a checkbox kept as "0" or "1" is the one text an untrusted add-on has shown
+				$leaves = is_array($option['value']) ? $option['value'] : [$option['value']];
+				array_walk_recursive($leaves, function ($leaf) use ($id)
+				{
+					$this->assertFalse(
+						is_string($leaf) && $leaf !== '' && $leaf !== '0' && $leaf !== '1',
+						"$id belongs to an untrusted add-on"
+					);
+				});
 			}
 		}
 	}

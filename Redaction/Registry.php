@@ -17,7 +17,8 @@ use XF\App;
  * are nobody's business but their forum's, and would go stale without their authors knowing.
  *
  * An add-on in none of them is untrusted: its text settings are reported as set or not, and no
- * more, exactly as every setting was before values were returned at all.
+ * more, exactly as every setting was before values were returned at all. Its switches and
+ * numbers are shown, including a checkbox kept as the text "0" or "1".
  *
  * The lists name secrets; the name and value rules in Redactor apply to every add-on as well, so
  * a secret left off a list has to get past those too.
@@ -33,7 +34,7 @@ class Registry
 		'XF' => [
 			'akismetKey', 'imageLinkProxyKey', 'indexNow.key', 'giphy.api_key', 'stopForumSpam.apiKey',
 			'registrationCheckDnsBl.projectHoneyPotKey', 'emailDkim.privateKey',
-			'extraCaptchaKeys', 'pushKeysVAPID.privateKey',
+			'extraCaptchaKeys', 'pushKeysVAPID.privateKey', 'collectServerStats.installation_id',
 			'emailTransport.smtpLoginUsername', 'emailTransport.smtpLoginPassword', 'emailTransport.oauth',
 			'emailBounceHandler.username', 'emailBounceHandler.password', 'emailBounceHandler.oauth',
 			'emailUnsubscribeHandler.username', 'emailUnsubscribeHandler.password', 'emailUnsubscribeHandler.oauth',

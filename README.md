@@ -1349,7 +1349,8 @@ empty. Booleans and numbers are shown.
 XenForo and its official add-ons are listed in this add-on, from their source, because they will
 never answer an event of ours. **Every other add-on is untrusted until it declares for itself,
 whoever wrote it** — this add-on declares through the same event. Until then its text settings
-are reported as set or not; its switches and numbers are still shown.
+are reported as set or not; its switches and numbers are still shown, and so is text that is
+exactly `"0"` or `"1"`, which is how XenForo keeps a checkbox inside an array option.
 
 **To declare, listen for the `hampel_admin_api_redaction` code event** and add an entry for your
 own add-on:
