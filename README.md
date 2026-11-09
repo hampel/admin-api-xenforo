@@ -995,8 +995,10 @@ and dates are read, and never the content, the comments, who reported it or whom
 
 **How many members registered, and how many threads and posts were made, in a window, by the
 state each is in now** — the split the core `stats/` totals cannot give: registrations waiting for
-email confirmation or for approval, content waiting for approval or deleted. Counts only: a date
-and a state are read for each, never a name, an email address, a title or a message.
+email confirmation or for approval, content waiting for approval or deleted. Each is also counted
+by day, and registrations by whether a member signed up or an administrator made the account.
+Counts only: a date and a state are read for each, never a name, an email address, a title or a
+message.
 
 | parameter | meaning |
 |---|---|
@@ -1009,10 +1011,14 @@ and a state are read for each, never a name, an email address, a title or a mess
     "registrations": {
         "total": 41,
         "by_state": {"valid": 30, "email_confirm": 6, "email_confirm_edit": 0, "moderated": 3,
-            "email_bounce": 0, "rejected": 1, "disabled": 1, "other": 0}
+            "email_bounce": 0, "rejected": 1, "disabled": 1, "other": 0},
+        "by_day": [{"day": "2026-10-18", "count": 17}, {"day": "2026-10-19", "count": 24}],
+        "by_hour": [{"hour": "2026-10-18T22:00:00Z", "count": 2}, "..."],
+        "by_source": {"register_form": 39, "other": 2},
+        "by_source_complete": true
     },
-    "threads": {"total": 52, "by_state": {"visible": 49, "moderated": 2, "deleted": 1, "other": 0}},
-    "posts": {"total": 610, "by_state": {"visible": 598, "moderated": 4, "deleted": 8, "other": 0}}
+    "threads": {"total": 52, "by_state": {"...": 0}, "by_day": ["..."], "by_hour": ["..."]},
+    "posts": {"total": 610, "by_state": {"...": 0}, "by_day": ["..."], "by_hour": ["..."]}
 }
 ```
 
@@ -1024,6 +1030,18 @@ and a state are read for each, never a name, an email address, a title or a mess
 - `email_confirm_edit` is a member confirming a changed email address, and `email_bounce` one
   whose mail has bounced. `other` counts a state XenForo does not define, which only an add-on
   changing core's tables could make; it is 0 on any other forum.
+- **`by_day` has one entry per UTC day the window touches**, quiet days at 0, up to the current
+  day. **`by_hour` is the same per UTC hour**, for a window covering two days or less up to now,
+  and `null` for a longer one. Both add up to `total`.
+- **`by_source` tells a sign-up from an account an administrator made.** XenForo does not record
+  how an account was made, but its registration service, behind the register form and signing up
+  through a connected account, logs the new member's IP address with the action `register`. An
+  account made in the control panel or through the API logs none, so it counts as `other`. Only
+  whether that row exists is read, never the address.
+- **`by_source` can count a sign-up as `other`.** XenForo's IP log clean-up deletes rows older
+  than it keeps, and a sign-up whose row has gone looks like any other account.
+  `by_source_complete` is `false` when the clean-up is on and the window starts earlier than it
+  keeps. An importer that carries a registration address counts as `register_form`.
 - **Every thread's first post is a post as well**, so `posts` includes the opening post of each
   thread in `threads`.
 - **The window is capped at 31 days**, because each count reads every row in it; a longer one is

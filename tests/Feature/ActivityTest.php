@@ -35,9 +35,16 @@ class ActivityTest extends TestCase
 		return $this->replyApiResult($this->dispatch(self::ROUTE, 'api', $input));
 	}
 
-	private function member(string $state, int $date) : void
+	private function member(string $state, int $date, bool $throughForm = false) : void
 	{
 		$id = $this->id--;
+		if ($throughForm)
+		{
+			$this->app()->db()->insert('xf_ip', [
+				'user_id' => $id, 'content_type' => 'user', 'content_id' => $id, 'action' => 'register',
+				'ip' => inet_pton('198.51.100.7'), 'log_date' => $date,
+			]);
+		}
 		$this->app()->db()->insert('xf_user', [
 			'user_id' => $id, 'username' => "SECRET_name_$id", 'email' => "secret$id@example.com",
 			'user_state' => $state, 'register_date' => $date,
@@ -87,10 +94,95 @@ class ActivityTest extends TestCase
 			'valid' => 1, 'email_confirm' => 1, 'email_confirm_edit' => 0, 'moderated' => 2,
 			'email_bounce' => 0, 'rejected' => 0, 'disabled' => 0, 'other' => 0,
 		], $result['registrations']['by_state']);
-		$this->assertSame(['total' => 2, 'by_state' => ['visible' => 1, 'moderated' => 1, 'deleted' => 0, 'other' => 0]], $result['threads']);
-		$this->assertSame(['total' => 3, 'by_state' => ['visible' => 2, 'moderated' => 0, 'deleted' => 1, 'other' => 0]], $result['posts']);
+		$this->assertSame(2, $result['threads']['total']);
+		$this->assertSame(['visible' => 1, 'moderated' => 1, 'deleted' => 0, 'other' => 0], $result['threads']['by_state']);
+		$this->assertSame(3, $result['posts']['total']);
+		$this->assertSame(['visible' => 2, 'moderated' => 0, 'deleted' => 1, 'other' => 0], $result['posts']['by_state']);
 		$this->assertStringNotContainsString('SECRET', json_encode($result, JSON_THROW_ON_ERROR));
 		$this->assertStringNotContainsString('example.com', json_encode($result, JSON_THROW_ON_ERROR));
+	}
+
+	/**
+	 * Every UTC day the window touches has an entry, quiet ones included, so when something
+	 * happened is one call rather than a search by narrowing windows.
+	 */
+	public function test_each_is_counted_by_utc_day() : void
+	{
+		$this->member('valid', 100);
+		$this->member('valid', 86400 + 5);
+		$this->member('moderated', 86400 + 6);
+		$this->thread('visible', 2 * 86400);
+		$this->post('visible', 2 * 86400 - 1);
+
+		$result = $this->activity(['since' => 50, 'until' => 3 * 86400]);
+
+		$this->assertSame([
+			['day' => '1970-01-01', 'count' => 1],
+			['day' => '1970-01-02', 'count' => 2],
+			['day' => '1970-01-03', 'count' => 0],
+		], $result['registrations']['by_day']);
+		$this->assertSame([0, 0, 1], array_column($result['threads']['by_day'], 'count'));
+		$this->assertSame([0, 1, 0], array_column($result['posts']['by_day'], 'count'));
+
+		foreach (['registrations', 'threads', 'posts'] AS $kind)
+		{
+			$this->assertSame($result[$kind]['total'], array_sum(array_column($result[$kind]['by_day'], 'count')), $kind);
+			$this->assertNull($result[$kind]['by_hour'], $kind);
+		}
+	}
+
+	/**
+	 * Up to two days, by hour as well; one second past that, by day only.
+	 */
+	public function test_a_window_of_two_days_or_less_is_also_counted_by_hour() : void
+	{
+		$this->post('visible', 3600 + 59);
+		$this->post('visible', 3 * 3600);
+
+		$result = $this->activity(['since' => 0, 'until' => 4 * 3600]);
+
+		$this->assertSame([
+			['hour' => '1970-01-01T00:00:00Z', 'count' => 0],
+			['hour' => '1970-01-01T01:00:00Z', 'count' => 1],
+			['hour' => '1970-01-01T02:00:00Z', 'count' => 0],
+			['hour' => '1970-01-01T03:00:00Z', 'count' => 1],
+		], $result['posts']['by_hour']);
+		$this->assertSame([0, 0, 0, 0], array_column($result['registrations']['by_hour'], 'count'));
+
+		$this->assertCount(49, $this->activity(['since' => 0, 'until' => 48 * 3600 + 1])['posts']['by_hour']);
+		$this->assertNull($this->activity(['since' => 0, 'until' => 48 * 3600 + 2])['posts']['by_hour']);
+	}
+
+	/**
+	 * A sign-up through XenForo's registration service logs its IP address with the action
+	 * "register"; an account made in the control panel or through the API logs none.
+	 */
+	public function test_registrations_through_the_form_are_counted_apart() : void
+	{
+		$this->member('valid', 2000, true);
+		$this->member('moderated', 3000, true);
+		$this->member('valid', 4000);
+
+		$registrations = $this->activity()['registrations'];
+
+		$this->assertSame(['register_form' => 2, 'other' => 1], $registrations['by_source']);
+		$this->assertStringNotContainsString('198.51.100', json_encode($registrations, JSON_THROW_ON_ERROR));
+	}
+
+	/**
+	 * The IP log is pruned when its clean-up is on, and a registration older than that has lost
+	 * the row that says it came through the form.
+	 */
+	public function test_the_source_split_says_when_the_ip_log_has_been_pruned_inside_the_window() : void
+	{
+		$this->setOption('ipLogCleanUp', ['enabled' => true, 'delay' => 30]);
+
+		$this->assertFalse($this->activity()['registrations']['by_source_complete']);
+		$this->assertTrue($this->activity(['since' => \XF::$time - 29 * 86400])['registrations']['by_source_complete']);
+
+		$this->setOption('ipLogCleanUp', ['enabled' => false, 'delay' => 30]);
+
+		$this->assertTrue($this->activity()['registrations']['by_source_complete']);
 	}
 
 	/**

@@ -22,7 +22,9 @@ class Activity extends AbstractController
 	/**
 	 * @api-desc Returns how many members registered, and how many threads and posts were made, in
 	 *   the window, each by the state it is in now: a member valid, awaiting confirmation or
-	 *   approval, rejected or disabled; content visible, awaiting approval or deleted. Counts only:
+	 *   approval, rejected or disabled; content visible, awaiting approval or deleted. Each is also
+	 *   counted by UTC day and, when the window covers two days or less, by hour; registrations
+	 *   are also counted by whether XenForo's registration service made them. Counts only:
 	 *   no member and no content. Requires a user API key with the hampel_admin_api:activity scope
 	 *   selected, whose user holds the hampelAdminApi admin permission.
 	 *
@@ -30,9 +32,9 @@ class Activity extends AbstractController
 	 * @api-in int $until End of the window, as a Unix timestamp, excluded. Defaults to now + 1, so this second is in. At most 31 days after since; left out, since may be up to 31 days before now.
 	 *
 	 * @api-out array $window The window counted
-	 * @api-out array $registrations The total, and by_state for each member state
-	 * @api-out array $threads The total, and by_state for each content state
-	 * @api-out array $posts The total, and by_state for each content state
+	 * @api-out array $registrations The total, by_state for each member state, by_day, by_hour, by_source (register_form: through the register form or a connected account, as XenForo's registration service logs them; other: made in the control panel or through the API, or older than the IP log keeps) and by_source_complete (false when the IP log's clean-up has pruned part of the window)
+	 * @api-out array $threads The total, by_state for each content state, by_day and by_hour
+	 * @api-out array $posts The total, by_state for each content state, by_day and by_hour
 	 *
 	 * @return \XF\Mvc\Reply\AbstractReply
 	 */

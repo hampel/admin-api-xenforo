@@ -49,3 +49,8 @@ parameters:
             message: '#^Access to an undefined property XF\\Options::\$sharedIpsCheckLimit\.$#'
             path: Api/Controller/IpUsers.php
             count: 1
+        -
+            identifier: property.notFound
+            message: '#^Access to an undefined property XF\\Options::\$ipLogCleanUp\.$#'
+            path: Repository/Activity.php
+            count: 1
