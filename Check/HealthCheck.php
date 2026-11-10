@@ -41,9 +41,10 @@ class HealthCheck
 		AbstractController::SCOPE_APPROVAL_QUEUE,
 		AbstractController::SCOPE_REPORTS,
 		AbstractController::SCOPE_ACTIVITY,
+		AbstractController::SCOPE_VALIDATE,
 	];
 
-	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports', 'activity'];
+	const ROUTES = ['error-log', 'error-entries', 'add-ons', 'cron', 'jobs', 'options', 'config', 'online', 'ip-users', 'logs', 'user-upgrades', 'user-upgrade-records', 'moderators', 'administrators', 'approval-queue', 'log-entries', 'reports', 'activity', 'validate'];
 
 	/** The scopes for content and member data, each with core's admin permissions its endpoint asks for as well */
 	const DETAIL_SCOPES = [

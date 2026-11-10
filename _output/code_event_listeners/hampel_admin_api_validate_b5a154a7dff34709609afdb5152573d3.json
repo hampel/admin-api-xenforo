@@ -1,0 +1,9 @@
+{
+    "event_id": "hampel_admin_api_validate",
+    "execute_order": 10,
+    "callback_class": "Hampel\\AdminApi\\Listener",
+    "callback_method": "adminApiValidate",
+    "active": true,
+    "hint": "",
+    "description": "Declares this add-on's own checks to the Admin API"
+}

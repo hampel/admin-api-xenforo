@@ -1,6 +1,7 @@
 <?php namespace Hampel\AdminApi;
 
 use Hampel\AdminApi\Api\Controller\AbstractController;
+use Hampel\AdminApi\Check\Validators;
 use Hampel\AdminApi\Fault\Manager;
 use Hampel\AdminApi\Redaction\Registry;
 use XF\AddOn\AbstractSetup;
@@ -8,6 +9,9 @@ use XF\Db\Schema\Create;
 
 class Setup extends AbstractSetup
 {
+	/** The events other add-ons answer to declare something to this one */
+	const DECLARATION_EVENTS = [Registry::EVENT, Validators::EVENT];
+
 	/**
 	 * @param array<mixed> $stepParams
 	 *
@@ -125,13 +129,13 @@ class Setup extends AbstractSetup
 	}
 
 	/**
-	 * Uninstalling this add-on removes its code event, and XenForo deletes every listener for an
+	 * Uninstalling this add-on removes its code events, and XenForo deletes every listener for an
 	 * event along with it - other add-ons' included. Installed again, this add-on would find that
 	 * nobody declares anything, and each of those add-ons would stay undeclared until it was next
 	 * upgraded or rebuilt, with nothing to say why.
 	 *
 	 * So after an install or a rebuild, any installed add-on whose release data registers a
-	 * listener for the event, and which no longer has one, gets it back exactly as it shipped.
+	 * listener for one of the events, and which no longer has it, gets it back exactly as it shipped.
 	 *
 	 * @return int How many were put back
 	 */
@@ -149,14 +153,15 @@ class Setup extends AbstractSetup
 
 			foreach ($xml->listener AS $listener)
 			{
-				if ((string) $listener['event_id'] !== Registry::EVENT)
+				$eventId = (string) $listener['event_id'];
+				if (!in_array($eventId, self::DECLARATION_EVENTS, true))
 				{
 					continue;
 				}
 
 				$fields = [
 					'addon_id' => $addOnId,
-					'event_id' => Registry::EVENT,
+					'event_id' => $eventId,
 					'callback_class' => (string) $listener['callback_class'],
 					'callback_method' => (string) $listener['callback_method'],
 					'hint' => (string) $listener['hint'],

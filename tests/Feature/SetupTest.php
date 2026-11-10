@@ -38,7 +38,8 @@ class SetupTest extends TestCase
 
 	/**
 	 * XenForo deletes every listener for an event when the event goes, so uninstalling this
-	 * add-on takes other add-ons' declarations with it. Installing it again puts them back.
+	 * add-on takes other add-ons' declarations with it, for both events. Installing it again puts
+	 * them back.
 	 */
 	public function test_another_add_ons_lost_declaration_listener_is_put_back_once() : void
 	{
@@ -46,6 +47,7 @@ class SetupTest extends TestCase
 		file_put_contents($path, '<?xml version="1.0" encoding="utf-8"?>
 <code_event_listeners>
   <listener event_id="hampel_admin_api_redaction" execute_order="10" callback_class="Hampel\\AdminApi\\Listener" callback_method="adminApiRedaction" active="1" description="planted"/>
+  <listener event_id="hampel_admin_api_validate" execute_order="10" callback_class="Hampel\\AdminApi\\Listener" callback_method="adminApiValidate" active="1" description="planted"/>
   <listener event_id="app_setup" execute_order="10" callback_class="Hampel\\AdminApi\\Listener" callback_method="adminApiRedaction" active="1" description="another event"/>
   <listener event_id="hampel_admin_api_redaction" execute_order="10" callback_class="Tests\\No\\SuchClass" callback_method="gone" active="1" description="callback gone"/>
 </code_event_listeners>');
@@ -64,7 +66,7 @@ class SetupTest extends TestCase
 
 		try
 		{
-			$this->assertSame(1, $setup->restoreDeclarationListeners());
+			$this->assertSame(2, $setup->restoreDeclarationListeners());
 			$this->assertSame(0, $setup->restoreDeclarationListeners(), 'and not twice');
 		}
 		finally
@@ -73,10 +75,13 @@ class SetupTest extends TestCase
 		}
 
 		$rows = $this->app()->db()->fetchAll(
-			"SELECT event_id, callback_class, active FROM xf_code_event_listener WHERE addon_id = 'Tests/Unknown'"
+			"SELECT event_id, callback_class, active FROM xf_code_event_listener WHERE addon_id = 'Tests/Unknown' ORDER BY event_id"
 		);
 		$this->assertSame(
-			[['event_id' => 'hampel_admin_api_redaction', 'callback_class' => 'Hampel\\AdminApi\\Listener', 'active' => 1]],
+			[
+				['event_id' => 'hampel_admin_api_redaction', 'callback_class' => 'Hampel\\AdminApi\\Listener', 'active' => 1],
+				['event_id' => 'hampel_admin_api_validate', 'callback_class' => 'Hampel\\AdminApi\\Listener', 'active' => 1],
+			],
 			$rows
 		);
 	}

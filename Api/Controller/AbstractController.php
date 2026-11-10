@@ -20,6 +20,7 @@ abstract class AbstractController extends BaseController
 	const SCOPE_APPROVAL_QUEUE = 'hampel_admin_api:approval_queue';
 	const SCOPE_REPORTS = 'hampel_admin_api:reports';
 	const SCOPE_ACTIVITY = 'hampel_admin_api:activity';
+	const SCOPE_VALIDATE = 'hampel_admin_api:validate';
 
 	/** Not an endpoint: the values of settings, on the options and config endpoints, rather than their shape */
 	const SCOPE_VALUES = 'hampel_admin_api:values';
@@ -33,7 +34,7 @@ abstract class AbstractController extends BaseController
 	const SCOPES = [
 		self::SCOPE_ERROR_LOG, self::SCOPE_LOGS, self::SCOPE_ADD_ONS, self::SCOPE_JOBS, self::SCOPE_OPTIONS,
 		self::SCOPE_CONFIG, self::SCOPE_ONLINE, self::SCOPE_USER_UPGRADES, self::SCOPE_APPROVAL_QUEUE,
-		self::SCOPE_REPORTS, self::SCOPE_ACTIVITY, self::SCOPE_VALUES, self::SCOPE_ERROR_DETAIL, self::SCOPE_IPS,
+		self::SCOPE_REPORTS, self::SCOPE_ACTIVITY, self::SCOPE_VALIDATE, self::SCOPE_VALUES, self::SCOPE_ERROR_DETAIL, self::SCOPE_IPS,
 		self::SCOPE_UPGRADE_RECORDS, self::SCOPE_STAFF, self::SCOPE_LOG_ENTRIES,
 	];
 

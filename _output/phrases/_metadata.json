@@ -101,11 +101,29 @@
         "version_string": "1.0.0a11",
         "hash": "71273660cafad29a3d99f91af547aa1f"
     },
+    "api_scope.hampel_admin_api_validate.txt": {
+        "global_cache": false,
+        "version_id": 1000026,
+        "version_string": "1.0.0a16",
+        "hash": "5680e5e54553721ba0525c674d313d1b"
+    },
     "api_scope.hampel_admin_api_values.txt": {
         "global_cache": false,
         "version_id": 1000021,
         "version_string": "1.0.0a11",
         "hash": "3e9b6c4205ca40294c15f1e07d905311"
+    },
+    "hampel_adminapi_addon_inactive.txt": {
+        "global_cache": false,
+        "version_id": 1000026,
+        "version_string": "1.0.0a16",
+        "hash": "5898e4d7debe68e6405c692c61f595d9"
+    },
+    "hampel_adminapi_addon_not_found.txt": {
+        "global_cache": false,
+        "version_id": 1000026,
+        "version_string": "1.0.0a16",
+        "hash": "0665650b66b2479f65bf857ebd3c2fee"
     },
     "hampel_adminapi_admin_permission_required.txt": {
         "global_cache": false,
@@ -172,6 +190,12 @@
         "version_id": 1000018,
         "version_string": "1.0.0a8",
         "hash": "ddd6a2717909953111270476f0bb8495"
+    },
+    "hampel_adminapi_validator_not_declared.txt": {
+        "global_cache": false,
+        "version_id": 1000026,
+        "version_string": "1.0.0a16",
+        "hash": "2a69c7afa215fe5f331ddd57bb3dfeb7"
     },
     "hampel_adminapi_window_too_long.txt": {
         "global_cache": false,

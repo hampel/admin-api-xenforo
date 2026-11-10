@@ -1,5 +1,8 @@
 {
     "hampel_admin_api_redaction.json": {
         "hash": "1b0fc536cd504f4fd4bf24b955ad8a55"
+    },
+    "hampel_admin_api_validate.json": {
+        "hash": "6503f689029f673952d7e2be43edd35f"
     }
 }

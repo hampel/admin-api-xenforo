@@ -1,0 +1,1 @@
+Whether each add-on's own checks pass, for the add-ons that declare them

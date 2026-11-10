@@ -25,6 +25,7 @@ checked. For whoever changes it next.
 | API route | `admin-api/log-entries/` → `Api\Controller\LogEntries` |
 | API route | `admin-api/reports/` → `Api\Controller\Reports` |
 | API route | `admin-api/activity/` → `Api\Controller\Activity` |
+| API route | `admin-api/validate/` → `Api\Controller\Validate` |
 | API scope | `hampel_admin_api:error_log`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:logs`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:add_ons`, not usable with OAuth clients |
@@ -36,6 +37,7 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:approval_queue`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:reports`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:activity`, not usable with OAuth clients |
+| API scope | `hampel_admin_api:validate`, not usable with OAuth clients |
 | API scope | `hampel_admin_api:values`, not usable with OAuth clients; values on the options and config endpoints, with either of their scopes |
 | API scope | `hampel_admin_api:error_detail`, not usable with OAuth clients; with core's `viewLogs` |
 | API scope | `hampel_admin_api:ips`, not usable with OAuth clients; with core's `user` |
@@ -44,7 +46,9 @@ checked. For whoever changes it next.
 | API scope | `hampel_admin_api:log_entries`, not usable with OAuth clients; with core's `viewLogs`; the admin log needs a super administrator as well, as in the control panel |
 | code event | `hampel_admin_api_redaction` — an add-on declares its secrets |
 | code event listener | `hampel_admin_api_redaction` → `Listener::adminApiRedaction`, this add-on's own declaration |
-| other add-ons' listeners | restored by `Setup` after an install or a rebuild, from each add-on's release data |
+| code event | `hampel_admin_api_validate` — an add-on declares its checks for the validate endpoint |
+| code event listener | `hampel_admin_api_validate` → `Listener::adminApiValidate`, this add-on's own checks; the probe is not marked for the API |
+| other add-ons' listeners | for both events, restored by `Setup` after an install or a rebuild, from each add-on's release data |
 | admin permission | `hampelAdminApi` — *Use the Admin API*, the one permission; a key reads what its selected scopes allow |
 | template modification | `hampel_adminapi_api_key_scopes` on admin `api_key_edit` — lists this add-on's scopes apart, counts first and member data after |
 | admin log | a row for every member lookup, through core's `logAdminRequest()` |

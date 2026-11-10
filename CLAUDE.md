@@ -9,8 +9,8 @@ the surfaces and fragile points; this file does not repeat them.
 They cover what the core API leaves out — the server error log, the add-on inventory, cron entries,
 the job queue, the approval queue and open reports, registrations and content by state, counts
 from every other log, the shape of options and of `config.php`, user upgrades and their payments,
-the members behind an IP address, the moderators and administrators, and the entries of the logs
-that record what members and staff did, so far. **No endpoint changes the forum, and none may.** The add-on has no options.
+the members behind an IP address, the moderators and administrators, the entries of the logs
+that record what members and staff did, and whether each add-on's own checks pass, so far. **No endpoint changes the forum, and none may.** The add-on has no options.
 
 **The one row an endpoint writes is a line in the admin log, for each member lookup** — decided on
 2026-10-24. Who looked up whom is the record an administrator wants afterwards, and the control
@@ -142,8 +142,8 @@ The rules that hold in every tier, and the aggregate tier's own:
   add-on to that list, whoever wrote it** — decided on 2026-10-08. A list here would have to
   know which add-ons may be named in a public file, and would go stale without their authors
   knowing. This add-on declares in `Listener`, which is also the reference for anyone else's.
-- **`Setup` restores other add-ons' listeners for the event**, because uninstalling this add-on
-  makes XenForo delete them. It is the one place this add-on writes a row another add-on owns;
+- **`Setup` restores other add-ons' listeners for both of its events** (secrets and checks),
+  because uninstalling this add-on makes XenForo delete them. It is the one place this add-on writes a row another add-on owns;
   it writes only what that add-on's own release data registers, and never to its `_output/`.
 - **Cast an option's value to its declared type before judging it.** XenForo 2.3.0 hands back
   flags and numbers as strings, and the development forum does not, so the suite cannot catch a
@@ -198,7 +198,14 @@ The rules that hold in every tier, and the aggregate tier's own:
 - **Every `\XF::logError()` and `logException()` in the add-on begins with `AdminApi: `.** A test
   scans the source for one that does not.
 - **Extend the checks whenever the add-on comes to depend on something new** — a table, an option,
-  another add-on.
+  another add-on. **A new check is declared in `Listener::adminApiValidate()` too**, or the
+  validate endpoint never runs it; a test fails until it is.
+- **The validate endpoint returns outcomes and nothing a check said** — decided on 2026-11-10.
+  A check's label and detail are free text another add-on wrote, so `Check\Validators` counts
+  rows by outcome and returns only the id and label from the declaration. A check runs there only
+  when its add-on marks it `api`, and what it throws is a `fail` in the answer, never an error
+  log entry. If messages are ever wanted, they go behind a scope of their own, through
+  `TextScrubber`.
 
 ## Mechanics
 

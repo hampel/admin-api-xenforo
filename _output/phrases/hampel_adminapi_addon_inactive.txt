@@ -1,0 +1,1 @@
+The add-on {addon_id} is installed but not active, so it cannot declare its checks.

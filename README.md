@@ -86,6 +86,7 @@ access*. The add-on creates one small table, for the commands under
 | `hampel_admin_api:approval_queue` | `approval-queue/` |
 | `hampel_admin_api:reports` | `reports/` |
 | `hampel_admin_api:activity` | `activity/` |
+| `hampel_admin_api:validate` | `validate/` |
 | `hampel_admin_api:values` | the values of settings, with `options` or `config` |
 
 Those return counts and the shape of settings. The rest return content and members' details, and
@@ -1097,6 +1098,107 @@ and null otherwise. With `is_processing` true it is under way now; with `is_proc
 started and never finished, which is the state to worry about. Matching versions do not rule
 that out — `can_upgrade` only compares what is installed with what is on disk.
 
+## Add-on checks
+
+`GET /api/admin-api/validate/`
+
+Whether an add-on's own checks pass: the checks its validate command runs from the command line,
+for add-ons that declare them. **Only the outcome of each check is returned** — `ok`, `warn`,
+`fail`, or `skipped` for one that did not run here. What a check said is never sent, so nothing in
+the answer can carry a path, a setting or a member.
+
+With no `addon_id`, the add-ons that declare checks, with how many of their checks run over the
+API. A forum where none declares answers with an empty list:
+
+```json
+{
+    "validators": [
+        {
+            "addon_id": "Hampel/AdminApi",
+            "title": "Admin API: read-only operational endpoints",
+            "version_id": 1000026,
+            "version_string": "1.0.0a16",
+            "checks": 8,
+            "api_checks": 7
+        }
+    ]
+}
+```
+
+With `addon_id`, that add-on's checks, in order:
+
+```json
+{
+    "add_on": {"addon_id": "Hampel/AdminApi", "title": "Admin API: read-only operational endpoints",
+        "version_id": 1000026, "version_string": "1.0.0a16"},
+    "checks": [
+        {"id": "routes", "label": "Routes", "outcome": "ok",
+            "rows": {"ok": 1, "warn": 0, "fail": 0, "skipped": 0}},
+        {"id": "access", "label": "API keys", "outcome": "warn",
+            "rows": {"ok": 3, "warn": 1, "fail": 0, "skipped": 4}},
+        {"id": "probe", "label": "Probe error", "outcome": "skipped",
+            "rows": {"ok": 0, "warn": 0, "fail": 0, "skipped": 0}}
+    ],
+    "invalid_checks": 0,
+    "exit_code": 0,
+    "exit_code_strict": 2
+}
+```
+
+- **A check is as bad as its worst row**, and `rows` counts the lines it would print on the
+  command line by outcome. A check whose rows were all skipped, or that returned none, is
+  `skipped`.
+- **`skipped` is never a pass.** A check runs over the API only when its add-on marks it as safe
+  to: quick, within the forum, and writing nothing. Every other check is `skipped` here, as
+  `--unattended` skips some on the command line.
+- **A check that throws, or answers with anything but rows, is a `fail`**, and nothing is written
+  to the server error log, so a failing check does not add an entry on every poll.
+- **`exit_code` and `exit_code_strict` are what the add-on's validate command would exit with**,
+  without and with `--strict`, counting only the checks that ran: 1 if any failed, otherwise 0,
+  and under `--strict` 2 for a warning.
+- **`invalid_checks` counts declared checks left out** because their id could not be returned. One
+  or more fails the run.
+
+An add-on that is not installed is refused with `hampel_adminapi_addon_not_found`; one that is
+installed and switched off, with `hampel_adminapi_addon_inactive`, since a disabled add-on cannot
+declare anything; and one that is active and declares no checks, with
+`hampel_adminapi_validator_not_declared`.
+
+### Declaring yours
+
+**Listen for the `hampel_admin_api_validate` code event** and add an entry for your own add-on:
+the class that holds your checks, and each check, in order, with an id, a label and the method
+that runs it.
+
+```php
+public static function adminApiValidate(array &$validators)
+{
+    $validators['Vendor/AddOn'] = [
+        'class' => \Vendor\AddOn\Check\HealthCheck::class,
+        'checks' => [
+            'tables' => ['label' => 'Tables', 'method' => 'tables', 'api' => true],
+            'remote' => ['label' => 'Remote service', 'method' => 'remote'],
+        ],
+    ];
+}
+```
+
+- **The class is constructed with `\XF\App`, and must be in your add-on's namespace.** A class
+  anywhere else fails every check, so that one add-on cannot answer for another.
+- **Each method returns a list of rows of `[outcome, label, detail]`**, where the outcome is `ok`,
+  `warn`, `fail` or `skip` — the rows your validate command prints. Only the outcome is read
+  here; keeping the checks in a class of their own, called by the command as well, is what
+  stops the two drifting apart.
+- **Mark a check `'api' => true` only when it is quick, stays within the forum and writes
+  nothing.** That is a promise this add-on cannot check. A check that calls another service,
+  takes long, or writes anything, even a log line, is left unmarked and reported as `skipped`.
+- **The id is lower-case letters, digits and underscores, and the label at most 100
+  characters.** They are the only text returned, so write the label for an administrator.
+- The event only fires when the Admin API is installed, so listening costs nothing where it is
+  not, and your add-on does not need to require this one. As with the secrets event,
+  **uninstalling the Admin API removes your listener** and installing or rebuilding it puts it
+  back.
+
 ## Cron entries
 
 `GET /api/admin-api/cron/`
@@ -1694,6 +1796,10 @@ Every refusal of access is a `403`, so read the error `code` rather than the sta
 
 Before `1.0.0a13` a missing administrator permission was answered with `do_not_have_permission`,
 the same code as XenForo's own refusal.
+
+The add-on checks endpoint answers `404` with `hampel_adminapi_addon_not_found` for an add-on that
+is not installed, `409` with `hampel_adminapi_addon_inactive` for one that is switched off, and
+`404` with `hampel_adminapi_validator_not_declared` for one that declares no checks.
 
 The error log entries endpoint also answers `400` with `hampel_adminapi_error_id_required` when no
 `error_id` is given, and `404` when there is no such entry.

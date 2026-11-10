@@ -52,5 +52,8 @@
     },
     "api_admin-api_user-upgrades.json": {
         "hash": "4eccfe4c422c0fda19c2c250591687c1"
+    },
+    "api_admin-api_validate.json": {
+        "hash": "fc2c1bef0a171e940153f02405b5613d"
     }
 }
